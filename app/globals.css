@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────────────────────────────────────────────
+   ChefSense AI — Design Tokens
+   Warm ivory food-tech palette. Never use dark/black surfaces.
+   Values are in HSL channels (no `hsl()` wrapper) so Tailwind's
+   `<alpha-value>` substitution works in tailwind.config.ts.
+   ─────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 36 100% 96%;       /* #FFF8ED warm ivory */
+    --surface: 0 0% 100%;            /* #FFFFFF pure white card */
+    --surface-warm: 36 100% 93%;     /* #FFF2DE warm cream */
+    --card: 40 100% 98%;             /* #FFFDF8 warm off-white */
+
+    /* Brand — appetite orange-red */
+    --primary: 16 78% 54%;           /* #E65A2E */
+    --primary-dark: 12 68% 42%;      /* #B64222 */
+    --primary-soft: 24 100% 90%;     /* #FFE0CC */
+
+    /* Ghee gold */
+    --secondary: 37 91% 56%;         /* #F4A62A */
+    --secondary-soft: 46 100% 88%;   /* #FFF0C2 */
+
+    /* Olive green — trust / success */
+    --accent-green: 78 41% 40%;      /* #6F8F3D */
+    --accent-green-soft: 79 47% 92%; /* #EEF5DF */
+
+    /* Earth accents */
+    --copper: 29 60% 46%;            /* #B87333 */
+    --turmeric: 41 75% 49%;          /* #D99A21 */
+    --chilli: 11 71% 51%;            /* #D94A2B */
+
+    /* Type */
+    --text: 19 43% 16%;              /* #3A2417 dark brown */
+    --text-muted: 22 18% 41%;        /* #7A6355 */
+
+    /* Lines */
+    --border: 29 47% 84%;            /* #E8D7C2 soft beige */
+
+    /* Semantic */
+    --success: 78 41% 40%;
+    --warning: 41 75% 49%;
+    --danger: 11 71% 51%;
+
+    /* Shape */
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 700px at 110% -10%, hsl(var(--primary-soft) / 0.45), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, hsl(var(--secondary-soft) / 0.55), transparent 60%);
+    background-attachment: fixed;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4, h5 {
+    @apply font-serif text-foreground;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Reusable utilities
+   ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Phone-frame container — every screen renders inside this */
+  .app-frame {
+    @apply mx-auto w-full max-w-[440px] min-h-dvh px-5 pb-28 pt-safe;
+  }
+  .pt-safe { padding-top: max(env(safe-area-inset-top), 1rem); }
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+
+  /* Warm food-themed gradient placeholder used when images are missing */
+  .gradient-placeholder {
+    background:
+      radial-gradient(140% 100% at 20% 0%, hsl(var(--secondary-soft)) 0%, transparent 55%),
+      radial-gradient(120% 100% at 100% 100%, hsl(var(--primary-soft)) 0%, transparent 50%),
+      linear-gradient(135deg, hsl(var(--surface-warm)) 0%, hsl(var(--primary-soft) / 0.6) 100%);
+  }
+  .gradient-spice {
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--turmeric) / 0.35) 0%, transparent 55%),
+      radial-gradient(120% 90% at 100% 100%, hsl(var(--chilli) / 0.32) 0%, transparent 55%),
+      linear-gradient(135deg, hsl(var(--surface-warm)) 0%, hsl(var(--secondary-soft)) 100%);
+  }
+  .gradient-herb {
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--accent-green) / 0.28) 0%, transparent 55%),
+      linear-gradient(135deg, hsl(var(--accent-green-soft)) 0%, hsl(var(--surface-warm)) 100%);
+  }
+
+  /* CTA gradient — appetite orange */
+  .gradient-cta {
+    background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+  }
+
+  /* Soft inner highlight on cards (subtle copper hairline) */
+  .card-warm {
+    @apply rounded-2xl bg-card shadow-soft;
+    border: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  .ring-warm-focus {
+    outline: 2px solid hsl(var(--primary) / 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Subtle leaf-divider style flourish */
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Hide native scrollbars on horizontal-scroll rows (popular dishes, etc.) */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
