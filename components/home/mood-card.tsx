@@ -27,9 +27,16 @@ interface MoodCardProps {
 }
 
 /**
- * Mood card — outlined icon on cream, label below.
- * Matches the reference: light card, primary-coloured outlined icon,
- * no heavy gradient background.
+ * Mood card — outlined icon on translucent cream, label below.
+ *
+ * Subtle glass-morphism treatment: bg-card at 75% opacity with
+ * backdrop blur and a soft inner highlight border. This gives the
+ * "frosted card" feel the user asked for without forcing a dark
+ * background to make the effect visible.
+ *
+ * Fixed minimum height ensures consistent card sizes across
+ * variable label lengths (especially important for HI/TE which
+ * have different word-break behaviour than EN).
  */
 export function MoodCard({
   label,
@@ -42,12 +49,17 @@ export function MoodCard({
   const card = (
     <div
       className={cn(
-        'group flex flex-col items-center justify-start gap-2 rounded-2xl border border-border bg-card px-2 py-3 text-center shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5',
+        'group relative flex h-[78px] flex-col items-center justify-center gap-1.5',
+        'rounded-2xl border border-white/50 bg-card/75 backdrop-blur-sm',
+        'px-1.5 py-2 text-center shadow-soft',
+        'transition-all hover:shadow-card hover:-translate-y-0.5',
+        // Inner top highlight to suggest depth
+        'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-2xl before:bg-gradient-to-r before:from-transparent before:via-white/80 before:to-transparent',
         className,
       )}
     >
-      <Icon className="h-7 w-7 text-primary" strokeWidth={1.6} />
-      <span className="text-[11px] font-semibold leading-tight text-foreground text-balance">
+      <Icon className="h-6 w-6 shrink-0 text-primary" strokeWidth={1.7} />
+      <span className="text-[10.5px] font-semibold leading-[1.15] text-foreground text-balance">
         {label}
       </span>
     </div>

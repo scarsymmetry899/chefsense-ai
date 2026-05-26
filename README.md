@@ -1,8 +1,49 @@
-# ChefSense AI — Phase 1
+# ChefSense AI
 
-Real-time Indian cooking intelligence — a mobile-first PWA that adapts to you, your ingredients, and your taste.
+> Real-time Indian cooking intelligence — a mobile-first PWA that adapts to you, your ingredients, and your taste. Cook like a chef, not like a recipe follower.
 
-> **This is Phase 1: Foundation.** Project structure, design tokens, types, recipe data, UI primitives, shell components. No AI, no backend, no external API calls.
+![Status](https://img.shields.io/badge/status-prototype-orange)
+![Framework](https://img.shields.io/badge/Next.js-15.0.2-black)
+![Language](https://img.shields.io/badge/TypeScript-5.6-blue)
+
+ChefSense AI is a hackathon prototype exploring what a kitchen assistant would look like if it understood cooking the way a chef does — sensory cues, success variables, food science, taste balancing, common rescue paths — rather than reading you a static recipe.
+
+The MVP demo dish is **Paneer Butter Masala**, with a curated set of five Indian dishes shown across Welcome, Home, and (in upcoming phases) Cook screens. The app supports **English, Hindi, and Telugu** across all UI and dish metadata.
+
+---
+
+## Current state — Phase 2.6
+
+Welcome and Home screens are fully built with real food photography, multilingual content, and a refined visual system.
+
+**What works:**
+- Welcome screen with hero food photo, decorative branding, two-CTA flow
+- Home screen with horizontal featured card, Popular Dishes row, Cook by Mood strip, Recently Viewed, and inline bottom navigation
+- English / Hindi / Telugu language toggle, with translations across UI and dish names
+- 5 dish data files passing Zod schema validation at import time
+- 5 hero photos at `/public/images/dishes/{dish-id}/hero.jpg`
+- Warm ivory palette with appetite-orange CTAs, dark brown text, ghee gold + olive green accents
+- Fraunces serif headings, Inter body, JetBrains Mono code
+
+**What's still ahead:**
+- Phase 3 — Guided cooking flow (step nav, timer, sensory cues, "fix my dish" button)
+- Phase 4 — Full language coverage for the cooking flow
+- Phase 5 — Voice cook mode (SpeechSynthesis)
+- Phase 6 — Mock API placeholders (`/api/generate-recipe`, `/api/rescue`, `/api/translate`, `/api/analyze-pan`)
+
+---
+
+## Dishes in the MVP
+
+| Dish | Region | Difficulty | Time |
+|---|---|---|---|
+| Paneer Butter Masala | North Indian | Medium | 35 min |
+| Hyderabadi Chicken Biryani | Hyderabadi | Hard | 60 min |
+| Dhaba Style Dal Tadka | North Indian | Easy | 25 min |
+| Eggs Kejriwal | Bombay Club | Easy | 15 min |
+| Bandi Chicken Fried Rice | Hyderabadi Street | Medium | 30 min |
+
+Paneer Butter Masala is the only dish with a complete guided cooking flow; the rest are schema-valid placeholders ready to receive their flows in later phases.
 
 ---
 
@@ -19,7 +60,7 @@ npm run dev
 http://localhost:3000
 ```
 
-You'll see the Phase 1 boot screen — brand mark, language toggle, design-token swatches, featured dish summary, all dishes loaded, source-category chips. This screen exists to verify everything is wired correctly; the real screens land in Phase 2.
+You'll land on the Welcome screen. Tap **Start Cooking** or **Explore Demo Dish** to navigate to Home. Try the EN / HI / TE toggle in the top right of either screen.
 
 ---
 
@@ -28,167 +69,72 @@ You'll see the Phase 1 boot screen — brand mark, language toggle, design-token
 ```
 chefsense-ai/
 ├── app/
-│   ├── globals.css           # Design tokens (CSS variables) + utility classes
-│   ├── layout.tsx            # Root layout, font loading, metadata
-│   ├── page.tsx              # Phase 1 placeholder home
-│   └── providers.tsx         # Client providers (LanguageProvider)
+│   ├── globals.css            # Design tokens (CSS variables) + utility classes
+│   ├── layout.tsx             # Root layout, font loading, metadata
+│   ├── page.tsx               # Welcome screen
+│   ├── home/page.tsx          # Home screen
+│   └── providers.tsx          # Client providers (LanguageProvider)
 │
 ├── components/
-│   ├── ui/                   # Hand-authored shadcn-style primitives
-│   │   ├── badge.tsx
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── chip.tsx
-│   │   ├── input.tsx
-│   │   └── progress.tsx
-│   │
-│   ├── shared/               # Cross-screen UI helpers
-│   │   ├── image-with-fallback.tsx
-│   │   ├── leaf-divider.tsx
-│   │   ├── primary-cta.tsx
-│   │   ├── section-heading.tsx
-│   │   └── stat-tile.tsx
-│   │
-│   └── shell/                # App-wide chrome
-│       ├── app-shell.tsx     # Phone-frame container
-│       ├── bottom-nav.tsx    # 5-tab nav bar
-│       ├── brand-logo.tsx    # SVG mark + wordmark
-│       ├── header.tsx        # Back, brand, actions, language
-│       └── language-toggle.tsx
+│   ├── ui/                    # Hand-authored shadcn-style primitives
+│   ├── shared/                # Cross-screen UI (DishHeroCard, ImageWithFallback, FeaturePill, ...)
+│   ├── shell/                 # Shell (AppShell, BrandLogo, BottomNav, LanguageToggle, Header)
+│   └── home/                  # Home-specific (SearchBar, DishCard, MoodCard, RecentlyViewedItem)
 │
 ├── lib/
-│   ├── constants/
-│   │   └── routes.ts         # Central route map (single source of truth)
-│   │
-│   ├── data/
-│   │   ├── paneer-butter-masala.ts   # Full 18-step demo dish
-│   │   ├── dal-tadka.ts              # Lighter placeholder
-│   │   ├── chicken-biryani.ts        # Lighter placeholder
-│   │   └── dishes.ts                 # Index + Zod validation at import time
-│   │
-│   ├── i18n/
-│   │   ├── dictionary.ts             # UI strings en / hi / te
-│   │   └── language-context.tsx      # Provider + useLanguage()
-│   │
-│   ├── source-policy.ts      # Anonymous source categories + legal rules
-│   ├── types.ts              # Zod schemas (Dish, CookingStep, RescueIssue, ...)
-│   └── utils.ts              # cn(), formatDuration(), clamp()
+│   ├── constants/routes.ts    # Single source of truth for all route paths
+│   ├── data/                  # Static dish data (schema-validated at import time)
+│   │   ├── dishes.ts          # Index — imports + validates each dish
+│   │   ├── paneer-butter-masala.ts
+│   │   ├── chicken-biryani.ts
+│   │   ├── dal-tadka.ts
+│   │   ├── eggs-kejriwal.ts
+│   │   └── bandi-chicken-fried-rice.ts
+│   ├── i18n/                  # Language context + dictionary
+│   │   ├── language-context.tsx
+│   │   └── dictionary.ts      # EN / HI / TE strings, one flat key namespace
+│   ├── source-policy.ts       # Anonymous source-category metadata
+│   ├── types.ts               # Zod schemas for every dish + UI shape
+│   └── utils.ts               # `cn` helper + small utilities
 │
 └── public/
-    ├── images/               # Drop dish images here (gradient fallback if absent)
-    ├── icon-192.svg
-    ├── icon-512.svg
-    └── manifest.json
+    └── images/dishes/{id}/hero.jpg
 ```
 
 ---
 
-## Design system
+## Design constraints
 
-All colours flow through CSS variables (`app/globals.css`) and are mirrored in the Tailwind theme (`tailwind.config.ts`) so they're alpha-channel friendly (`bg-primary/40`).
+The visual and content rules baked into this codebase:
 
-| Token              | Value     | Where to use                        |
-| ------------------ | --------- | ----------------------------------- |
-| `--background`     | `#FFF8ED` | Page background (warm ivory)        |
-| `--surface-warm`   | `#FFF2DE` | Soft inner cards / chip backgrounds |
-| `--card`           | `#FFFDF8` | Standard card background            |
-| `--primary`        | `#E65A2E` | Appetite orange-red CTAs            |
-| `--primary-dark`   | `#B64222` | Darker side of the CTA gradient     |
-| `--secondary`      | `#F4A62A` | Ghee gold accents                   |
-| `--accent-green`   | `#6F8F3D` | Olive — trust indicators, success   |
-| `--copper`         | `#B87333` | Copper details, regional tags       |
-| `--turmeric`       | `#D99A21` | Spice accents                       |
-| `--chilli`         | `#D94A2B` | Heat indicators                     |
-| `--text`           | `#3A2417` | Primary text (dark warm brown)      |
-| `--text-muted`     | `#7A6355` | Secondary text                      |
-| `--border`         | `#E8D7C2` | Hairlines                           |
-
-**Typography:** Playfair Display (serif, headings), Manrope (sans, body), JetBrains Mono (mono, code). All loaded via `next/font/google`.
-
-**Frame:** Every screen renders inside `.app-frame` — a centred 440px-max container so the UI feels native on mobile and stays readable on desktop.
+- **Warm ivory backgrounds.** Never dark or black surfaces. Cream cards on warm-ivory canvas with appetite-orange CTAs.
+- **No real chef or publication names** anywhere in the codebase. The `lib/source-policy.ts` file restricts every source reference to one of five anonymous categories: `top-chef-style`, `regional`, `technique-video`, `recipe-database`, `food-science`.
+- **No verbatim recipes.** Cooking steps are written in original beginner-friendly language. Jargon is rewritten in plain words ("deglaze" → "add a splash of water and gently scrape the tasty stuck bits").
+- **Schema-first.** Every dish must pass Zod validation at import time. Bad data fails the build, not the user. The same schema will validate LLM responses in Phase 6.
 
 ---
 
-## Recipe data
+## Tech stack
 
-Each dish is a TypeScript object validated against `DishSchema` (`lib/types.ts`) at import time. Bad data fails the build, not the user.
+- **Next.js 15.0.2** (App Router, TypeScript, server components by default)
+- **Tailwind CSS 3.4** + hand-authored shadcn-style primitives (no full shadcn install — small footprint)
+- **Framer Motion** for transitions
+- **Lucide React** for icons
+- **Zod** for runtime schema validation
+- **Fraunces** + **Inter** + **JetBrains Mono** via `next/font`
 
-**Paneer Butter Masala** is the MVP demo dish — 18 cooking steps, 9 rescue cases, 5 success variables, 5 finishing touches, taste-balance values, and sample Hindi + Telugu content translations.
-
-**Dal Tadka** and **Chicken Biryani** are lighter placeholders that satisfy the schema for home-grid testing; they expand in later phases.
-
-### Beginner-language rule
-
-All recipe copy must avoid jargon. The full rule + examples are at the top of `lib/data/paneer-butter-masala.ts`. In short:
-
-- ❌ Bad: *"Reduce the masala."*
-- ✅ Good: *"Cook it slowly until it becomes thicker and shinier. Small oil drops should appear around the edges."*
+No backend, no external API calls, no database. All data is local TypeScript. Phase 6 introduces mock API placeholders intended to be swapped for real LLM calls later.
 
 ---
 
-## Source / legal policy
+## Adding new dish photography
 
-See `lib/source-policy.ts`. Summary:
+Drop a JPEG at `/public/images/dishes/{dish-id}/hero.jpg` matching the dish ID from `lib/data/dishes.ts`. `ImageWithFallback` automatically renders it; if the file is missing or fails to load, the component falls back to a warm gradient placeholder with an emoji glyph.
 
-- No real chef names anywhere in the UI.
-- No real publication / channel / site names.
-- No verbatim recipe copying.
-- No implied endorsement.
-- Source attribution uses only the **five anonymous categories**:
-  1. Top chef-style sources
-  2. Regional cooking reference
-  3. Technique video reference
-  4. Recipe database
-  5. Food science reference
-
-Any new source-related UI must pull from `SOURCE_CATEGORIES`.
+For future cooking-step photos, the path convention is `/public/images/dishes/{dish-id}/step-{n}.jpg`, referenced from the `image` field on each cooking step.
 
 ---
 
-## Image strategy
+## License
 
-The Phase 1 prototype ships **zero image assets**. Every image renders via `<ImageWithFallback>`, which gracefully degrades to a warm gradient + glyph if the source 404s. To upgrade to real photography, drop files into the paths referenced in the dish data:
-
-```
-public/images/dishes/paneer-butter-masala/hero.jpg
-public/images/dishes/paneer-butter-masala/step-1.jpg
-public/images/dishes/paneer-butter-masala/step-2.jpg
-...
-```
-
-No Unsplash, no external CDN, no Next/Image domain config needed.
-
----
-
-## Assumptions (Phase 1)
-
-1. **No external services.** No Supabase, no OpenAI/Gemini, no scraping, no auth, no database.
-2. **No image assets shipped.** Warm gradients handle the missing-image case so the app looks intentional, not broken.
-3. **Routes are declared but not all wired.** Real screens land in Phase 2; the route map (`lib/constants/routes.ts`) is the contract.
-4. **Bottom-nav items all link to `/home`** for Phase 1. Real targets get wired in Phase 2.
-5. **Translation coverage:** UI chrome is fully translated to en / hi / te. Content translations cover the demo dish title, summary, and step 7 — full content translations land in Phase 4.
-6. **No `<form>` elements** — kept clean for the build.
-7. **Mobile-first.** Layouts are designed against the 440px phone frame. They remain usable on desktop but the visual target is mobile.
-
----
-
-## What's next: Phase 2 plan
-
-Phase 2 builds out **static UI screens with working navigation, using only the local data**:
-
-- **Welcome** (`/`) — full hero, tagline, source-style preview row, primary CTA.
-- **Home** (`/home`) — search bar, featured dish card, popular dishes row, mood grid, recently viewed.
-- **Dish Detail** (`/dish/[id]`) — hero image, vegetarian + featured badges, stat tiles, AI-powered summary card, success variables, common mistakes, CTA to plan.
-- **Sources** (`/dish/[id]/sources`) — anonymous source category cards with trust scores, consensus footer.
-- **Mise en place** (`/dish/[id]/mise-en-place`) — prep progress, tool grid, ingredient checklist, chef tip.
-- **Cook** (`/dish/[id]/cook`) — step nav scaffolding (functionality lands in Phase 3).
-- **Voice** (`/dish/[id]/voice`) — visual layout (functionality lands in Phase 5).
-- **Pan check** (`/dish/[id]/pan-check`) — diagnosis card layout.
-- **Rescue** (`/dish/[id]/rescue`) — issue chip grid + detail panel.
-- **Finish** (`/dish/[id]/finish`) — taste balance meter, finishing touches list, plating preview.
-
-All navigation will route through `ROUTES.*` — no hardcoded strings.
-
----
-
-Made with ♥ for Indian kitchens.
+Prototype / hackathon project. Not for redistribution in current state.

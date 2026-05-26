@@ -69,30 +69,30 @@ export function DishHeroCard({
           className,
         )}
       >
-        <div className="flex flex-row">
+        <div className="flex flex-row min-h-[220px]">
           {/* Left: text & stats — explicit basis so the right panel never collapses */}
-          <div className="flex basis-3/5 min-w-0 flex-col gap-3 p-5">
+          <div className="flex basis-3/5 min-w-0 flex-col gap-2.5 p-4">
             {featured && (
-              <span className="self-start inline-flex items-center gap-1 rounded-full border border-secondary/40 bg-secondary-soft px-2.5 py-1 text-[11px] font-semibold text-copper">
+              <span className="self-start inline-flex items-center gap-1 rounded-full border border-secondary/40 bg-secondary-soft/90 backdrop-blur-sm px-2.5 py-0.5 text-[10.5px] font-semibold text-copper">
                 <Star className="h-3 w-3 fill-current" />
                 {t('home.featured')}
               </span>
             )}
 
-            <h3 className="font-serif text-[24px] leading-[1.05] tracking-tight text-foreground">
+            <h3 className="font-serif font-semibold text-[21px] leading-[1.08] tracking-tight text-foreground">
               {name}
             </h3>
 
-            <p className="line-clamp-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            <p className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">
               {summary}
             </p>
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs text-foreground/80">
-              <span className="inline-flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pt-0.5 text-[11.5px] text-foreground/80">
+              <span className="inline-flex items-center gap-1">
                 <Flame className="h-3.5 w-3.5 text-primary" />
                 {difficultyLabel}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5 text-copper" />
                 {dish.totalTimeMin} {t('common.min')}
               </span>
@@ -101,10 +101,10 @@ export function DishHeroCard({
             {showInlineCta && (
               <Link
                 href={href ?? '#'}
-                className="mt-2 self-start inline-flex items-center gap-1.5 rounded-full gradient-cta px-4 py-2 text-sm font-semibold text-white shadow-cta active:scale-95 transition-transform"
+                className="mt-auto self-start inline-flex items-center gap-1 whitespace-nowrap rounded-full gradient-cta px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-cta active:scale-95 transition-transform"
               >
                 {t('cta.startGuidedCook')}
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             )}
           </div>

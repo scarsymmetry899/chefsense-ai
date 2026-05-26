@@ -1,16 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Playfair_Display, Manrope, JetBrains_Mono } from 'next/font/google';
+import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const playfair = Playfair_Display({
+// Fraunces — warm, food-friendly display serif with optical sizing.
+// Used by Stripe, GitHub, multiple food/restaurant brands.
+const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-serif',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  axes: ['SOFT', 'opsz'],
 });
 
-const manrope = Manrope({
+// Inter — neutral, modern body sans. Crisper than Manrope at small sizes.
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -52,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${manrope.variable} ${jetbrains.variable}`}
+      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
     >
       <body>
         <Providers>{children}</Providers>
