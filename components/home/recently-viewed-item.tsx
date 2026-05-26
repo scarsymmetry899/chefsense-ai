@@ -10,23 +10,22 @@ import type { Dish } from '@/lib/types';
 function visual(dish: Dish): { gradient: 'food' | 'spice' | 'herb'; glyph: string } {
   switch (dish.dishId) {
     case 'paneer-butter-masala':
-      return { gradient: 'spice', glyph: '🍛' };
+      return { gradient: 'spice', glyph: '\u{1F35B}' };
     case 'dal-tadka':
-      return { gradient: 'food', glyph: '🍲' };
+      return { gradient: 'food', glyph: '\u{1F372}' };
     case 'chicken-biryani':
-      return { gradient: 'herb', glyph: '🥘' };
+      return { gradient: 'herb', glyph: '\u{1F958}' };
     case 'eggs-kejriwal':
-      return { gradient: 'food', glyph: '🍳' };
+      return { gradient: 'food', glyph: '\u{1F373}' };
     case 'bandi-chicken-fried-rice':
-      return { gradient: 'spice', glyph: '🍚' };
+      return { gradient: 'spice', glyph: '\u{1F35A}' };
     default:
-      return { gradient: 'food', glyph: '🍲' };
+      return { gradient: 'food', glyph: '\u{1F372}' };
   }
 }
 
 interface RecentlyViewedItemProps {
   dish: Dish;
-  /** Pre-formatted relative time, e.g. "10 mins" or "1 hr". */
   viewedAgo: string;
   href?: string;
   className?: string;
@@ -49,10 +48,8 @@ export function RecentlyViewedItem({
   const inner = (
     <div
       className={cn(
-        'relative flex items-center gap-2.5 rounded-2xl border border-white/70 bg-white/45 backdrop-blur-xl px-2.5 py-2',
-        'shadow-[0_4px_16px_-6px_rgba(58,36,23,0.18)]',
-        // Inner top highlight stroke
-        'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-2xl before:bg-gradient-to-r before:from-transparent before:via-white/95 before:to-transparent',
+        'relative flex items-center gap-2.5 rounded-2xl border border-border bg-card px-2.5 py-2 shadow-soft',
+        'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-2xl before:bg-gradient-to-r before:from-transparent before:via-white/80 before:to-transparent',
         className,
       )}
     >
@@ -67,7 +64,7 @@ export function RecentlyViewedItem({
         />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate font-serif text-[13px] leading-tight text-foreground">
+        <div className="truncate font-serif text-[13px] font-semibold leading-tight text-foreground">
           {name}
         </div>
         <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
