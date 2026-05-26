@@ -1,5 +1,6 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import { Bell, Citrus, Flame, Leaf, Sparkles, Wheat } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -22,7 +23,8 @@ const AXIS_META = {
   aroma: { icon: Leaf, label: 'Aroma' },
 };
 
-export default function DishFinishPage({ params }: { params: { id: string } }) {
+export default function DishFinishPage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
 
   return (
