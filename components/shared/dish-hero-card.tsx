@@ -2,28 +2,26 @@
 
 import Link from 'next/link';
 import { Clock, Flame, Users, ChevronRight, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ImageWithFallback } from './image-with-fallback';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { cn } from '@/lib/utils';
 import type { Dish } from '@/lib/types';
 import type { DictionaryKey } from '@/lib/i18n/dictionary';
 
-/** Decide which warm gradient + glyph backs a dish if the photo fails to load. */
 function dishVisual(dish: Dish): { gradient: 'food' | 'spice' | 'herb'; glyph: string } {
   switch (dish.dishId) {
     case 'paneer-butter-masala':
-      return { gradient: 'spice', glyph: '🍛' };
+      return { gradient: 'spice', glyph: '\u{1F35B}' };
     case 'dal-tadka':
-      return { gradient: 'food', glyph: '🍲' };
+      return { gradient: 'food', glyph: '\u{1F372}' };
     case 'chicken-biryani':
-      return { gradient: 'herb', glyph: '🥘' };
+      return { gradient: 'herb', glyph: '\u{1F958}' };
     case 'eggs-kejriwal':
-      return { gradient: 'food', glyph: '🍳' };
+      return { gradient: 'food', glyph: '\u{1F373}' };
     case 'bandi-chicken-fried-rice':
-      return { gradient: 'spice', glyph: '🍚' };
+      return { gradient: 'spice', glyph: '\u{1F35A}' };
     default:
-      return { gradient: 'food', glyph: '🍲' };
+      return { gradient: 'food', glyph: '\u{1F372}' };
   }
 }
 
@@ -34,7 +32,6 @@ interface DishHeroCardProps {
   featured?: boolean;
   href?: string;
   variant?: Variant;
-  /** When `horizontal`, render an inline "Start Guided Cook" button. */
   showInlineCta?: boolean;
   className?: string;
 }
@@ -61,21 +58,14 @@ export function DishHeroCard({
   const difficultyLabel = t(difficultyKey);
 
   if (variant === 'horizontal') {
-    // ── Featured Home card ── Photo-led hero design:
-    // Full-bleed dish photo as the entire card background, with a
-    // frosted-glass panel floating over the lower half containing
-    // the dish name, summary, stats, and the "Start Guided Cook" CTA.
-    // This is the dramatic premium-app pattern (Airbnb / DoorDash hero
-    // cards style) — photo dominates, glass panel provides text safety.
     const card = (
       <article
         className={cn(
-          'group relative overflow-hidden rounded-3xl border border-border/60 shadow-card transition-shadow hover:shadow-lg',
+          'group overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-shadow hover:shadow-lg',
           className,
         )}
       >
-        {/* Photo as full-width background */}
-        <div className="relative aspect-[4/5] sm:aspect-[16/11]">
+        <div className="relative aspect-[16/11] overflow-hidden">
           <ImageWithFallback
             src={dish.heroImage}
             alt={name}
@@ -84,52 +74,49 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-
-          {/* Subtle dark gradient at bottom to keep glass panel readable */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
-
-          {/* "Featured" pill — floats top-left over the photo with glass */}
           {featured && (
-            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/85 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/90 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
               <Star className="h-3 w-3 fill-current" />
               {t('home.featured')}
             </span>
           )}
+        </div>
 
-          {/* Glass panel — floats at bottom with all the text content */}
-          <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/55 bg-white/82 backdrop-blur-xl p-4 shadow-[0_10px_30px_-12px_rgba(58,36,23,0.35)]">
-            {/* Inner highlight stroke at the top for premium glass feel */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+        <div className="relative border-t border-border bg-card p-4">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
-            <h3 className="font-serif text-[26px] leading-[1.05] tracking-tight text-foreground">
-              {name}
-            </h3>
+          <h3 className="font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
+            {name}
+          </h3>
 
-            <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/70">
-              {summary}
-            </p>
+          <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/72">
+            {summary}
+          </p>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-foreground/80">
-              <span className="inline-flex items-center gap-1">
-                <Flame className="h-3.5 w-3.5 text-primary" />
-                {difficultyLabel}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5 text-copper" />
-                {dish.totalTimeMin} {t('common.min')}
-              </span>
-            </div>
-
-            {showInlineCta && (
-              <Link
-                href={href ?? '#'}
-                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-2.5 text-[13.5px] font-semibold text-white shadow-cta active:scale-[0.98] transition-transform"
-              >
-                {t('cta.startGuidedCook')}
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            )}
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-foreground/80">
+            <span className="inline-flex items-center gap-1">
+              <Flame className="h-3.5 w-3.5 text-primary" />
+              {difficultyLabel}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-copper" />
+              {dish.totalTimeMin} {t('common.min')}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 text-accent-green" />
+              {dish.serves}
+            </span>
           </div>
+
+          {showInlineCta && (
+            <Link
+              href={href ?? '#'}
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-3 text-[13.5px] font-medium text-white shadow-cta transition-transform active:scale-[0.98]"
+            >
+              {t('cta.startGuidedCook')}
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </article>
     );
@@ -143,7 +130,6 @@ export function DishHeroCard({
     );
   }
 
-  // ── Lush vertical variant (default) ──
   const lushCard = (
     <article
       className={cn(
@@ -181,7 +167,7 @@ export function DishHeroCard({
 
       <div className="space-y-3 p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-serif text-2xl leading-tight">{name}</h3>
+          <h3 className="font-serif text-2xl font-semibold leading-tight">{name}</h3>
           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.15em] text-copper">
             {dish.region}
           </span>
