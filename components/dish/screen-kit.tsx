@@ -102,7 +102,7 @@ export function ScreenCard({
   children: ReactNode;
   className?: string;
 }) {
-  return <section className={cn('editorial-card paper-panel p-5', className)}>{children}</section>;
+  return <section className={cn('card-warm paper-panel p-5', className)}>{children}</section>;
 }
 
 export function SectionEyebrow({
@@ -136,7 +136,7 @@ export function MetricTile({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-[24px] border border-border/80 bg-white/65 px-4 py-4 text-center shadow-sm', className)}>
+    <div className={cn('rounded-[24px] border border-border/80 bg-card px-4 py-4 text-center shadow-sm', className)}>
       <Icon className="mx-auto h-6 w-6 text-primary" />
       <div className="mt-3 text-[13px] text-muted-foreground">{title}</div>
       <div className="mt-1 font-serif text-[22px] leading-none text-foreground">{value}</div>
@@ -160,7 +160,7 @@ export function SoftButton({
     <Link
       href={href}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-full border border-border/80 bg-white/80 px-5 py-3 text-sm font-medium text-foreground shadow-sm transition-transform active:scale-[0.98]',
+        'inline-flex items-center justify-center gap-2 rounded-full border border-border/80 bg-card px-5 py-3 text-sm font-medium text-foreground shadow-sm transition-transform active:scale-[0.98]',
         className,
       )}
     >
@@ -215,7 +215,7 @@ export function DishVisual({
   className?: string;
 }) {
   return (
-    <div className={cn('overflow-hidden rounded-[26px] border border-border/70 bg-white/60', className)}>
+    <div className={cn('overflow-hidden rounded-[26px] border border-border/70 bg-card', className)}>
       <ImageWithFallback
         src={src}
         alt={alt}
@@ -273,7 +273,7 @@ export function CheckRow({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-start gap-3 rounded-[22px] border border-border/60 bg-white/65 px-4 py-3', className)}>
+    <div className={cn('flex items-start gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-3', className)}>
       <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent-green-soft text-accent-green">
         <Icon className="h-4 w-4" />
       </span>

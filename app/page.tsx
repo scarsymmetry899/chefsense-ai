@@ -71,7 +71,7 @@ export default function WelcomePage() {
       </section>
 
       <section className="mt-7 flex flex-col items-center gap-3 animate-fade-up">
-        <Link href={ROUTES.dishMiseEnPlace(featured.dishId)} className="inline-flex w-full max-w-[320px]">
+        <Link href={ROUTES.dish(featured.dishId)} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
             className="inline-flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-left text-white shadow-cta transition-transform active:scale-95"
@@ -136,7 +136,7 @@ function FoodHeroIllustration({
   heroImage: string;
 }) {
   return (
-    <div className="editorial-card paper-panel relative overflow-hidden rounded-[32px]">
+    <div className="card-warm paper-panel relative overflow-hidden rounded-[32px]">
       <div className="relative h-[320px] overflow-hidden">
         <ImageWithFallback
           src={heroImage}

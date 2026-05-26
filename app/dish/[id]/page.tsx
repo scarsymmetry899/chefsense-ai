@@ -1,113 +1,240 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Bookmark, ChefHat, Clock3, Users, Utensils } from 'lucide-react';
+import {
+  ChevronRight,
+  Leaf,
+  Scale,
+  ShoppingBasket,
+  Users,
+  UtensilsCrossed,
+} from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import {
   DishVisual,
-  GradientButton,
   MetricTile,
+  ProgressBar,
   ScreenCard,
   SectionEyebrow,
   StatusPill,
 } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
+import { getBaseServings, scaleQuantity } from '@/lib/dish-flow';
+import { useLanguage } from '@/lib/i18n/language-context';
+
+const STORAGE_PREFIX = 'chefsense.ingredients.';
+const SERVING_OPTIONS = [1, 2, 4, 6];
+
+type IngredientState = {
+  servings: number;
+  checked: string[];
+};
 
 export default function DishPage() {
   const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
+  const { lang } = useLanguage();
+
+  const baseServings = useMemo(() => getBaseServings(dish.serves), [dish.serves]);
+  const storageKey = `${STORAGE_PREFIX}${dish.dishId}`;
+
+  const [servings, setServings] = useState(baseServings);
+  const [checked, setChecked] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<IngredientState>;
+      if (typeof parsed.servings === 'number') setServings(parsed.servings);
+      if (Array.isArray(parsed.checked)) setChecked(parsed.checked);
+    } catch {
+      // Ignore malformed saved state.
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({ servings, checked } satisfies IngredientState),
+      );
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [checked, servings, storageKey]);
+
+  const checkedSet = useMemo(() => new Set(checked), [checked]);
+  const progress = Math.round((checked.length / dish.ingredients.length) * 100);
+  const allChecked = checked.length === dish.ingredients.length;
+  const ingredientTitle = copyForLang(lang, {
+    en: 'Ingredient Checklist',
+    hi: 'सामग्री चेकलिस्ट',
+    te: 'పదార్థాల చెక్‌లిస్ట్',
+  });
+  const setupLabel = copyForLang(lang, {
+    en: 'Before you start cooking',
+    hi: 'पकाना शुरू करने से पहले',
+    te: 'వంట మొదలుపెట్టే ముందు',
+  });
+  const setupBody = copyForLang(lang, {
+    en: 'Check off what you have, then set how many people you are cooking for. We will tune the visible ingredient quantities for that serving size.',
+    hi: 'जो सामग्री आपके पास है उसे टिक करें, फिर बताइए आप कितने लोगों के लिए बना रहे हैं। हम उसी हिसाब से मात्रा दिखाएँगे।',
+    te: 'మీ దగ్గర ఉన్న పదార్థాలను టిక్ చేయండి. తర్వాత ఎన్ని మందికి వండుతున్నారో ఎంచుకోండి. దానికి అనుగుణంగా పరిమాణాలు చూపిస్తాము.',
+  });
 
   return (
     <AppShell className="pb-32">
-      <Header
-        backHref={ROUTES.home}
-        showLanguageToggle={false}
-        actions={[{ icon: Bookmark, label: 'Save' }]}
-      />
+      <Header backHref={ROUTES.home} />
 
-      <div className="grid gap-5">
-        <section className="grid gap-5 md:grid-cols-[1.05fr_0.95fr] md:items-center">
-          <DishVisual src={dish.heroImage} alt={dish.dishName} className="h-[280px]" />
-          <div>
-            <h1 className="text-[32px] leading-[0.95] sm:text-[38px]">{dish.dishName}</h1>
-            <div className="mt-3">
-              <StatusPill label="AI-Powered Summary" />
-            </div>
-            <p className="mt-4 text-[16px] leading-8 text-muted-foreground">{dish.summary}</p>
-            {dish.isVegetarian ? (
-              <div className="mt-4">
-                <StatusPill label="Vegetarian" tone="green" />
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-2 gap-3">
-          <MetricTile icon={ChefHat} title="Difficulty" value={dish.difficulty} />
-          <MetricTile
-            icon={Clock3}
-            title="Total Time"
-            value={`${dish.totalTimeMin} min`}
-            detail={`Prep ${dish.prepTimeMin}m · Cook ${dish.cookTimeMin}m`}
+      <ScreenCard className="overflow-hidden p-0">
+        <div className="grid gap-0 md:grid-cols-[1fr_1.05fr]">
+          <DishVisual
+            src={dish.heroImage}
+            alt={dish.dishName}
+            className="h-[220px] rounded-none border-0 md:h-full"
           />
-          <MetricTile icon={Users} title="Serves" value={dish.serves} detail="People" />
-          <MetricTile icon={Utensils} title="Cuisine" value={dish.region} detail={dish.cuisine} />
+          <div className="p-5">
+            <SectionEyebrow label={setupLabel} />
+            <h1 className="text-[34px] leading-[0.95]">{dish.dishName}</h1>
+            <p className="mt-3 text-[16px] leading-7 text-muted-foreground">{setupBody}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
+              <StatusPill label={`${checked.length}/${dish.ingredients.length} ready`} tone="green" />
+            </div>
+          </div>
         </div>
 
-        <ScreenCard>
-          <SectionEyebrow label="Chef Success Variables" />
-          <h2 className="text-[18px]">Master these to get restaurant-style results.</h2>
-          <div className="mt-4 space-y-3">
-            {dish.successVariables.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-3 border-t border-border/50 pt-3 first:border-t-0 first:pt-0"
+        <div className="border-t border-border/70 px-5 py-5">
+          <div className="flex items-center justify-between gap-3 text-[16px]">
+            <span className="font-medium text-foreground">{ingredientTitle}</span>
+            <span className="text-muted-foreground">{progress}% ready</span>
+          </div>
+          <ProgressBar value={progress} className="mt-4" />
+        </div>
+      </ScreenCard>
+
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <MetricTile icon={Users} title="Servings" value={`${servings}`} detail={`Base ${dish.serves}`} />
+        <MetricTile icon={ShoppingBasket} title="Ingredients" value={`${dish.ingredients.length}`} detail="Checklist items" />
+        <MetricTile icon={UtensilsCrossed} title="Tools" value={`${dish.tools.length}`} detail="To keep ready" />
+      </div>
+
+      <ScreenCard className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionEyebrow icon={Scale} label="Serving Size" className="mb-1" />
+            <h2 className="text-[22px]">How many people are you cooking for?</h2>
+          </div>
+          <StatusPill label={`Scaled from ${dish.serves}`} />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {SERVING_OPTIONS.map((option) => {
+            const active = option === servings;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setServings(option)}
+                className={
+                  active
+                    ? 'rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta'
+                    : 'rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground'
+                }
               >
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <ChefHat className="h-5 w-5" />
-                </span>
-                <div className="flex-1">
-                  <div className="text-[18px] font-medium text-foreground">{item.title}</div>
-                  <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {item.detail}
-                  </div>
-                </div>
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent-green text-white">
+                {option} {option === 1 ? 'person' : 'people'}
+              </button>
+            );
+          })}
+        </div>
+      </ScreenCard>
+
+      <ScreenCard className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionEyebrow icon={Leaf} label="What you need" className="mb-1" />
+            <h2 className="text-[22px]">{ingredientTitle}</h2>
+          </div>
+          <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
+            Source-backed plan
+          </Link>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {dish.ingredients.map((ingredient) => {
+            const isChecked = checkedSet.has(ingredient.id);
+            const scaledQuantity = scaleQuantity(ingredient.quantity, servings, baseServings);
+            return (
+              <button
+                key={ingredient.id}
+                type="button"
+                onClick={() =>
+                  setChecked((current) =>
+                    current.includes(ingredient.id)
+                      ? current.filter((item) => item !== ingredient.id)
+                      : [...current, ingredient.id],
+                  )
+                }
+                className="flex w-full items-start gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-3 text-left transition-transform active:scale-[0.995]"
+              >
+                <span
+                  className={
+                    isChecked
+                      ? 'mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent-green text-white'
+                      : 'mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-transparent'
+                  }
+                >
                   ✓
                 </span>
-              </div>
-            ))}
-          </div>
-        </ScreenCard>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className={isChecked ? 'text-base text-muted-foreground line-through' : 'text-base text-foreground'}>
+                      {ingredient.name}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary-dark">
+                      {scaledQuantity}
+                    </span>
+                  </div>
+                  {ingredient.note ? (
+                    <div className="mt-1 text-sm leading-6 text-muted-foreground">{ingredient.note}</div>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </ScreenCard>
 
-        <ScreenCard>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[18px]">Common Mistakes</h2>
-            <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-medium text-primary">
-              View all
-            </Link>
-          </div>
-          <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-            {dish.commonMistakes.slice(0, 3).map((mistake) => (
-              <div
-                key={mistake}
-                className="rounded-[20px] border border-border/60 bg-white/65 px-4 py-3"
-              >
-                {mistake}
-              </div>
-            ))}
-          </div>
-        </ScreenCard>
-
-        <GradientButton
+      <div className="mt-6">
+        <Link
           href={ROUTES.dishMiseEnPlace(dish.dishId)}
-          label="Start Mise en Place"
-          subline="Great cooking begins with great prep."
-        />
+          className="flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-white shadow-cta transition-transform active:scale-[0.985]"
+        >
+          <span className="flex items-center gap-3">
+            <ShoppingBasket className="h-6 w-6" />
+            <span className="flex flex-col leading-tight">
+              <span className="font-serif text-[20px]">
+                {allChecked ? 'Start Kitchen Prep' : 'Continue to Kitchen Prep'}
+              </span>
+              <span className="text-sm text-white/90">
+                {allChecked ? 'Everything is in place for the next step.' : 'You can still update this checklist anytime.'}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="h-5 w-5" />
+        </Link>
       </div>
     </AppShell>
   );
+}
+
+function copyForLang(
+  lang: 'en' | 'hi' | 'te',
+  copy: Record<'en' | 'hi' | 'te', string>,
+) {
+  return copy[lang] ?? copy.en;
 }

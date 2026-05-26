@@ -68,6 +68,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const t = useCallback(
     (key: DictionaryKey) => {
       const dict: Dictionary = dictionaries[lang] ?? dictionaries[DEFAULT_LANG];

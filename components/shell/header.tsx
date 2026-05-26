@@ -44,7 +44,7 @@ export function Header({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between gap-2 bg-background/80 px-5 py-3 backdrop-blur-md',
+        'sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between gap-2 border-b border-border/55 bg-background px-5 py-3',
         className,
       )}
     >

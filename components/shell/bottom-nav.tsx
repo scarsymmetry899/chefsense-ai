@@ -39,27 +39,42 @@ const LABEL_KEY: Record<string, DictionaryKey> = {
 export function BottomNav() {
   const { t } = useLanguage();
   const pathname = usePathname();
+  const currentDishMatch = pathname.match(/^\/dish\/([^/]+)/);
+  const currentDishId = currentDishMatch?.[1] ?? 'paneer-butter-masala';
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-safe backdrop-blur-md">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-safe shadow-[0_-10px_30px_-26px_rgba(114,66,35,0.35)]">
       <div className="mx-auto w-full max-w-[440px] px-2">
         <div className="flex items-center justify-around gap-1 py-2">
           {BOTTOM_NAV_ITEMS.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Home;
+            const href =
+              item.key === 'cook'
+                ? BOTTOM_NAV_ITEMS.find((entry) => entry.key === 'cook')?.href.replace(
+                    'paneer-butter-masala',
+                    currentDishId,
+                  ) ?? item.href
+                : item.key === 'rescue'
+                  ? BOTTOM_NAV_ITEMS.find((entry) => entry.key === 'rescue')?.href.replace(
+                      'paneer-butter-masala',
+                      currentDishId,
+                    ) ?? item.href
+                  : item.href;
             const active =
               (item.key === 'home' && (pathname === '/home' || pathname === '/')) ||
               (item.key === 'cook' &&
                 (pathname.includes('/mise-en-place') ||
+                  pathname === `/dish/${currentDishId}` ||
                   pathname.includes('/cook') ||
                   pathname.includes('/voice') ||
                   pathname.includes('/finish') ||
-                  pathname === '/dish/paneer-butter-masala')) ||
+                  pathname.includes('/ingredients'))) ||
               (item.key === 'rescue' &&
                 (pathname.includes('/rescue') || pathname.includes('/pan-check')));
             return (
               <Link
                 key={item.key}
-                href={item.href}
+                href={href}
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1.5 transition-colors',
                   active

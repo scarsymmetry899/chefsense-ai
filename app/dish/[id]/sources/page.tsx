@@ -24,7 +24,7 @@ export default function DishSourcesPage() {
 
   return (
     <AppShell className="pb-32">
-      <Header backHref={ROUTES.dish(dish.dishId)} showLanguageToggle={false} />
+      <Header backHref={ROUTES.dish(dish.dishId)} />
 
       <section className="text-center">
         <h1 className="mx-auto max-w-[330px] text-[34px] leading-[0.98]">
@@ -106,7 +106,7 @@ export default function DishSourcesPage() {
       </ScreenCard>
 
       <div className="mt-6">
-        <GradientButton href={ROUTES.dishMiseEnPlace(dish.dishId)} label="View Guided Plan" />
+        <GradientButton href={ROUTES.dish(dish.dishId)} label="View Guided Plan" />
       </div>
     </AppShell>
   );

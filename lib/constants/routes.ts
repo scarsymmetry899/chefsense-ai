@@ -21,7 +21,10 @@ export const ROUTES = {
     typeof step === 'number'
       ? `/dish/${id}/cook?step=${step}`
       : `/dish/${id}/cook`,
-  dishVoice: (id: string) => `/dish/${id}/voice`,
+  dishVoice: (id: string, step?: number) =>
+    typeof step === 'number'
+      ? `/dish/${id}/voice?step=${step}`
+      : `/dish/${id}/voice`,
   dishPanCheck: (id: string) => `/dish/${id}/pan-check`,
   dishRescue: (id: string, issueId?: string) =>
     issueId

@@ -38,7 +38,7 @@ export function LanguageToggle({ compact = false, className }: LanguageTogglePro
               'rounded-full px-2.5 py-1 text-xs font-semibold transition-colors',
               active
                 ? 'gradient-cta text-white shadow-cta'
-                : 'text-muted-foreground hover:text-foreground',
+                : 'bg-background text-muted-foreground hover:text-foreground',
             )}
           >
             {l.short}
