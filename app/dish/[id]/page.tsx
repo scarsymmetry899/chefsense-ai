@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Bookmark, ChefHat, Clock3, Users, Utensils } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -15,7 +16,8 @@ import {
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishPage({ params }: { params: { id: string } }) {
+export default function DishPage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
 
   return (
