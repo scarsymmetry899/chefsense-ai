@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ChefHat, Eye, LifeBuoy, TimerReset, Waves } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import {
@@ -18,7 +18,8 @@ import {
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishCookPage({ params }: { params: { id: string } }) {
+export default function DishCookPage() {
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const dish = getDishOrThrow(params.id);
   const stepIndex = Number(searchParams.get('step') ?? 7);
