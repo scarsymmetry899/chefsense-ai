@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Camera, Flame, LifeBuoy, RotateCcw, ThermometerSun } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -8,7 +9,8 @@ import { DishVisual, GradientButton, ScreenCard, SectionEyebrow } from '@/compon
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishPanCheckPage({ params }: { params: { id: string } }) {
+export default function DishPanCheckPage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const step = dish.cookingSteps[6];
 
