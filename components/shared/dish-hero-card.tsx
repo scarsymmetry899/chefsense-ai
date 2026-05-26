@@ -61,7 +61,7 @@ export function DishHeroCard({
     const card = (
       <article
         className={cn(
-          'group relative overflow-hidden rounded-[30px] border border-border bg-card shadow-card transition-shadow hover:shadow-lg',
+          'group relative overflow-hidden rounded-[30px] border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
           className,
         )}
       >
@@ -74,7 +74,7 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
           {featured && (
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/90 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
               <Star className="h-3 w-3 fill-current" />
@@ -83,12 +83,12 @@ export function DishHeroCard({
           )}
         </div>
 
-        <div className="absolute inset-x-3 bottom-3 rounded-[26px] border border-copper/20 bg-[hsl(var(--surface-warm))/0.95] p-4 shadow-[0_16px_28px_-18px_rgba(114,66,35,0.35)]">
-          <h3 className="font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
+        <div className="absolute inset-x-3 bottom-3 rounded-[26px] border border-copper/20 bg-[hsl(var(--surface-warm))/0.94] p-4 shadow-[0_18px_30px_-18px_rgba(114,66,35,0.38)] backdrop-blur-[1px]">
+          <h3 className="max-w-[78%] font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
             {name}
           </h3>
 
-          <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/75">
+          <p className="mt-1.5 max-w-[75%] line-clamp-2 text-[12.5px] leading-snug text-foreground/75">
             {summary}
           </p>
 

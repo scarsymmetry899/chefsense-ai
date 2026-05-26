@@ -65,6 +65,13 @@ export default function DishVoicePage() {
     return 'en-IN';
   }, [lang]);
 
+  const cueNarration = useMemo(() => {
+    const cues = step.sensoryCues
+      .map((cue) => `${cue.type} cue: ${cue.cue}`)
+      .join(' ');
+    return `${step.title}. ${cues}. Why this matters: ${step.whyThisMatters}`;
+  }, [step]);
+
   useEffect(() => {
     const SpeechCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SpeechCtor) return;
@@ -118,6 +125,13 @@ export default function DishVoicePage() {
     setIsListening(false);
   }
 
+  function narrateCurrentCues() {
+    setMessages((current) => [
+      ...current,
+      { role: 'assistant', text: cueNarration, time: nowTime() },
+    ]);
+  }
+
   return (
     <AppShell showBottomNav={false} className="pb-12">
       <Header
@@ -166,6 +180,13 @@ export default function DishVoicePage() {
         <div className="rounded-[22px] border border-border/60 bg-background px-4 py-3">
           <div className="text-[15px] font-medium text-primary">{step.title}</div>
           <div className="mt-2 text-[16px] leading-7 text-muted-foreground">{step.beginnerExplanation}</div>
+          <button
+            type="button"
+            onClick={narrateCurrentCues}
+            className="mt-4 rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
+          >
+            Narrate cues and why this matters
+          </button>
         </div>
       </ScreenCard>
 

@@ -1,19 +1,22 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, ImagePlus, Search, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bell, ImagePlus, Search, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { GradientButton, ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
+import { getDefaultRescueIssue, getStepAwareRescueCopy, isLateTasteStage } from '@/lib/dish-flow';
 
 export default function DishRescuePage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const dish = getDishOrThrow(params.id);
-  const defaultIssue = searchParams.get('issue') ?? dish.rescueIssues[0]?.id;
+  const stepIndex = Number(searchParams.get('step') ?? 1);
+  const step = dish.cookingSteps.find((item) => item.index === stepIndex) ?? dish.cookingSteps[0];
+  const defaultIssue = searchParams.get('issue') ?? getDefaultRescueIssue(dish, step.index)?.id;
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const [selectedIssues, setSelectedIssues] = useState<string[]>(
@@ -34,8 +37,10 @@ export default function DishRescuePage() {
     [dish.rescueIssues, selectedIssues],
   );
 
-  const primaryIssue = chosenIssues[0] ?? dish.rescueIssues[0];
+  const primaryIssue = chosenIssues[0] ?? getDefaultRescueIssue(dish, step.index);
   const canDiagnose = Boolean(primaryIssue) && (selectedIssues.length > 0 || uploadedImage);
+  const stageAwareCopy = getStepAwareRescueCopy(step.title, step.index, dish.cookingSteps.length);
+  const finishStyleFix = isLateTasteStage(step.index, dish.cookingSteps.length);
 
   function toggleIssue(issueId: string) {
     setSelectedIssues((current) =>
@@ -56,22 +61,22 @@ export default function DishRescuePage() {
   return (
     <AppShell>
       <Header
-        backHref={ROUTES.dishCook(dish.dishId, 7)}
+        backHref={ROUTES.dishCook(dish.dishId, step.index)}
         actions={[{ icon: Bell, label: 'Alerts' }]}
       />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">Fix your dish</h1>
+        <h1 className="text-[36px] leading-none">{finishStyleFix ? 'Taste and fix your dish' : 'Fix this cooking stage'}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-          Add a current photo and select one or more issues. ChefSense will combine both signals.
+          {stageAwareCopy}
         </p>
       </section>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={ImagePlus} label="Dish photo" className="mb-1" />
-            <h2 className="text-[22px]">Upload what your dish looks like now</h2>
+            <SectionEyebrow icon={ImagePlus} label="Current dish photo" className="mb-1" />
+            <h2 className="text-[22px]">Upload what the dish looks like right now</h2>
           </div>
           <button
             type="button"
@@ -91,7 +96,7 @@ export default function DishRescuePage() {
                 <ImagePlus className="h-7 w-7" />
               </span>
               <div className="text-sm leading-6 text-muted-foreground">
-                Camera or gallery upload works here. Once the image is added, the diagnosis cards appear below.
+                Add a live photo if the dish looks off. ChefSense will keep the fix tied to the current stage and bring you back to it.
               </div>
             </div>
           )}
@@ -116,8 +121,8 @@ export default function DishRescuePage() {
               onClick={() => toggleIssue(issue.id)}
               className={
                 active
-                  ? 'rounded-[18px] border border-primary/30 bg-gradient-to-r from-primary to-primary-dark px-3 py-3 text-center text-sm font-medium text-white'
-                  : 'rounded-[18px] border border-border bg-card px-3 py-3 text-center text-sm text-foreground'
+                  ? 'rounded-[18px] border border-primary/30 bg-gradient-to-r from-primary to-primary-dark px-3 py-3 text-center text-sm font-medium text-white shadow-cta'
+                  : 'rounded-[18px] border border-border bg-card px-3 py-3 text-center text-sm text-foreground shadow-soft'
               }
             >
               {issue.label}
@@ -126,13 +131,16 @@ export default function DishRescuePage() {
         })}
       </div>
 
-      {canDiagnose ? (
+      {canDiagnose && primaryIssue ? (
         <>
           <ScreenCard className="mt-5">
             <SectionEyebrow icon={Search} label="Likely Diagnosis" />
             <p className="text-[18px] leading-8 text-muted-foreground">{primaryIssue.diagnosis}</p>
+            <div className="mt-4 rounded-[20px] border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
+              This recommendation only uses issues that make sense up to step {step.index}: {step.title.toLowerCase()}.
+            </div>
             {selectedIssues.length > 1 ? (
-              <div className="mt-4 rounded-[20px] border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
+              <div className="mt-3 rounded-[20px] border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
                 Also considering: {chosenIssues.slice(1).map((item) => item.label).join(', ')}
               </div>
             ) : null}
@@ -164,14 +172,21 @@ export default function DishRescuePage() {
               <ScreenCard className="w-[280px] shrink-0">
                 <SectionEyebrow label="Chef Coaching" />
                 <p className="text-[16px] leading-7 text-muted-foreground">
-                  ChefSense can keep teaching you the technique behind this fix while you continue cooking.
+                  ChefSense will resume at this same step after the fix so you do not lose your place in the cooking flow.
                 </p>
               </ScreenCard>
             </div>
           </div>
 
-          <div className="mt-6">
-            <GradientButton href={ROUTES.dishFinish(dish.dishId)} label="Apply this fix" />
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <GradientButton href={ROUTES.dishCook(dish.dishId, step.index)} label="I corrected it" icon={Undo2} />
+            <button
+              type="button"
+              onClick={() => uploadRef.current?.click()}
+              className="rounded-[24px] border border-border bg-card px-5 py-4 text-[17px] font-medium text-foreground shadow-soft"
+            >
+              Update dish photo
+            </button>
           </div>
         </>
       ) : null}

@@ -174,6 +174,43 @@ export const PlatingSchema = z.object({
 });
 export type Plating = z.infer<typeof PlatingSchema>;
 
+export const PlatingGuideStepSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  instruction: z.string(),
+  visualTip: z.string(),
+  icon: z.string(),
+});
+export type PlatingGuideStep = z.infer<typeof PlatingGuideStepSchema>;
+
+export const PlatingPrincipleSchema = z.object({
+  title: z.string(),
+  explanation: z.string(),
+  icon: z.string(),
+});
+export type PlatingPrinciple = z.infer<typeof PlatingPrincipleSchema>;
+
+export const PlatingGuideSchema = z.object({
+  defaultStyle: z.string(),
+  styles: z.array(z.string()).min(1),
+  steps: z.array(PlatingGuideStepSchema).min(1),
+  principles: z.array(PlatingPrincipleSchema).min(1),
+  garnishSuggestions: z.array(z.string()).min(1),
+  photoTips: z.array(z.string()).min(1),
+});
+export type PlatingGuide = z.infer<typeof PlatingGuideSchema>;
+
+export const ShareCaptionsSchema = z.object({
+  fineDining: z.string(),
+  instagramFoodie: z.string(),
+  homeChefProud: z.string(),
+  simpleWarm: z.string(),
+  short: z.string(),
+  hindi: z.string(),
+  telugu: z.string(),
+});
+export type ShareCaptions = z.infer<typeof ShareCaptionsSchema>;
+
 // ───────── Translations (content-level) ─────────
 
 /**
@@ -219,6 +256,8 @@ export const DishSchema = z.object({
   tasteBalancing: z.array(TasteAxisSchema).min(1),
   finishingTouches: z.array(FinishingTouchSchema).min(1),
   plating: PlatingSchema,
+  platingGuide: PlatingGuideSchema.optional(),
+  shareCaptions: ShareCaptionsSchema.optional(),
   storage: z.string(),
   reheating: z.string(),
   translations: TranslationsSchema.optional(),

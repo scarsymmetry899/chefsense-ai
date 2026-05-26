@@ -25,12 +25,20 @@ export const ROUTES = {
     typeof step === 'number'
       ? `/dish/${id}/voice?step=${step}`
       : `/dish/${id}/voice`,
-  dishPanCheck: (id: string) => `/dish/${id}/pan-check`,
-  dishRescue: (id: string, issueId?: string) =>
-    issueId
-      ? `/dish/${id}/rescue?issue=${issueId}`
-      : `/dish/${id}/rescue`,
+  dishPanCheck: (id: string, step?: number) =>
+    typeof step === 'number'
+      ? `/dish/${id}/pan-check?step=${step}`
+      : `/dish/${id}/pan-check`,
+  dishRescue: (id: string, issueId?: string, step?: number) => {
+    const params = new URLSearchParams();
+    if (issueId) params.set('issue', issueId);
+    if (typeof step === 'number') params.set('step', String(step));
+    const query = params.toString();
+    return query ? `/dish/${id}/rescue?${query}` : `/dish/${id}/rescue`;
+  },
   dishFinish: (id: string) => `/dish/${id}/finish`,
+  dishPlate: (id: string) => `/dish/${id}/plate`,
+  dishShare: (id: string) => `/dish/${id}/share`,
 } as const;
 
 export const API_ROUTES = {
@@ -52,7 +60,7 @@ export const BOTTOM_NAV_ITEMS = [
   {
     key: 'rescue',
     label: 'Rescue',
-    href: ROUTES.dishRescue('paneer-butter-masala', 'raw-masala-taste'),
+    href: ROUTES.dishRescue('paneer-butter-masala', 'raw-masala-taste', 1),
     icon: 'life-buoy' as const,
   },
   { key: 'pantry', label: 'Pantry', href: ROUTES.home, icon: 'archive' as const },

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Thermometer, Leaf, ChevronRight } from 'lucide-react';
+import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -74,9 +74,12 @@ export default function WelcomePage() {
         <Link href={ROUTES.dish(featured.dishId)} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
-            className="inline-flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-left text-white shadow-cta transition-transform active:scale-95"
+            className="inline-flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-white shadow-cta transition-transform active:scale-95"
           >
-            <span className="font-serif text-[18px]">{t('cta.startCooking')}</span>
+            <span className="flex flex-1 items-center justify-center gap-2 font-serif text-[18px]">
+              <ChefHat className="h-5 w-5" />
+              {t('cta.startCooking')}
+            </span>
             <ChevronRight className="h-5 w-5" />
           </button>
         </Link>
@@ -84,9 +87,12 @@ export default function WelcomePage() {
         <Link href={ROUTES.home} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
-            className="inline-flex w-full items-center justify-between rounded-[26px] border border-border/70 bg-card px-6 py-4 text-left text-[16px] font-medium text-foreground shadow-soft transition-transform hover:bg-surface-warm active:scale-95"
+            className="inline-flex w-full items-center justify-between rounded-[26px] border border-border/70 bg-card px-6 py-4 text-[16px] font-medium text-foreground shadow-soft transition-transform hover:bg-surface-warm active:scale-95"
           >
-            <span>{t('cta.exploreDemo')}</span>
+            <span className="flex flex-1 items-center justify-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Browse Dish Guides
+            </span>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>
         </Link>

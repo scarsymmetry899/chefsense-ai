@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Bell, BookOpen } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -31,6 +32,32 @@ const MOOD_META = [
 export default function HomePage() {
   const { t } = useLanguage();
   const featured = getDishOrThrow(FEATURED_DISH_ID);
+  const heroSlides = useMemo(
+    () => [
+      featured,
+      getDishOrThrow('dal-tadka'),
+      getDishOrThrow('chicken-biryani'),
+    ],
+    [featured],
+  );
+  const [activeSlide, setActiveSlide] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = carouselRef.current;
+    if (!node) return undefined;
+
+    function handleScroll() {
+      const currentNode = carouselRef.current;
+      if (!currentNode) return;
+      const width = currentNode.clientWidth || 1;
+      const nextIndex = Math.round(currentNode.scrollLeft / width);
+      setActiveSlide(Math.max(0, Math.min(heroSlides.length - 1, nextIndex)));
+    }
+
+    node.addEventListener('scroll', handleScroll, { passive: true });
+    return () => node.removeEventListener('scroll', handleScroll);
+  }, [heroSlides.length]);
 
   const popular = [
     ...ALL_DISHES.filter((d) => d.dishId !== FEATURED_DISH_ID),
@@ -45,6 +72,13 @@ export default function HomePage() {
     },
   ];
 
+  function jumpToSlide(index: number) {
+    const node = carouselRef.current;
+    if (!node) return;
+    node.scrollTo({ left: node.clientWidth * index, behavior: 'smooth' });
+    setActiveSlide(index);
+  }
+
   return (
     <AppShell>
       <header className="flex items-center justify-between gap-3 pt-2 animate-fade-up">
@@ -56,7 +90,7 @@ export default function HomePage() {
           <button
             type="button"
             aria-label="Notifications"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-surface-warm"
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:bg-surface-warm"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
@@ -69,18 +103,33 @@ export default function HomePage() {
       </div>
 
       <section className="pt-6 animate-fade-up">
-        <DishHeroCard
-          dish={featured}
-          featured
-          variant="horizontal"
-          showInlineCta
-          href={ROUTES.dish(featured.dishId)}
-        />
-        <div className="mt-3 flex items-center justify-center gap-1.5">
-          <span className="h-1.5 w-5 rounded-full bg-primary" />
-          <span className="h-1.5 w-1.5 rounded-full bg-primary/30" />
-          <span className="h-1.5 w-1.5 rounded-full bg-primary/30" />
-          <span className="h-1.5 w-1.5 rounded-full bg-primary/30" />
+        <div
+          ref={carouselRef}
+          className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 scrollbar-hide"
+        >
+          {heroSlides.map((dish) => (
+            <div key={dish.dishId} className="w-full shrink-0 snap-center">
+              <DishHeroCard
+                dish={dish}
+                featured={dish.dishId === FEATURED_DISH_ID}
+                variant="horizontal"
+                showInlineCta
+                href={ROUTES.dish(dish.dishId)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 flex items-center justify-center gap-2">
+          {heroSlides.map((dish, index) => (
+            <button
+              key={dish.dishId}
+              type="button"
+              aria-label={`Show ${dish.dishName}`}
+              onClick={() => jumpToSlide(index)}
+              className={index === activeSlide ? 'h-2.5 w-6 rounded-full bg-primary' : 'h-2.5 w-2.5 rounded-full bg-primary/25'}
+            />
+          ))}
         </div>
       </section>
 
@@ -137,9 +186,10 @@ function SectionRow({
       <h2 className="font-serif text-[19px] tracking-tight text-foreground">{title}</h2>
       <Link
         href={viewAllHref}
-        className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-accent-green hover:text-accent-green/80"
+        className="inline-flex items-center gap-1 text-[12px] font-semibold text-accent-green hover:text-accent-green/80"
       >
-        {t('home.viewAll')} &gt;
+        {t('home.viewAll')}
+        <BookOpen className="h-3.5 w-3.5" />
       </Link>
     </div>
   );

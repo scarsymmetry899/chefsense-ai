@@ -18,6 +18,7 @@ import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { formatCountdown } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { playSoundEffect } from '@/lib/sound-effects';
 
 const STORAGE_PREFIX = 'chefsense.prep.';
 
@@ -88,16 +89,18 @@ export default function DishMiseEnPlacePage() {
   const progress = Math.round((completed / dish.miseEnPlace.length) * 100);
   const prepLabel = copyForLang(lang, {
     en: 'Kitchen Tayyari Planner',
-    hi: 'किचन तैयारी प्लानर',
-    te: 'కిచెన్ తయారీ ప్లానర్',
+    hi: 'Kitchen Tayyari Planner',
+    te: 'Kitchen Tayyari Planner',
   });
   const prepChecklist = copyForLang(lang, {
     en: 'Kitchen Tayyari Checklist',
-    hi: 'किचन तैयारी चेकलिस्ट',
-    te: 'కిచెన్ తయారీ చెక్‌లిస్ట్',
+    hi: 'Kitchen Tayyari Checklist',
+    te: 'Kitchen Tayyari Checklist',
   });
 
   function toggleTask(taskId: string) {
+    const nextChecked = !checkedSet.has(taskId);
+    playSoundEffect(nextChecked ? 'check' : 'tap');
     setChecked((current) =>
       current.includes(taskId)
         ? current.filter((item) => item !== taskId)
@@ -107,15 +110,23 @@ export default function DishMiseEnPlacePage() {
 
   function toggleTimer() {
     if (running && startedAt) {
+      playSoundEffect('stop');
       setElapsedBeforePause(elapsedSeconds);
       setStartedAt(null);
       setRunning(false);
       return;
     }
 
+    playSoundEffect('start');
     setStartedAt(Date.now());
     setRunning(true);
   }
+
+  const chefTips = [
+    'Good prep makes the cook smoother. Keep chopped ingredients, blender jars, and hot water within reach before you begin.',
+    'Set your spices in cooking order so you do not overheat the pan while searching for the next one.',
+    'Keep one clean spoon and one tasting spoon ready from the start for a calmer cooking flow.',
+  ];
 
   return (
     <AppShell className="pb-32">
@@ -132,11 +143,7 @@ export default function DishMiseEnPlacePage() {
             <SectionEyebrow label={prepLabel} />
             <h1 className="text-[34px] leading-[0.95]">{dish.dishName}</h1>
             <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-              {copyForLang(lang, {
-                en: 'Slice, soak, marinate, and keep your tools ready before the stove work begins.',
-                hi: 'काटना, भिगोना, मेरिनेट करना और ज़रूरी उपकरण तैयार रखना यहीं पूरा करें।',
-                te: 'తరిగి పెట్టడం, నానబెట్టడం, మరినేట్ చేయడం, కావాల్సిన సాధనాలు సిద్ధం చేయడం ఇక్కడ పూర్తి చేయండి.',
-              })}
+              Slice, soak, marinate, and keep your tools ready before the stove work begins.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <StatusPill label={`${completed}/${dish.miseEnPlace.length} done`} tone="green" />
@@ -194,7 +201,7 @@ export default function DishMiseEnPlacePage() {
                 key={task.id}
                 type="button"
                 onClick={() => toggleTask(task.id)}
-                className="flex w-full items-center gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-3 text-left transition-transform active:scale-[0.995]"
+                className="flex w-full items-center gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-3 text-left shadow-soft transition-transform active:scale-[0.995]"
               >
                 <span
                   className={
@@ -215,16 +222,16 @@ export default function DishMiseEnPlacePage() {
         </div>
       </ScreenCard>
 
-      <ScreenCard className="mt-5">
-        <SectionEyebrow label="Chef Tip" />
-        <p className="text-[17px] leading-8 text-muted-foreground">
-          {copyForLang(lang, {
-            en: 'Good prep makes the cook smoother. Keep chopped ingredients, blender jars, and hot water within reach before you begin.',
-            hi: 'अच्छी तैयारी से आगे की कुकिंग आसान होती है। कटी हुई सामग्री, मिक्सर जार और गरम पानी पहले से पास रखें।',
-            te: 'మంచి ముందస్తు సిద్ధతతో తర్వాతి వంట సాఫీగా సాగుతుంది. తరిగిన పదార్థాలు, మిక్సీ జార్, వేడి నీళ్లు దగ్గర ఉంచండి.',
-          })}
-        </p>
-      </ScreenCard>
+      <div className="mt-5 -mx-5 overflow-x-auto px-5 scrollbar-hide">
+        <div className="flex gap-3 pb-1">
+          {chefTips.map((tip, index) => (
+            <ScreenCard key={index} className="w-[280px] shrink-0">
+              <SectionEyebrow label={`Chef Tip ${index + 1}`} />
+              <p className="text-[17px] leading-8 text-muted-foreground">{tip}</p>
+            </ScreenCard>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-6">
         <Link

@@ -25,6 +25,7 @@ import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { getBaseServings, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { playSoundEffect } from '@/lib/sound-effects';
 
 const STORAGE_PREFIX = 'chefsense.ingredients.';
 const SERVING_OPTIONS = [1, 2, 4, 6];
@@ -139,7 +140,10 @@ export default function DishPage() {
               <button
                 key={option}
                 type="button"
-                onClick={() => setServings(option)}
+                onClick={() => {
+                  playSoundEffect('tap');
+                  setServings(option);
+                }}
                 className={
                   active
                     ? 'rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta'
@@ -172,13 +176,14 @@ export default function DishPage() {
               <button
                 key={ingredient.id}
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  playSoundEffect(isChecked ? 'tap' : 'check');
                   setChecked((current) =>
                     current.includes(ingredient.id)
                       ? current.filter((item) => item !== ingredient.id)
                       : [...current, ingredient.id],
-                  )
-                }
+                  );
+                }}
                 className="flex w-full items-start gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-3 text-left transition-transform active:scale-[0.995]"
               >
                 <span

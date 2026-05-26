@@ -102,7 +102,7 @@ export function ScreenCard({
   children: ReactNode;
   className?: string;
 }) {
-  return <section className={cn('card-warm paper-panel p-5', className)}>{children}</section>;
+  return <section className={cn('card-warm paper-panel p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg', className)}>{children}</section>;
 }
 
 export function SectionEyebrow({
@@ -139,7 +139,7 @@ export function MetricTile({
     <div className={cn('rounded-[24px] border border-border/80 bg-card px-4 py-4 text-center shadow-sm', className)}>
       <Icon className="mx-auto h-6 w-6 text-primary" />
       <div className="mt-3 text-[13px] text-muted-foreground">{title}</div>
-      <div className="mt-1 font-serif text-[22px] leading-none text-foreground">{value}</div>
+      <div className="mt-1 font-serif text-[24px] leading-none text-foreground">{value}</div>
       {detail ? <div className="mt-1 text-xs text-muted-foreground">{detail}</div> : null}
     </div>
   );
@@ -206,7 +206,7 @@ export function GradientButton({
 export function DishVisual({
   src,
   alt,
-  fallbackGlyph = 'B',
+  fallbackGlyph = '🍳',
   className,
 }: {
   src: string;
@@ -321,6 +321,34 @@ export function HeatDots({ level }: { level: string }) {
           )}
         />
       ))}
+    </div>
+  );
+}
+
+export function HeatMeter({
+  level,
+  tempLabel,
+}: {
+  level: string;
+  tempLabel: string;
+}) {
+  const labels = ['Low', 'Medium-low', 'Medium', 'Medium-high', 'High'];
+  const active = Math.max(0, labels.findIndex((item) => item === level) + 1);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex items-center justify-center gap-1.5">
+        {labels.map((item, index) => (
+          <Flame
+            key={item}
+            className={cn(
+              'h-4 w-4 transition-transform',
+              index < active ? 'fill-current text-primary drop-shadow-[0_3px_6px_rgba(212,96,48,0.25)]' : 'text-border/90',
+            )}
+          />
+        ))}
+      </div>
+      <div className="text-xs text-muted-foreground">{tempLabel}</div>
     </div>
   );
 }

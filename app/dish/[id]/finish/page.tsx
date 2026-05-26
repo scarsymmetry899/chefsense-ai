@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Bell, Citrus, Flame, Leaf, Sparkles, Wheat } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function DishFinishPage() {
   return (
     <AppShell className="pb-32">
       <Header
-        backHref={ROUTES.dishRescue(dish.dishId, 'raw-masala-taste')}
+        backHref={ROUTES.dishCook(dish.dishId, dish.cookingSteps[dish.cookingSteps.length - 1]?.index ?? 1)}
         actions={[{ icon: Bell, label: 'Alerts' }]}
       />
 
@@ -61,7 +62,7 @@ export default function DishFinishPage() {
             const Icon = meta.icon;
             return (
               <div key={axis.axis} className="text-center">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[6px] border-secondary bg-white">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[6px] border-secondary bg-white shadow-soft">
                   <Icon className="h-8 w-8 text-primary" />
                 </div>
                 <div className="mt-3 text-[15px] text-foreground">{meta.label}</div>
@@ -90,7 +91,7 @@ export default function DishFinishPage() {
                       : [...current, touch.id],
                   )
                 }
-                className="flex w-full items-center gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-4 text-left"
+                className="flex w-full items-center gap-3 rounded-[22px] border border-border/60 bg-card px-4 py-4 text-left shadow-soft"
               >
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
                   <Sparkles className="h-5 w-5" />
@@ -132,12 +133,25 @@ export default function DishFinishPage() {
         </div>
       </ScreenCard>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-3">
         <GradientButton
-          href={ROUTES.home}
-          label={t('cta.dishReady')}
-          subline={t('finish.itsTime')}
+          href={ROUTES.dishPlate(dish.dishId)}
+          label="Plate Like a Chef"
+          subline="Turn your dish into a restaurant-style presentation."
         />
+        <Link
+          href={ROUTES.dishShare(dish.dishId)}
+          className="flex w-full items-center justify-between rounded-[26px] border border-border bg-card px-6 py-4 text-foreground shadow-soft transition-transform active:scale-[0.985]"
+        >
+          <span className="flex items-center gap-3">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <span className="flex flex-col leading-tight text-left">
+              <span className="font-serif text-[20px]">Share My Plate</span>
+              <span className="text-sm text-muted-foreground">Upload the final plate, rate it, and grab a premium caption.</span>
+            </span>
+          </span>
+          <span className="text-lg text-primary">→</span>
+        </Link>
       </div>
     </AppShell>
   );
