@@ -1,14 +1,15 @@
 'use client';
 
 import { Bell, Search, ShieldCheck, Sparkles } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { DishVisual, GradientButton, ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishRescuePage({ params }: { params: { id: string } }) {
+export default function DishRescuePage() {
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const dish = getDishOrThrow(params.id);
   const issueId = searchParams.get('issue') ?? 'raw-masala-taste';
