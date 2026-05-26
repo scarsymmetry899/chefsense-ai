@@ -49,9 +49,10 @@ export function RecentlyViewedItem({
   const inner = (
     <div
       className={cn(
-        'relative flex items-center gap-2.5 rounded-2xl border border-white/50 bg-card/75 backdrop-blur-sm px-2.5 py-2 shadow-soft',
-        // Inner top highlight matching mood cards
-        'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-2xl before:bg-gradient-to-r before:from-transparent before:via-white/80 before:to-transparent',
+        'relative flex items-center gap-2.5 rounded-2xl border border-white/70 bg-white/45 backdrop-blur-xl px-2.5 py-2',
+        'shadow-[0_4px_16px_-6px_rgba(58,36,23,0.18)]',
+        // Inner top highlight stroke
+        'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-2xl before:bg-gradient-to-r before:from-transparent before:via-white/95 before:to-transparent',
         className,
       )}
     >

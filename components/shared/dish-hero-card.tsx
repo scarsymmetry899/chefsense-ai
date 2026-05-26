@@ -61,33 +61,55 @@ export function DishHeroCard({
   const difficultyLabel = t(difficultyKey);
 
   if (variant === 'horizontal') {
-    // ── Featured Home card: text-left, image-right, inline CTA ──
+    // ── Featured Home card ── Photo-led hero design:
+    // Full-bleed dish photo as the entire card background, with a
+    // frosted-glass panel floating over the lower half containing
+    // the dish name, summary, stats, and the "Start Guided Cook" CTA.
+    // This is the dramatic premium-app pattern (Airbnb / DoorDash hero
+    // cards style) — photo dominates, glass panel provides text safety.
     const card = (
       <article
         className={cn(
-          'group overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-shadow hover:shadow-lg',
+          'group relative overflow-hidden rounded-3xl border border-border/60 shadow-card transition-shadow hover:shadow-lg',
           className,
         )}
       >
-        <div className="flex flex-row min-h-[220px]">
-          {/* Left: text & stats — explicit basis so the right panel never collapses */}
-          <div className="flex basis-3/5 min-w-0 flex-col gap-2.5 p-4">
-            {featured && (
-              <span className="self-start inline-flex items-center gap-1 rounded-full border border-secondary/40 bg-secondary-soft/90 backdrop-blur-sm px-2.5 py-0.5 text-[10.5px] font-semibold text-copper">
-                <Star className="h-3 w-3 fill-current" />
-                {t('home.featured')}
-              </span>
-            )}
+        {/* Photo as full-width background */}
+        <div className="relative aspect-[4/5] sm:aspect-[16/11]">
+          <ImageWithFallback
+            src={dish.heroImage}
+            alt={name}
+            gradient={v.gradient}
+            fallbackGlyph={v.glyph}
+            ratioClassName="h-full"
+            rounded="none"
+          />
 
-            <h3 className="font-serif font-semibold text-[21px] leading-[1.08] tracking-tight text-foreground">
+          {/* Subtle dark gradient at bottom to keep glass panel readable */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+
+          {/* "Featured" pill — floats top-left over the photo with glass */}
+          {featured && (
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/85 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
+              <Star className="h-3 w-3 fill-current" />
+              {t('home.featured')}
+            </span>
+          )}
+
+          {/* Glass panel — floats at bottom with all the text content */}
+          <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/55 bg-white/82 backdrop-blur-xl p-4 shadow-[0_10px_30px_-12px_rgba(58,36,23,0.35)]">
+            {/* Inner highlight stroke at the top for premium glass feel */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+
+            <h3 className="font-serif text-[26px] leading-[1.05] tracking-tight text-foreground">
               {name}
             </h3>
 
-            <p className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+            <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/70">
               {summary}
             </p>
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pt-0.5 text-[11.5px] text-foreground/80">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-foreground/80">
               <span className="inline-flex items-center gap-1">
                 <Flame className="h-3.5 w-3.5 text-primary" />
                 {difficultyLabel}
@@ -101,24 +123,12 @@ export function DishHeroCard({
             {showInlineCta && (
               <Link
                 href={href ?? '#'}
-                className="mt-auto self-start inline-flex items-center gap-1 whitespace-nowrap rounded-full gradient-cta px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-cta active:scale-95 transition-transform"
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-2.5 text-[13.5px] font-semibold text-white shadow-cta active:scale-[0.98] transition-transform"
               >
                 {t('cta.startGuidedCook')}
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-4 w-4" />
               </Link>
             )}
-          </div>
-
-          {/* Right: real food photo (falls back to gradient + emoji if missing) */}
-          <div className="relative basis-2/5 shrink-0 overflow-hidden">
-            <ImageWithFallback
-              src={dish.heroImage}
-              alt={name}
-              gradient={v.gradient}
-              fallbackGlyph={v.glyph}
-              ratioClassName="h-full"
-              rounded="none"
-            />
           </div>
         </div>
       </article>

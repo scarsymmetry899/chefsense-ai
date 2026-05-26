@@ -19,7 +19,10 @@ export function SearchBar({ className }: SearchBarProps) {
   return (
     <div
       className={cn(
-        'relative flex items-center rounded-full border border-border bg-card shadow-soft',
+        'relative flex items-center rounded-full border border-white/70 bg-white/55 backdrop-blur-xl',
+        'shadow-[0_4px_16px_-6px_rgba(58,36,23,0.18)]',
+        // Inner top highlight
+        'before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:rounded-t-full before:bg-gradient-to-r before:from-transparent before:via-white/90 before:to-transparent',
         className,
       )}
     >

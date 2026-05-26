@@ -55,7 +55,7 @@ export default function WelcomePage() {
 
       {/* Hero headline — template-rendered so emphasis word is per-language correct */}
       <section className="mt-7 text-center animate-fade-up">
-        <h1 className="font-serif font-semibold text-[36px] leading-[1.06] tracking-tight text-foreground text-balance px-2">
+        <h1 className="font-serif text-[42px] leading-[1.02] tracking-[-0.01em] text-foreground text-balance px-2">
           <HeadlineLine
             pre={t('app.headline.line1Pre')}
             em={t('app.headline.line1Em')}

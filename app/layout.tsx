@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google';
+import { Instrument_Serif, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-// Fraunces — warm, food-friendly display serif with optical sizing.
-// Used by Stripe, GitHub, multiple food/restaurant brands.
-const fraunces = Fraunces({
+// Instrument Serif — thin, editorial display serif. Used by Linear,
+// Vercel's hero pages, several premium brands. Visually unmistakable
+// next to the old Playfair/Manrope pairing.
+const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   variable: '--font-serif',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
 });
 
 // Inter — neutral, modern body sans. Crisper than Manrope at small sizes.
@@ -34,8 +36,8 @@ export const metadata: Metadata = {
   applicationName: 'ChefSense AI',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon-192.svg',
-    apple: '/icon-512.svg',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 };
 
@@ -55,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable}`}
     >
       <body>
         <Providers>{children}</Providers>
