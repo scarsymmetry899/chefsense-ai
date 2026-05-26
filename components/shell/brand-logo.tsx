@@ -3,9 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface BrandLogoProps {
   withWordmark?: boolean;
-  /** 'sm' (header), 'md' (default), 'lg' (welcome hero), 'xl' (welcome centerpiece). */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** When true, stacks icon-above-wordmark and centers everything. */
   stacked?: boolean;
   className?: string;
 }
@@ -24,13 +22,6 @@ const WORDMARK_CLASS: Record<NonNullable<BrandLogoProps['size']>, string> = {
   xl: 'text-[42px] leading-none',
 };
 
-/**
- * ChefSense brand mark — uses the official PNG logo asset.
- *
- * `stacked` mode shows the icon centred with the wordmark beneath it
- * (used on Welcome). Default inline mode shows icon to the left of the
- * wordmark (used in Home header).
- */
 export function BrandLogo({
   withWordmark = true,
   size = 'md',
@@ -49,9 +40,6 @@ export function BrandLogo({
       className="select-none"
       style={{
         filter: 'drop-shadow(0 3px 10px rgba(230, 90, 46, 0.18))',
-        // The logo PNG has slight off-white halos around the chef-hat
-        // outline from JPEG-decompression artefacts; this isolates the
-        // shape so it blends cleanly into the cream canvas.
       }}
     />
   );
@@ -59,7 +47,7 @@ export function BrandLogo({
   const wordmark = withWordmark && (
     <div
       className={cn(
-        'leading-none font-serif tracking-tight',
+        'leading-none font-serif font-semibold tracking-[-0.04em]',
         WORDMARK_CLASS[size],
       )}
     >
