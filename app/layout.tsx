@@ -10,7 +10,6 @@ const fraunces = Fraunces({
   variable: '--font-serif',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800', '900'],
-  axes: ['SOFT', 'opsz'],
 });
 
 // Inter — neutral, modern body sans. Crisper than Manrope at small sizes.
