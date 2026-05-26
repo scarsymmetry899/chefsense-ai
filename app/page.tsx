@@ -1,24 +1,7 @@
 'use client';
 
-/**
- * ChefSense AI — Welcome screen at /.
- *
- * Match-reference layout:
- *   [centered logo + wordmark]
- *   [decorative leaf divider]
- *   [BIG centered serif headline with one emphasised word]
- *   [centered subtitle]
- *   [two feature pills, centered row]
- *   [food hero card]
- *   [primary CTA — Start Cooking]
- *   [secondary CTA — Explore Demo Dish]
- *   [leaves + ♥ footer]
- *
- * Mobile-first, no bottom nav (welcome is a one-shot intro).
- */
-
 import Link from 'next/link';
-import { Thermometer, Leaf, ChefHat, Soup, ChevronRight } from 'lucide-react';
+import { Thermometer, Leaf, ChevronRight } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -40,22 +23,18 @@ export default function WelcomePage() {
 
   return (
     <AppShell showBottomNav={false}>
-      {/* Language toggle floats so it doesn't disrupt the centered brand block */}
       <div className="absolute right-5 top-4 z-10 animate-fade-up">
         <LanguageToggle compact />
       </div>
 
-      {/* Centered brand */}
       <div className="flex flex-col items-center pt-8 animate-fade-up">
         <BrandLogo size="xl" stacked />
       </div>
 
-      {/* Decorative divider */}
       <DecorativeDivider className="mt-6 animate-fade-up" />
 
-      {/* Hero headline — template-rendered so emphasis word is per-language correct */}
       <section className="mt-7 text-center animate-fade-up">
-        <h1 className="font-serif text-[42px] leading-[1.02] tracking-[-0.01em] text-foreground text-balance px-2">
+        <h1 className="font-serif text-[40px] font-bold leading-[0.98] tracking-[-0.04em] text-foreground text-balance px-2 sm:text-[44px]">
           <HeadlineLine
             pre={t('app.headline.line1Pre')}
             em={t('app.headline.line1Em')}
@@ -69,12 +48,11 @@ export default function WelcomePage() {
           />
         </h1>
 
-        <p className="mt-4 text-[14.5px] leading-relaxed text-muted-foreground text-pretty mx-auto max-w-[340px]">
+        <p className="mx-auto mt-4 max-w-[340px] text-[14.5px] leading-relaxed text-muted-foreground text-pretty">
           {t('app.subtitle')}
         </p>
       </section>
 
-      {/* Feature pills */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 animate-fade-up">
         <FeaturePill
           icon={Thermometer}
@@ -88,56 +66,37 @@ export default function WelcomePage() {
         />
       </div>
 
-      {/* Food hero photo */}
       <section className="mt-7 animate-fade-up">
-        <FoodHeroIllustration
-          dishName={dishName}
-          heroImage={featured.heroImage}
-        />
+        <FoodHeroIllustration dishName={dishName} heroImage={featured.heroImage} />
       </section>
 
-      {/* CTAs */}
-      <section className="mt-7 space-y-3 animate-fade-up">
-        <Link href={ROUTES.home} className="block">
+      <section className="mt-7 flex flex-col items-center gap-3 animate-fade-up">
+        <Link href={ROUTES.dishMiseEnPlace(featured.dishId)} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-full gradient-cta px-6 py-4 text-white shadow-cta active:scale-[0.99] transition-transform"
+            className="inline-flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-left text-white shadow-cta transition-transform active:scale-95"
           >
-            <span className="flex items-center gap-3">
-              <ChefHat className="h-5 w-5" />
-              <span className="text-[17px] font-semibold tracking-wide font-serif">
-                {t('cta.startCooking')}
-              </span>
-            </span>
+            <span className="font-serif text-[18px]">{t('cta.startCooking')}</span>
             <ChevronRight className="h-5 w-5" />
           </button>
         </Link>
 
-        <Link href={ROUTES.home} className="block">
+        <Link href={ROUTES.home} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-full border border-border bg-card px-6 py-3.5 text-foreground shadow-soft hover:bg-surface-warm active:scale-[0.99] transition-all"
+            className="inline-flex w-full items-center justify-between rounded-[26px] border border-border/70 bg-card px-6 py-4 text-left text-[16px] font-medium text-foreground shadow-soft transition-transform hover:bg-surface-warm active:scale-95"
           >
-            <span className="flex items-center gap-3">
-              <Soup className="h-5 w-5 text-copper" />
-              <span className="text-[15px] font-semibold">
-                {t('cta.exploreDemo')}
-              </span>
-            </span>
+            <span>{t('cta.exploreDemo')}</span>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>
         </Link>
       </section>
 
-      {/* Footer */}
       <FooterMicrocopy className="mt-9" />
     </AppShell>
   );
 }
 
-/* ────────────────────────────────────────────────────────────── */
-
-/** Renders one line of the hero headline with an optional emphasis word in primary. */
 function HeadlineLine({ pre, em, post }: { pre: string; em: string; post: string }) {
   return (
     <>
@@ -169,7 +128,6 @@ function DecorativeDivider({ className }: { className?: string }) {
   );
 }
 
-/** Big, photo-led hero card on the Welcome screen. */
 function FoodHeroIllustration({
   dishName,
   heroImage,
@@ -178,32 +136,30 @@ function FoodHeroIllustration({
   heroImage: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-border shadow-card">
-      <div className="relative h-64 overflow-hidden">
+    <div className="editorial-card paper-panel relative overflow-hidden rounded-[32px]">
+      <div className="relative h-[320px] overflow-hidden">
         <ImageWithFallback
           src={heroImage}
           alt={dishName}
           gradient="spice"
-          fallbackGlyph="🍛"
+          fallbackGlyph={'\u{1F35B}'}
           ratioClassName="h-full"
           rounded="none"
         />
       </div>
-      <div className="border-t border-border bg-card px-5 py-3 text-center">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-copper">
-          Featured Demo
-        </div>
-        <div className="mt-1 font-serif text-lg text-foreground">{dishName}</div>
+      <div className="border-t border-border bg-card px-5 py-4 text-center">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-copper">Featured Demo</div>
+        <div className="mt-1 font-serif text-[24px] font-semibold text-foreground">{dishName}</div>
       </div>
     </div>
   );
 }
 
-/** SVG illustration of a bowl with paneer butter masala — now imported from shared component. */
-
 function FooterMicrocopy({ className }: { className?: string }) {
   const { t } = useLanguage();
-  const parts = t('app.madeFor').split('♥');
+  const heart = '\u2665';
+  const parts = t('app.madeFor').split(heart);
+
   return (
     <div
       className={cn(
@@ -219,7 +175,7 @@ function FooterMicrocopy({ className }: { className?: string }) {
       </span>
       <span>
         {parts[0]}
-        <span className="text-primary">♥</span>
+        <span className="text-primary">{heart}</span>
         {parts[1] ?? ''}
       </span>
       <span className="inline-block scale-x-[-1] text-accent-green" aria-hidden>

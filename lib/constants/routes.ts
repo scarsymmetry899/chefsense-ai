@@ -40,8 +40,18 @@ export const API_ROUTES = {
 /** Bottom-nav targets — used by BottomNav. */
 export const BOTTOM_NAV_ITEMS = [
   { key: 'home', label: 'Home', href: ROUTES.home, icon: 'home' as const },
-  { key: 'cook', label: 'Cook', href: ROUTES.home, icon: 'chef-hat' as const },
-  { key: 'rescue', label: 'Rescue', href: ROUTES.home, icon: 'life-buoy' as const },
+  {
+    key: 'cook',
+    label: 'Cook',
+    href: ROUTES.dishMiseEnPlace('paneer-butter-masala'),
+    icon: 'chef-hat' as const,
+  },
+  {
+    key: 'rescue',
+    label: 'Rescue',
+    href: ROUTES.dishRescue('paneer-butter-masala', 'raw-masala-taste'),
+    icon: 'life-buoy' as const,
+  },
   { key: 'pantry', label: 'Pantry', href: ROUTES.home, icon: 'archive' as const },
   { key: 'profile', label: 'Profile', href: ROUTES.home, icon: 'user' as const },
 ] as const;

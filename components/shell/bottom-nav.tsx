@@ -46,10 +46,16 @@ export function BottomNav() {
         <div className="flex items-center justify-around gap-1 py-2">
           {BOTTOM_NAV_ITEMS.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Home;
-            // Until other routes are built, only 'home' can be active.
-            // Otherwise every item matches pathname (they all point to /home).
             const active =
-              item.key === 'home' && (pathname === '/home' || pathname === '/');
+              (item.key === 'home' && (pathname === '/home' || pathname === '/')) ||
+              (item.key === 'cook' &&
+                (pathname.includes('/mise-en-place') ||
+                  pathname.includes('/cook') ||
+                  pathname.includes('/voice') ||
+                  pathname.includes('/finish') ||
+                  pathname === '/dish/paneer-butter-masala')) ||
+              (item.key === 'rescue' &&
+                (pathname.includes('/rescue') || pathname.includes('/pan-check')));
             return (
               <Link
                 key={item.key}
