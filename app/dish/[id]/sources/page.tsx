@@ -1,5 +1,6 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import { BookOpen, ChefHat, FlaskConical, MapPin, PlaySquare } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -17,7 +18,8 @@ import {
 
 const SOURCE_ICON = [ChefHat, MapPin, PlaySquare, BookOpen, FlaskConical];
 
-export default function DishSourcesPage({ params }: { params: { id: string } }) {
+export default function DishSourcesPage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
 
   return (
