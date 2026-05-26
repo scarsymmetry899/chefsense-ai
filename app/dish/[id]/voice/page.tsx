@@ -1,5 +1,6 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import { Mic, Square, Volume2 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -7,7 +8,8 @@ import { ScreenCard } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishVoicePage({ params }: { params: { id: string } }) {
+export default function DishVoicePage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const step = dish.cookingSteps[2];
 
