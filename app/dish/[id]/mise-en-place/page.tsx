@@ -1,5 +1,6 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import { Clock3, Leaf, ListChecks, UtensilsCrossed } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -14,7 +15,8 @@ import {
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 
-export default function DishMiseEnPlacePage({ params }: { params: { id: string } }) {
+export default function DishMiseEnPlacePage() {
+  const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const completed = dish.miseEnPlace.filter((item) => item.done).length;
   const progress = Math.round((completed / dish.miseEnPlace.length) * 100);
