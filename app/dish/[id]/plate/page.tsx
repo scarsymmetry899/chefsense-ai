@@ -70,13 +70,28 @@ export default function DishPlatePage() {
       <Header backHref={ROUTES.dishFinish(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">{copy.title}</h1>
+        <h1 className="text-[40px] leading-none">{copy.title}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
           {copy.subtitle}
         </p>
       </section>
 
-      <ScreenCard className="mt-5">
+      <ScreenCard className="mt-5 overflow-hidden p-0">
+        <div className="relative h-[220px]">
+          <img src={dish.heroImage} alt={dish.dishName} className="h-full w-full object-cover" />
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+          <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
+            <span className="rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-copper">
+              Your plate
+            </span>
+            <span className="rounded-full bg-accent-green-soft px-3 py-1 text-xs font-semibold text-accent-green">
+              Ready
+            </span>
+          </div>
+        </div>
+      </ScreenCard>
+
+      <ScreenCard className="mt-4">
         <SectionEyebrow label={copy.choose} />
         <div className="mt-3 flex flex-wrap gap-3">
           {guide.styles.map((option) => {
@@ -97,16 +112,18 @@ export default function DishPlatePage() {
             );
           })}
         </div>
+        <div className="mt-4 rounded-[22px] border border-border/60 bg-background px-4 py-4 text-sm leading-6 text-muted-foreground">
+          {styleDescription}
+        </div>
       </ScreenCard>
 
       <ScreenCard className="mt-4">
         <SectionEyebrow label={`${style} guide`} />
-        <p className="mb-4 text-sm leading-6 text-muted-foreground">{styleDescription}</p>
         <div className="space-y-3">
           {filteredSteps.map((item, index) => (
-            <div key={item.id} className="rounded-[22px] border border-border/60 bg-card px-4 py-4 shadow-soft">
+            <div key={item.id} className="rounded-[24px] border border-border/60 bg-card px-4 py-4 shadow-soft">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft font-sans text-[16px] font-semibold text-primary">
                   {index + 1}
                 </span>
                 <div>

@@ -45,15 +45,21 @@ const COPY = {
     garnish: 'Garnish',
     cleanliness: 'Cleanliness',
     lighting: 'Lighting',
+    copied: 'Caption copied to clipboard.',
+    fallback: 'Sharing is not available here, so the caption was copied instead.',
+    sheet: 'Shared using your device share sheet.',
+    saved: 'Saved to your cooking journal preview.',
+    nextBody:
+      'Great job. Your plating is strong and the dish is share-ready. Next time, push the garnish contrast a little further and try another guided dish for a new chef technique.',
   },
   hi: {
     title: 'Share my plate',
-    subtitle: 'फाइनल डिश अपलोड करें, तब प्लेटिंग स्कोर देखें और शेयर-रेडी कैप्शन लें।',
+    subtitle: 'फाइनल डिश अपलोड करें, तभी प्लेटिंग स्कोर देखें और शेयर-रेडी कैप्शन लें।',
     photo: 'फाइनल प्लेट फोटो',
     upload: 'Upload photo',
     change: 'Change photo',
     lockedTitle: 'अपनी अंतिम प्लेटेड डिश जोड़ें',
-    lockedBody: 'फाइनल डिश अपलोड करने के बाद ही स्कोर, कैप्शन प्रीव्यू और शेयर फ्लो खुलेगा।',
+    lockedBody: 'फाइनल प्लेट अपलोड होने के बाद ही स्कोर, कैप्शन प्रीव्यू और शेयर फ्लो खुलेगा।',
     scoreTitle: 'Plating score',
     scoreSubtitle: 'रेटिंग केवल फाइनल प्लेट अपलोड होने के बाद दिखाई जाएगी।',
     suggestions: 'ChefSense suggestions',
@@ -69,15 +75,21 @@ const COPY = {
     garnish: 'Garnish',
     cleanliness: 'Cleanliness',
     lighting: 'Lighting',
+    copied: 'Caption clipboard में कॉपी हो गया।',
+    fallback: 'यहाँ direct share उपलब्ध नहीं है, इसलिए caption copy कर दिया गया है।',
+    sheet: 'आपके device share sheet से share किया गया।',
+    saved: 'Cooking journal preview में save कर दिया गया है।',
+    nextBody:
+      'बहुत बढ़िया। आपकी प्लेटिंग share-ready है। अगली बार garnish contrast थोड़ा और बढ़ाइए और किसी दूसरी guided dish के साथ नई technique आज़माइए।',
   },
   te: {
     title: 'Share my plate',
-    subtitle: 'ఫైనల్ డిష్‌ను అప్‌లోడ్ చేయండి, అప్పుడు ప్లేటింగ్ స్కోర్ కనిపిస్తుంది మరియు షేర్-రెడీ క్యాప్షన్ పొందండి.',
+    subtitle: 'ఫైనల్ డిష్‌ను అప్‌లోడ్ చేసి, ప్లేటింగ్ స్కోర్ చూసి, షేర్-రెడీ క్యాప్షన్ పొందండి.',
     photo: 'ఫైనల్ ప్లేట్ ఫోటో',
     upload: 'Upload photo',
     change: 'Change photo',
     lockedTitle: 'మీ ఫైనల్ ప్లేటెడ్ డిష్‌ను జోడించండి',
-    lockedBody: 'ఫైనల్ ఫోటో అప్‌లోడ్ చేసిన తర్వాత మాత్రమే స్కోర్, క్యాప్షన్ ప్రివ్యూ, షేర్ ఫ్లో కనిపిస్తాయి.',
+    lockedBody: 'ఫైనల్ ప్లేట్ అప్‌లోడ్ చేసిన తర్వాతే స్కోర్, క్యాప్షన్ ప్రివ్యూ, షేర్ ఫ్లో కనిపిస్తాయి.',
     scoreTitle: 'Plating score',
     scoreSubtitle: 'ఫైనల్ ప్లేట్ అప్‌లోడ్ చేసిన తర్వాతే రేటింగ్ కనిపిస్తుంది.',
     suggestions: 'ChefSense suggestions',
@@ -93,6 +105,12 @@ const COPY = {
     garnish: 'Garnish',
     cleanliness: 'Cleanliness',
     lighting: 'Lighting',
+    copied: 'Caption clipboard‌కు copy అయింది.',
+    fallback: 'ఇక్కడ direct share లేదు, కాబట్టి caption copy చేయబడింది.',
+    sheet: 'మీ device share sheet ద్వారా share చేయబడింది.',
+    saved: 'Cooking journal preview‌లో save చేయబడింది.',
+    nextBody:
+      'చాలా బాగా చేశారు. మీ plating ఇప్పుడు share-ready గా ఉంది. వచ్చే సారి garnish contrast ని కొంచెం పెంచి, మరో guided dish తో కొత్త technique ప్రయత్నించండి.',
   },
 } as const;
 
@@ -126,9 +144,9 @@ export default function DishSharePage() {
     () =>
       uploadedImage
         ? [
-            { label: copy.presentation, value: 86 },
-            { label: copy.garnish, value: 82 },
-            { label: copy.cleanliness, value: 88 },
+            { label: copy.presentation, value: 82 },
+            { label: copy.garnish, value: 78 },
+            { label: copy.cleanliness, value: 84 },
             { label: copy.lighting, value: 80 },
           ]
         : [],
@@ -150,20 +168,21 @@ export default function DishSharePage() {
         text: caption,
       });
       recordShareAction(dish.dishId, 'share');
-      setShareNote('Shared using your device share sheet.');
+      setShareNote(copy.sheet);
       return;
     }
 
     await navigator.clipboard.writeText(caption);
     recordShareAction(dish.dishId, 'copy');
     setCopied(true);
-    setShareNote('Sharing is not available here, so the caption was copied instead.');
+    setShareNote(copy.fallback);
   }
 
   async function handleCopy() {
     await navigator.clipboard.writeText(caption);
     recordShareAction(dish.dishId, 'copy');
     setCopied(true);
+    setShareNote(copy.copied);
   }
 
   function handleFile(file: File | null) {
@@ -180,10 +199,8 @@ export default function DishSharePage() {
       <Header backHref={ROUTES.dishPlate(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">{copy.title}</h1>
-        <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-          {copy.subtitle}
-        </p>
+        <h1 className="text-[42px] leading-none">{copy.title}</h1>
+        <p className="mt-3 text-[16px] leading-7 text-muted-foreground">{copy.subtitle}</p>
       </section>
 
       <ScreenCard className="mt-5">
@@ -203,10 +220,10 @@ export default function DishSharePage() {
             <img src={uploadedImage} alt="Final plated dish" className="h-[240px] w-full object-cover" />
           ) : (
             <div className="flex h-[240px] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top_left,_rgba(247,193,120,0.35),_transparent_40%),linear-gradient(180deg,_rgba(255,248,240,0.98),_rgba(255,240,225,0.92))] px-8 text-center">
-              <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-primary shadow-soft">
                 <Camera className="h-8 w-8" />
               </span>
-              <div className="font-serif text-[28px] leading-none text-foreground">{copy.lockedTitle}</div>
+              <div className="font-serif text-[30px] leading-none text-foreground">{copy.lockedTitle}</div>
               <div className="text-sm leading-6 text-muted-foreground">{copy.lockedBody}</div>
             </div>
           )}
@@ -225,25 +242,27 @@ export default function DishSharePage() {
         <>
           <ScreenCard className="mt-4">
             <SectionEyebrow label={copy.scoreTitle} />
-            <div className="flex items-end justify-between gap-4 rounded-[22px] border border-border/60 bg-background px-4 py-4">
-              <div>
-                <div className="text-sm text-muted-foreground">{copy.overall}</div>
-                <div className="mt-1 font-sans text-[56px] font-semibold leading-none tracking-[-0.05em] text-foreground tabular-nums">
-                  {overallScore}
+            <div className="rounded-[26px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-5 py-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">{copy.overall}</div>
+                  <div className="mt-1 font-sans text-[62px] font-semibold leading-none tracking-[-0.06em] text-foreground tabular-nums">
+                    {overallScore}
+                  </div>
                 </div>
-              </div>
-              <div className="text-right text-sm leading-6 text-muted-foreground">
-                <div>{copy.presentation} • {scores[0]?.value}%</div>
-                <div>{copy.garnish} • {scores[1]?.value}%</div>
-                <div>{copy.cleanliness} • {scores[2]?.value}%</div>
-                <div>{copy.lighting} • {scores[3]?.value}%</div>
+                <div className="text-right text-sm leading-6 text-muted-foreground">
+                  <div>{copy.presentation} • {scores[0]?.value}%</div>
+                  <div>{copy.garnish} • {scores[1]?.value}%</div>
+                  <div>{copy.cleanliness} • {scores[2]?.value}%</div>
+                  <div>{copy.lighting} • {scores[3]?.value}%</div>
+                </div>
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {scores.map((item) => (
                 <ScreenCard key={item.label} className="p-4 text-center">
                   <div className="text-sm text-muted-foreground">{item.label}</div>
-                  <div className="mt-2 font-sans text-[34px] font-semibold leading-none tracking-[-0.04em] text-foreground tabular-nums">
+                  <div className="mt-2 font-sans text-[38px] font-semibold leading-none tracking-[-0.05em] text-foreground tabular-nums">
                     {item.value}
                     <span className="ml-1 text-base text-muted-foreground">%</span>
                   </div>
@@ -255,10 +274,10 @@ export default function DishSharePage() {
           <ScreenCard className="mt-4">
             <SectionEyebrow label={copy.suggestions} />
             <ul className="space-y-2 text-[16px] leading-7 text-foreground">
-              <li>• Move closer to the bowl</li>
-              <li>• Add a small cream swirl</li>
-              <li>• Use natural light from the side</li>
-              <li>• Wipe the rim</li>
+              <li>Move closer to the bowl</li>
+              <li>Add a small cream swirl</li>
+              <li>Use natural light from the side</li>
+              <li>Wipe the rim</li>
             </ul>
           </ScreenCard>
         </>
@@ -341,7 +360,7 @@ export default function DishSharePage() {
           type="button"
           onClick={() => {
             recordShareAction(dish.dishId, 'save');
-            setShareNote('Saved to your cooking journal preview.');
+            setShareNote(copy.saved);
           }}
           className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
         >
@@ -352,15 +371,13 @@ export default function DishSharePage() {
 
       {(copied || shareNote) ? (
         <div className="mt-4 rounded-[20px] border border-border/60 bg-background px-4 py-3 text-sm text-muted-foreground">
-          {shareNote || 'Caption copied to clipboard.'}
+          {shareNote || copy.copied}
         </div>
       ) : null}
 
       <ScreenCard className="mt-5">
         <SectionEyebrow label={copy.next} />
-        <p className="text-sm leading-6 text-muted-foreground">
-          Great job. Your plating is strong and the dish is share-ready. Next time, push the garnish contrast a little further and try another guided dish for a new chef technique.
-        </p>
+        <p className="text-sm leading-6 text-muted-foreground">{copy.nextBody}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="rounded-full bg-primary-soft px-3 py-1.5 text-sm text-primary-dark">Try Chicken Biryani next</span>
           <span className="rounded-full bg-primary-soft px-3 py-1.5 text-sm text-primary-dark">Practice a richer finish</span>

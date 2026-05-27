@@ -231,7 +231,7 @@ export default function DishCookPage() {
 
       <div className="text-center">
         <div className="text-[15px] font-medium text-copper">{dish.dishName}</div>
-        <div className="mx-auto mt-3 inline-flex rounded-full border border-border bg-card px-6 py-2.5 text-[18px] font-medium text-foreground shadow-soft">
+        <div className="mx-auto mt-3 inline-flex rounded-full border border-border bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-6 py-2.5 text-[18px] font-medium text-foreground shadow-soft">
           {copy.step} {step.index} {copy.of} {dish.cookingSteps.length}
         </div>
         <div className="mt-4 scale-110">
@@ -240,38 +240,38 @@ export default function DishCookPage() {
       </div>
 
       <section className="mt-5 text-center">
-        <h1 className="mx-auto max-w-[360px] text-[52px] font-serif leading-[0.94] tracking-[-0.05em]">{step.title}</h1>
-        <p className="mx-auto mt-4 max-w-[340px] text-[20px] leading-8 text-muted-foreground">
+        <h1 className="mx-auto max-w-[360px] text-[56px] font-serif leading-[0.92] tracking-[-0.06em]">{step.title}</h1>
+        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">
           {step.instruction}
         </p>
       </section>
 
-      <ScreenCard className="mt-6 p-4">
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="border-r border-border/60 pr-3">
-            <div className="flex items-center justify-center gap-2 text-primary">
+      <ScreenCard className="mt-6 overflow-hidden p-0">
+        <div className="grid grid-cols-[1.05fr_1.05fr_0.9fr] gap-0 text-center">
+          <div className="px-4 py-5">
+            <div className="flex items-center justify-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
               <Flame className="h-4 w-4" />
               {t('cook.heat')}
             </div>
-            <div className="mt-2 font-sans text-[26px] font-semibold tracking-[-0.04em] text-primary-dark">{step.heat}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{heatMeta.tempC.replace('C', ' degrees C')}</div>
-            <div className="mt-2">
+            <div className="mt-3 font-sans text-[28px] font-semibold tracking-[-0.05em] text-primary-dark">{step.heat}</div>
+            <div className="mt-1 text-[12px] text-muted-foreground">{heatMeta.tempC.replace('C', ' degrees C')}</div>
+            <div className="mt-3">
               <HeatMeter level={step.heat} tempLabel={heatMeta.tempLabel} />
             </div>
           </div>
-          <div className="border-r border-border/60 px-3">
-            <div className="flex items-center justify-center gap-2 text-primary">
+          <div className="border-x border-border/60 px-4 py-5">
+            <div className="flex items-center justify-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
               <TimerReset className="h-4 w-4" />
               {t('cook.timer')}
             </div>
-            <div className="mt-2 font-sans text-[36px] font-semibold leading-none tracking-[-0.05em] text-primary tabular-nums">
+            <div className="mt-3 font-sans text-[40px] font-semibold leading-none tracking-[-0.06em] text-primary tabular-nums">
               {formatCountdown(remainingSeconds)}
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">{t('cook.timeRemaining')}</div>
+            <div className="mt-2 text-sm text-muted-foreground">{t('cook.timeRemaining')}</div>
           </div>
-          <div className="pl-3">
-            <div className="text-primary">{t('cook.progress')}</div>
-            <div className="mx-auto mt-2 flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-primary/80 font-sans text-[30px] font-semibold tracking-[-0.04em] text-foreground shadow-inner tabular-nums">
+          <div className="px-4 py-5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">{t('cook.progress')}</div>
+            <div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-primary/80 bg-white/70 font-sans text-[31px] font-semibold tracking-[-0.05em] text-foreground shadow-inner tabular-nums">
               {progress}%
             </div>
           </div>

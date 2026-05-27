@@ -74,7 +74,8 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/60 via-black/28 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(33,18,10,0.62)_0%,rgba(33,18,10,0.34)_34%,rgba(33,18,10,0.08)_58%,rgba(33,18,10,0)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/58 via-black/20 to-transparent" />
           {featured && (
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/90 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
               <Star className="h-3 w-3 fill-current" />
@@ -83,16 +84,17 @@ export function DishHeroCard({
           )}
         </div>
 
-        <div className="absolute inset-x-3 bottom-3 rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,249,242,0.97),rgba(252,244,235,0.96))] p-4 shadow-[0_22px_34px_-18px_rgba(114,66,35,0.48)] backdrop-blur-[10px]">
-          <h3 className="font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
+        <div className="absolute inset-x-4 bottom-4 flex gap-4">
+          <div className="max-w-[58%] rounded-[28px] border border-white/25 bg-[linear-gradient(180deg,rgba(255,250,245,0.78),rgba(246,236,224,0.68))] px-4 py-4 shadow-[0_22px_34px_-18px_rgba(114,66,35,0.48)] backdrop-blur-[14px]">
+          <h3 className="font-serif text-[26px] font-bold leading-[0.96] tracking-[-0.05em] text-foreground sm:text-[28px]">
             {name}
           </h3>
 
-          <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-foreground/78">
+          <p className="mt-2 line-clamp-3 text-[14px] leading-5 text-foreground/84">
             {summary}
           </p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-foreground/80">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-foreground/82">
             <span className="inline-flex items-center gap-1">
               <Flame className="h-3.5 w-3.5 text-primary" />
               {difficultyLabel}
@@ -102,11 +104,12 @@ export function DishHeroCard({
               {dish.totalTimeMin} {t('common.min')}
             </span>
           </div>
+          </div>
 
           {showInlineCta && (
             <Link
               href={href ?? '#'}
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-3.5 text-[14px] font-semibold text-white shadow-cta transition-transform active:scale-[0.98]"
+              className="mt-auto inline-flex min-h-[56px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full gradient-cta px-6 py-4 text-[15px] font-semibold text-white shadow-cta transition-transform active:scale-[0.98]"
             >
               {t('cta.startGuidedCook')}
               <ChevronRight className="h-4 w-4" />

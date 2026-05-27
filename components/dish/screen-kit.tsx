@@ -136,10 +136,10 @@ export function MetricTile({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-[24px] border border-border/80 bg-card px-4 py-4 text-center shadow-sm shadow-[0_12px_28px_-24px_rgba(114,66,35,0.42)]', className)}>
+    <div className={cn('rounded-[26px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,246,238,0.96))] px-4 py-4 text-center shadow-[0_16px_34px_-26px_rgba(114,66,35,0.42)]', className)}>
       <Icon className="mx-auto h-5 w-5 text-primary" />
-      <div className="mt-3 text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{title}</div>
-      <div className="mt-2 font-sans text-[30px] font-semibold leading-none tracking-[-0.04em] text-foreground tabular-nums">{value}</div>
+      <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</div>
+      <div className="mt-2 font-sans text-[32px] font-semibold leading-none tracking-[-0.05em] text-foreground tabular-nums">{value}</div>
       {detail ? <div className="mt-2 text-[12px] leading-5 text-muted-foreground">{detail}</div> : null}
     </div>
   );
@@ -252,8 +252,8 @@ export function StepDots({
         <span
           key={index}
           className={cn(
-            'h-2.5 rounded-full transition-all',
-            index + 1 === active ? 'w-6 bg-primary' : 'w-2.5 bg-border',
+            'h-3 rounded-full transition-all',
+            index + 1 === active ? 'w-7 bg-primary shadow-[0_4px_10px_rgba(212,96,48,0.35)]' : 'w-3 bg-border',
           )}
         />
       ))}

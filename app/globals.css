@@ -12,35 +12,35 @@
 }
 
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Manrope';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4TC1C4E.ttf') format('truetype');
+  src: url('https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSvfedN4.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Manrope';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4QK1C4E.ttf') format('truetype');
+  src: url('https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggmxSvfedN4.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Manrope';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e6yC4E.ttf') format('truetype');
+  src: url('https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggq3SvfedN4.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Manrope';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('https://fonts.gstatic.com/s/outfit/v15/QGYyz_MVcBeNP4NjuGObqx1XmO1I4deyC4E.ttf') format('truetype');
+  src: url('https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.woff2') format('woff2');
 }
 
 @font-face {
@@ -63,7 +63,7 @@
 @layer base {
   :root {
     --font-serif: Georgia, 'Times New Roman', serif;
-    --font-sans: 'Outfit';
+    --font-sans: 'Manrope';
     --font-mono: 'JetBrains Mono';
 
     --background: 36 100% 96%;

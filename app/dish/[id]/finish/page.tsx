@@ -71,7 +71,7 @@ export default function DishFinishPage() {
       />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">{t('finish.title')}</h1>
+        <h1 className="text-[40px] leading-none">{t('finish.title')}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
           {t('finish.subtitle')}
         </p>
@@ -92,7 +92,7 @@ export default function DishFinishPage() {
                   <Icon className="h-8 w-8 text-primary" />
                 </div>
                 <div className="mt-3 text-[15px] text-foreground">{meta.label}</div>
-                <div className="mt-1 font-serif text-[28px] leading-none text-foreground">
+                <div className="mt-1 font-sans text-[30px] font-semibold leading-none tracking-[-0.05em] text-foreground tabular-nums">
                   {axis.value}%
                 </div>
               </div>
