@@ -56,12 +56,12 @@ export default function WelcomePage() {
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 animate-fade-up">
         <FeaturePill
           icon={Thermometer}
-          label={t('welcome.featurePill.temp')}
+          label="Chef-guided cues"
           accent="primary"
         />
         <FeaturePill
           icon={Leaf}
-          label={t('welcome.featurePill.intelligence')}
+          label="Source-backed recipes"
           accent="green"
         />
       </div>
@@ -154,7 +154,7 @@ function FoodHeroIllustration({
         />
       </div>
       <div className="border-t border-border bg-card px-5 py-4 text-center">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-copper">Featured Demo</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-copper">Featured Dish</div>
         <div className="mt-1 font-serif text-[24px] font-semibold text-foreground">{dishName}</div>
       </div>
     </div>

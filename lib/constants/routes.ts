@@ -13,6 +13,9 @@
 export const ROUTES = {
   welcome: '/',
   home: '/home',
+  dishes: '/dishes',
+  pantry: '/pantry',
+  profile: '/profile',
 
   dish: (id: string) => `/dish/${id}`,
   dishSources: (id: string) => `/dish/${id}/sources`,
@@ -63,8 +66,8 @@ export const BOTTOM_NAV_ITEMS = [
     href: ROUTES.dishRescue('paneer-butter-masala', 'raw-masala-taste', 1),
     icon: 'life-buoy' as const,
   },
-  { key: 'pantry', label: 'Pantry', href: ROUTES.home, icon: 'archive' as const },
-  { key: 'profile', label: 'Profile', href: ROUTES.home, icon: 'user' as const },
+  { key: 'pantry', label: 'Pantry', href: ROUTES.pantry, icon: 'archive' as const },
+  { key: 'profile', label: 'Profile', href: ROUTES.profile, icon: 'user' as const },
 ] as const;
 
 export type BottomNavKey = (typeof BOTTOM_NAV_ITEMS)[number]['key'];

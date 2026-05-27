@@ -17,6 +17,22 @@ export default function DishPlatePage() {
   const [style, setStyle] = useState(guide.defaultStyle);
 
   const filteredSteps = useMemo(() => guide.steps, [guide.steps]);
+  const styleDescription = useMemo(() => {
+    switch (style) {
+      case 'Classic Indian':
+        return 'Warm bowl, generous portioning, and familiar garnish balance for a premium home-style serve.';
+      case 'Fine Dining':
+        return 'Tighter plating, more negative space, and one sharp visual focal point.';
+      case 'Modern Minimal':
+        return 'Cleaner lines, smaller garnish moments, and a quieter plate around the food.';
+      case 'Dhaba Luxe':
+        return 'Bold warmth, lush finish, and slightly more indulgent garnish energy.';
+      case 'Festive Serve':
+        return 'Richer garnish layering, celebratory colour, and a more abundant presentation.';
+      default:
+        return 'Choose the plating mood that feels right for this dish.';
+    }
+  }, [style]);
 
   return (
     <AppShell className="pb-32">
@@ -54,6 +70,7 @@ export default function DishPlatePage() {
 
       <ScreenCard className="mt-4">
         <SectionEyebrow label={`${style} guide`} />
+        <p className="mb-4 text-sm leading-6 text-muted-foreground">{styleDescription}</p>
         <div className="space-y-3">
           {filteredSteps.map((item, index) => (
             <div key={item.id} className="rounded-[22px] border border-border/60 bg-card px-4 py-4 shadow-soft">

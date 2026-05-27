@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   ChevronRight,
+  Clock3,
   Leaf,
   Scale,
+  Share2,
   ShoppingBasket,
   Users,
   UtensilsCrossed,
@@ -26,6 +28,8 @@ import { ROUTES } from '@/lib/constants/routes';
 import { getBaseServings, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { playSoundEffect } from '@/lib/sound-effects';
+import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
+import { recordRecentlyViewedDish } from '@/lib/user-state';
 
 const STORAGE_PREFIX = 'chefsense.ingredients.';
 const SERVING_OPTIONS = [1, 2, 4, 6];
@@ -45,6 +49,10 @@ export default function DishPage() {
 
   const [servings, setServings] = useState(baseServings);
   const [checked, setChecked] = useState<string[]>([]);
+
+  useEffect(() => {
+    recordRecentlyViewedDish(dish.dishId);
+  }, [dish.dishId]);
 
   useEffect(() => {
     try {
@@ -87,6 +95,8 @@ export default function DishPage() {
     hi: 'जो सामग्री आपके पास है उसे टिक करें, फिर बताइए आप कितने लोगों के लिए बना रहे हैं। हम उसी हिसाब से मात्रा दिखाएँगे।',
     te: 'మీ దగ్గర ఉన్న పదార్థాలను టిక్ చేయండి. తర్వాత ఎన్ని మందికి వండుతున్నారో ఎంచుకోండి. దానికి అనుగుణంగా పరిమాణాలు చూపిస్తాము.',
   });
+  const resumeStep = getResumeStepForDish(dish.dishId, 1);
+  const hasProgress = hasInProgressDish(dish.dishId);
 
   return (
     <AppShell className="pb-32">
@@ -124,6 +134,21 @@ export default function DishPage() {
         <MetricTile icon={ShoppingBasket} title="Ingredients" value={`${dish.ingredients.length}`} detail="Checklist items" />
         <MetricTile icon={UtensilsCrossed} title="Tools" value={`${dish.tools.length}`} detail="To keep ready" />
       </div>
+
+      <ScreenCard className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionEyebrow icon={Clock3} label="Multi-source guide" className="mb-1" />
+            <h2 className="text-[22px]">Built by comparing trusted recipe styles</h2>
+          </div>
+          <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
+            Open guide
+          </Link>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          ChefSense compares technique, regional, tested-recipe, and food-science style inputs before locking the guided cooking flow.
+        </p>
+      </ScreenCard>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
@@ -214,19 +239,47 @@ export default function DishPage() {
         </div>
       </ScreenCard>
 
+      <ScreenCard className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionEyebrow icon={UtensilsCrossed} label="Tools checklist" className="mb-1" />
+            <h2 className="text-[22px]">Pans and equipment for this dish</h2>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {dish.tools.map((tool) => (
+            <span key={tool.id} className="rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground shadow-soft">
+              {tool.name}
+            </span>
+          ))}
+        </div>
+      </ScreenCard>
+
+      <ScreenCard className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SectionEyebrow icon={Share2} label="Share this dish" className="mb-1" />
+            <h2 className="text-[22px]">Send a chef-style recipe card</h2>
+          </div>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          Share the app link, cook time, and ingredient-led preview so someone else can cook this dish restaurant-style too.
+        </p>
+      </ScreenCard>
+
       <div className="mt-6">
         <Link
-          href={ROUTES.dishMiseEnPlace(dish.dishId)}
+          href={hasProgress ? ROUTES.dishCook(dish.dishId, resumeStep) : ROUTES.dishMiseEnPlace(dish.dishId)}
           className="flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-white shadow-cta transition-transform active:scale-[0.985]"
         >
           <span className="flex items-center gap-3">
             <ShoppingBasket className="h-6 w-6" />
             <span className="flex flex-col leading-tight">
               <span className="font-serif text-[20px]">
-                {allChecked ? 'Start Kitchen Prep' : 'Continue to Kitchen Prep'}
+                {hasProgress ? `Resume from Step ${resumeStep}` : allChecked ? 'Start Kitchen Prep' : 'Continue to Kitchen Prep'}
               </span>
               <span className="text-sm text-white/90">
-                {allChecked ? 'Everything is in place for the next step.' : 'You can still update this checklist anytime.'}
+                {hasProgress ? 'Your timer and progress are still saved.' : allChecked ? 'Everything is in place for the next step.' : 'You can still update this checklist anytime.'}
               </span>
             </span>
           </span>

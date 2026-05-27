@@ -9,14 +9,13 @@ import {
   ImagePlus,
   RotateCcw,
   ThermometerSun,
-  Undo2,
 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
-import { GradientButton, ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
+import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
-import { getStepFallbackGlyph } from '@/lib/dish-flow';
+import { getStepAwareRescueCopy, getStepFallbackGlyph } from '@/lib/dish-flow';
 
 type ValidationState = {
   status: 'idle' | 'ready' | 'rejected';
@@ -33,6 +32,7 @@ export default function DishPanCheckPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationState>({ status: 'idle' });
+  const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
 
   useEffect(() => {
     return () => {
@@ -41,6 +41,12 @@ export default function DishPanCheckPage() {
       }
     };
   }, [uploadedImage]);
+
+  const chosenIssues = useMemo(
+    () => dish.rescueIssues.filter((issue) => selectedIssues.includes(issue.id)),
+    [dish.rescueIssues, selectedIssues],
+  );
+  const primaryIssue = chosenIssues[0] ?? dish.rescueIssues[0];
 
   const analysis = useMemo(() => {
     const hasTextureCue = step.sensoryCues.find((cue) => cue.type === 'texture');
@@ -78,19 +84,19 @@ export default function DishPanCheckPage() {
   const canAnalyze = validation.status === 'ready' && Boolean(uploadedImage);
 
   return (
-    <AppShell showBottomNav={false} className="pb-12">
-      <Header backHref={ROUTES.dishCook(dish.dishId, step.index)} />
+    <AppShell className="pb-32">
+      <Header backHref={ROUTES.dishCook(dish.dishId, step.index)} title="AI Pan Checker" />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">Visual Pan Check</h1>
+        <h1 className="text-[36px] leading-none">AI Pan Checker</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-          Add a close-up of your pan or dish at this stage. ChefSense will keep the advice tied to step {step.index}.
+          Upload one photo and ChefSense will combine visual analysis with the right fix suggestions for this exact cooking stage.
         </p>
       </section>
 
       <div className="mt-5">
         <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-card">
-          <div className="relative h-[340px] overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(247,193,120,0.35),_transparent_40%),linear-gradient(180deg,_rgba(255,248,240,0.98),_rgba(255,240,225,0.92))]">
+          <div className="relative h-[320px] overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(247,193,120,0.35),_transparent_40%),linear-gradient(180deg,_rgba(255,248,240,0.98),_rgba(255,240,225,0.92))]">
             {uploadedImage ? (
               <img src={uploadedImage} alt="Pan check upload" className="h-full w-full object-cover" />
             ) : (
@@ -108,22 +114,13 @@ export default function DishPanCheckPage() {
             )}
 
             {canAnalyze ? (
-              <>
-                <div className="absolute left-4 top-4 rounded-[22px] bg-black/72 px-4 py-3 text-white">
-                  <div className="text-sm">AI Confidence</div>
-                  <div className="mt-2 flex items-center gap-2 font-serif text-[24px]">
-                    <span className="inline-block h-10 w-10 rounded-full border-4 border-secondary" />
-                    86%
-                  </div>
+              <div className="absolute left-4 top-4 rounded-[22px] bg-black/72 px-4 py-3 text-white">
+                <div className="text-sm">AI Confidence</div>
+                <div className="mt-2 flex items-center gap-2 font-serif text-[24px]">
+                  <span className="inline-block h-10 w-10 rounded-full border-4 border-secondary" />
+                  86%
                 </div>
-                <button
-                  type="button"
-                  onClick={() => uploadRef.current?.click()}
-                  className="absolute right-4 top-4 rounded-[20px] bg-black/72 px-4 py-3 text-sm font-medium text-white"
-                >
-                  Retake
-                </button>
-              </>
+              </div>
             ) : null}
           </div>
 
@@ -169,6 +166,32 @@ export default function DishPanCheckPage() {
         </div>
       ) : null}
 
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {dish.rescueIssues.map((issue) => {
+          const active = selectedIssues.includes(issue.id);
+          return (
+            <button
+              key={issue.id}
+              type="button"
+              onClick={() =>
+                setSelectedIssues((current) =>
+                  current.includes(issue.id)
+                    ? current.filter((item) => item !== issue.id)
+                    : [...current, issue.id],
+                )
+              }
+              className={
+                active
+                  ? 'rounded-[18px] border border-primary/30 bg-gradient-to-r from-primary to-primary-dark px-3 py-3 text-center text-sm font-medium text-white shadow-cta'
+                  : 'rounded-[18px] border border-border bg-card px-3 py-3 text-center text-sm text-foreground shadow-soft'
+              }
+            >
+              {issue.label}
+            </button>
+          );
+        })}
+      </div>
+
       {canAnalyze ? (
         <>
           <ScreenCard className="mt-5">
@@ -183,15 +206,24 @@ export default function DishPanCheckPage() {
               <div className="rounded-[24px] border border-primary/20 bg-primary-soft/45 p-4">
                 <div className="font-medium text-primary-dark">{analysis.caution}</div>
                 <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                  ChefSense is only checking this against cues that make sense at step {step.index}.
+                  {getStepAwareRescueCopy(step.title, step.index, dish.cookingSteps.length)}
                 </div>
               </div>
             </div>
           </ScreenCard>
 
           <ScreenCard className="mt-4">
-            <SectionEyebrow label="AI Suggestion" />
-            <div className="text-[20px] leading-8 text-foreground">{analysis.suggestion}</div>
+            <SectionEyebrow label="Likely diagnosis" />
+            <div className="text-[20px] leading-8 text-foreground">{primaryIssue.diagnosis}</div>
+          </ScreenCard>
+
+          <ScreenCard className="mt-4">
+            <SectionEyebrow label="Immediate fixes" />
+            <ol className="space-y-3 pl-6 text-[18px] leading-8 text-foreground">
+              {primaryIssue.immediateFix.map((fix) => (
+                <li key={fix}>{fix}</li>
+              ))}
+            </ol>
           </ScreenCard>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -217,8 +249,21 @@ export default function DishPanCheckPage() {
             </ScreenCard>
           </div>
 
-          <div className="mt-4 rounded-full border border-border/70 bg-secondary-soft/45 px-4 py-3 text-sm text-accent-green">
-            Tip: If you correct the texture now, ChefSense will bring you straight back to this cooking step.
+          <div className="mt-4 -mx-5 overflow-x-auto px-5 scrollbar-hide">
+            <div className="flex gap-3 pb-1">
+              <ScreenCard className="w-[280px] shrink-0">
+                <SectionEyebrow label="Prevent next time" />
+                <ul className="space-y-2 text-[16px] leading-7 text-foreground">
+                  {primaryIssue.preventNextTime.map((tip) => (
+                    <li key={tip}>• {tip}</li>
+                  ))}
+                </ul>
+              </ScreenCard>
+              <ScreenCard className="w-[280px] shrink-0">
+                <SectionEyebrow label="Food science" />
+                <p className="text-[16px] leading-7 text-muted-foreground">{primaryIssue.foodScience}</p>
+              </ScreenCard>
+            </div>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -230,20 +275,11 @@ export default function DishPanCheckPage() {
               <RotateCcw className="h-5 w-5" />
               Analyze Again
             </button>
-            <GradientButton
-              href={ROUTES.dishRescue(dish.dishId, undefined, step.index)}
-              label="Open Rescue"
-              icon={Undo2}
-              className="px-5 py-4 [&_.font-serif]:text-[18px]"
-            />
-          </div>
-
-          <div className="mt-4">
             <Link
               href={ROUTES.dishCook(dish.dishId, step.index)}
-              className="inline-flex w-full items-center justify-center rounded-[22px] border border-border bg-card px-4 py-4 text-center text-[15px] font-medium text-foreground"
+              className="inline-flex items-center justify-center rounded-[24px] border border-primary/20 gradient-cta px-5 py-4 text-[18px] font-medium text-white shadow-cta"
             >
-              I corrected it, take me back to cooking
+              I corrected it
             </Link>
           </div>
         </>

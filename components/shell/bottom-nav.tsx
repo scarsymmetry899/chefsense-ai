@@ -62,6 +62,8 @@ export function BottomNav() {
                   : item.href;
             const active =
               (item.key === 'home' && (pathname === '/home' || pathname === '/')) ||
+              (item.key === 'pantry' && pathname === '/pantry') ||
+              (item.key === 'profile' && pathname === '/profile') ||
               (item.key === 'cook' &&
                 (pathname.includes('/mise-en-place') ||
                   pathname === `/dish/${currentDishId}` ||

@@ -1,4 +1,5 @@
 import type { Dish, PlatingGuide, ShareCaptions } from '@/lib/types';
+import type { SensoryCue } from '@/lib/types';
 
 function parseNumericToken(token: string): number | null {
   const trimmed = token.trim();
@@ -146,6 +147,16 @@ export function getStepAwareRescueCopy(stepTitle: string, stepIndex: number, tot
   return `ChefSense will only suggest corrections that fit the dish at step ${stepIndex}, so you can continue cooking from here without jumping ahead.`;
 }
 
+export function getStructuredCues(stepTitle: string, cues: SensoryCue[]) {
+  const byType = new Map(cues.map((cue) => [cue.type, cue.cue]));
+  return [
+    { type: 'visual', cue: byType.get('visual') ?? `Watch how ${stepTitle.toLowerCase()} changes in colour and thickness.` },
+    { type: 'smell', cue: byType.get('smell') ?? 'There may not be a strong aroma cue at this stage, so stay with the visual and texture changes.' },
+    { type: 'sound', cue: byType.get('sound') ?? 'Listen for a gentle steady sizzle rather than harsh crackling.' },
+    { type: 'texture', cue: byType.get('texture') ?? 'Check how the sauce or ingredients move on the spoon before advancing.' },
+  ] as const;
+}
+
 export function getPlatingGuide(dish: Dish): PlatingGuide {
   if (dish.platingGuide) return dish.platingGuide;
 
@@ -203,10 +214,10 @@ export function getShareCaptions(dish: Dish): ShareCaptions {
   if (dish.shareCaptions) return dish.shareCaptions;
 
   return {
-    fineDining: `${dish.dishName}, plated with fine-dining plating principles and finished with a restaurant-style touch.`,
-    instagramFoodie: `Homemade ${dish.dishName}, plated like a pro and fully worth the kitchen effort.`,
-    homeChefProud: `Cooked ${dish.dishName} from scratch today and I am genuinely proud of how it turned out.`,
-    simpleWarm: `Fresh ${dish.dishName}, cooked with care and served warm at home.`,
+    fineDining: `${dish.dishName} in a velvety cashew-butter gravy, finished with kasuri methi and plated with fine-dining restraint.`,
+    instagramFoodie: `${dish.dishName}, glossy gravy, soft paneer, and a restaurant-style finish that absolutely deserved its own photo.`,
+    homeChefProud: `Made ${dish.dishName} from scratch today with proper chef-guided cues, and it came out beautifully.`,
+    simpleWarm: `Warm ${dish.dishName}, cooked with care and served the way it should be at home.`,
     short: `${dish.dishName}, but make it chef-style.`,
     hindi: `Aaj maine ${dish.dishName} ko professional restaurant-style presentation ke saath serve kiya.`,
     telugu: `I roju nenu ${dish.dishName} ni restaurant-style presentation tho serve chesanu.`,

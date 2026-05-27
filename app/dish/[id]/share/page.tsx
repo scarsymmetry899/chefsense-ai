@@ -9,6 +9,7 @@ import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { ROUTES } from '@/lib/constants/routes';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { getShareCaptions } from '@/lib/dish-flow';
+import { recordShareAction } from '@/lib/user-state';
 
 const TONE_KEYS = [
   { id: 'fineDining', label: 'Fine Dining' },
@@ -45,10 +46,10 @@ export default function DishSharePage() {
 
   const scores = useMemo(
     () => [
-      { label: 'Presentation', value: uploadedImage ? 89 : 74 },
-      { label: 'Garnish', value: uploadedImage ? 84 : 70 },
-      { label: 'Cleanliness', value: uploadedImage ? 91 : 75 },
-      { label: 'Lighting', value: uploadedImage ? 82 : 68 },
+      { label: 'Presentation', value: uploadedImage ? 89 : 78 },
+      { label: 'Garnish', value: uploadedImage ? 84 : 76 },
+      { label: 'Cleanliness', value: uploadedImage ? 91 : 79 },
+      { label: 'Lighting', value: uploadedImage ? 82 : 75 },
     ],
     [uploadedImage],
   );
@@ -63,17 +64,20 @@ export default function DishSharePage() {
         title: `${dish.dishName} by ChefSense`,
         text: caption,
       });
+      recordShareAction(dish.dishId, 'share');
       setShareNote('Shared using your device share sheet.');
       return;
     }
 
     await navigator.clipboard.writeText(caption);
+    recordShareAction(dish.dishId, 'copy');
     setCopied(true);
     setShareNote('Sharing is not available here, so the caption was copied instead.');
   }
 
   async function handleCopy() {
     await navigator.clipboard.writeText(caption);
+    recordShareAction(dish.dishId, 'copy');
     setCopied(true);
   }
 
@@ -217,7 +221,10 @@ export default function DishSharePage() {
         </button>
         <button
           type="button"
-          onClick={() => setShareNote('Saved to your cooking journal preview.')}
+          onClick={() => {
+            recordShareAction(dish.dishId, 'save');
+            setShareNote('Saved to your cooking journal preview.');
+          }}
           className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
         >
           <Save className="h-4 w-4 text-primary" />
@@ -230,6 +237,17 @@ export default function DishSharePage() {
           {shareNote || 'Caption copied to clipboard.'}
         </div>
       ) : null}
+
+      <ScreenCard className="mt-5">
+        <SectionEyebrow label="What to try next" />
+        <p className="text-sm leading-6 text-muted-foreground">
+          Great job. Your plating is strong and the dish is share-ready. Next time, you could push the garnish contrast slightly higher and try another guided dish for a different chef technique.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-sm text-primary-dark">Try Chicken Biryani next</span>
+          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-sm text-primary-dark">Practice a richer finish</span>
+        </div>
+      </ScreenCard>
     </AppShell>
   );
 }

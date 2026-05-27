@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, BookOpen } from 'lucide-react';
+import { Bell, BookOpen, Clock3, Share2 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -20,6 +20,8 @@ import {
   getDishOrThrow,
 } from '@/lib/data/dishes';
 import type { DictionaryKey } from '@/lib/i18n/dictionary';
+import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
+import { formatViewedAgo, getRecentlyViewedDishes, getShareActions } from '@/lib/user-state';
 
 const MOOD_META = [
   { id: 'comfort', icon: 'soup', key: 'mood.comfort' as DictionaryKey },
@@ -37,11 +39,37 @@ export default function HomePage() {
       featured,
       getDishOrThrow('dal-tadka'),
       getDishOrThrow('chicken-biryani'),
+      getDishOrThrow('eggs-kejriwal'),
     ],
     [featured],
   );
   const [activeSlide, setActiveSlide] = useState(0);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [resumeMap, setResumeMap] = useState<Record<string, number>>({});
+  const [recentIds, setRecentIds] = useState<{ dishId: string; viewedAgo: string }[]>([]);
+  const [shareCount, setShareCount] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSelectedMood(params.get('mood'));
+  }, []);
+
+  useEffect(() => {
+    const map = Object.fromEntries(
+      ALL_DISHES.map((dish) => [dish.dishId, getResumeStepForDish(dish.dishId, 1)]),
+    );
+    setResumeMap(map);
+    setRecentIds(
+      getRecentlyViewedDishes()
+        .map((entry) => ({
+          dishId: entry.dishId,
+          viewedAgo: formatViewedAgo(entry.viewedAt),
+        }))
+        .filter((entry) => getDish(entry.dishId)),
+    );
+    setShareCount(getShareActions().length);
+  }, []);
 
   useEffect(() => {
     const node = carouselRef.current;
@@ -59,18 +87,23 @@ export default function HomePage() {
     return () => node.removeEventListener('scroll', handleScroll);
   }, [heroSlides.length]);
 
-  const popular = [
-    ...ALL_DISHES.filter((d) => d.dishId !== FEATURED_DISH_ID),
-    featured,
-  ];
+  const filteredDishes = useMemo(() => {
+    if (!selectedMood) return ALL_DISHES;
+    const moodLabel = MOOD_META.find((m) => m.id === selectedMood)?.key;
+    if (!moodLabel) return ALL_DISHES;
+    const label = t(moodLabel);
+    return ALL_DISHES.filter((dish) => dish.mood.includes(label));
+  }, [selectedMood, t]);
 
-  const recentlyViewed = [
-    { dish: featured, agoMins: 10 },
-    {
-      dish: getDish('bandi-chicken-fried-rice') ?? getDish('dal-tadka')!,
-      agoMins: 60,
-    },
-  ];
+  const popular = [
+    ...filteredDishes.filter((d) => d.dishId !== FEATURED_DISH_ID),
+    ...(filteredDishes.some((d) => d.dishId === FEATURED_DISH_ID) ? [featured] : []),
+  ].slice(0, 5);
+
+  const recentlyViewed = recentIds
+    .map((entry) => ({ dish: getDish(entry.dishId), viewedAgo: entry.viewedAgo }))
+    .filter((entry): entry is { dish: NonNullable<typeof entry.dish>; viewedAgo: string } => Boolean(entry.dish))
+    .slice(0, 2);
 
   function jumpToSlide(index: number) {
     const node = carouselRef.current;
@@ -78,6 +111,14 @@ export default function HomePage() {
     node.scrollTo({ left: node.clientWidth * index, behavior: 'smooth' });
     setActiveSlide(index);
   }
+
+  function getDishHref(dishId: string) {
+    return hasInProgressDish(dishId)
+      ? ROUTES.dishCook(dishId, resumeMap[dishId] ?? 1)
+      : ROUTES.dish(dishId);
+  }
+
+  const activeFeaturedDish = heroSlides[activeSlide] ?? featured;
 
   return (
     <AppShell>
@@ -102,6 +143,22 @@ export default function HomePage() {
         <SearchBar />
       </div>
 
+      <div className="mt-4 rounded-[24px] border border-border/70 bg-card px-4 py-4 shadow-soft">
+        <div className="text-[13px] font-semibold uppercase tracking-[0.18em] text-copper">
+          Chef-guided Indian cooking
+        </div>
+        <div className="mt-2 font-serif text-[27px] leading-[1.02] text-foreground">
+          Restaurant-style dishes, one guided step at a time.
+        </div>
+        <div className="mt-2 text-sm leading-6 text-muted-foreground">
+          We compare trusted source styles, lock the best method, and guide you cue by cue until the dish is worth serving.
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-primary-dark">Source-backed recipe intelligence</span>
+          <span className="rounded-full bg-accent-green-soft px-3 py-1.5 text-accent-green">Guided cues for every major stage</span>
+        </div>
+      </div>
+
       <section className="pt-6 animate-fade-up">
         <div
           ref={carouselRef}
@@ -111,10 +168,10 @@ export default function HomePage() {
             <div key={dish.dishId} className="w-full shrink-0 snap-center">
               <DishHeroCard
                 dish={dish}
-                featured={dish.dishId === FEATURED_DISH_ID}
+                featured
                 variant="horizontal"
                 showInlineCta
-                href={ROUTES.dish(dish.dishId)}
+                href={getDishHref(dish.dishId)}
               />
             </div>
           ))}
@@ -131,42 +188,92 @@ export default function HomePage() {
             />
           ))}
         </div>
+
+        <div className="mt-3 flex items-center justify-between rounded-[22px] border border-border/70 bg-card px-4 py-3 shadow-soft">
+          <div>
+            <div className="text-sm font-semibold text-foreground">{activeFeaturedDish.dishName}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {activeFeaturedDish.totalTimeMin} min • professional restaurant-style guidance
+            </div>
+          </div>
+          <Link
+            href={ROUTES.dish(activeFeaturedDish.dishId)}
+            className="inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
+          >
+            Ingredients
+            <BookOpen className="h-4 w-4" />
+          </Link>
+        </div>
       </section>
 
       <section className="pt-7 animate-fade-up">
-        <SectionRow title={t('home.popular')} viewAllHref={ROUTES.dish(featured.dishId)} />
+        <SectionRow title={t('home.popular')} viewAllHref={ROUTES.dishes} />
         <div className="mt-3 -mx-5 overflow-x-auto scrollbar-hide px-5">
           <div className="flex gap-3 pb-2">
             {popular.map((dish) => (
-              <DishCard key={dish.dishId} dish={dish} href={ROUTES.dish(dish.dishId)} />
+              <DishCard key={dish.dishId} dish={dish} href={getDishHref(dish.dishId)} />
             ))}
           </div>
         </div>
       </section>
 
       <section className="pt-7 animate-fade-up">
-        <SectionRow title={t('home.mood')} viewAllHref={ROUTES.dish(featured.dishId)} />
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-serif text-[19px] tracking-tight text-foreground">{t('home.mood')}</h2>
+        </div>
         <div className="mt-3 flex flex-row items-stretch gap-2">
           {MOOD_META.map((m) => (
-            <div key={m.id} className="min-w-0 flex-1">
-              <MoodCard label={t(m.key)} icon={m.icon} href={ROUTES.dish(featured.dishId)} />
-            </div>
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setSelectedMood((current) => (current === m.id ? null : m.id))}
+              className="min-w-0 flex-1"
+            >
+              <MoodCard
+                label={t(m.key)}
+                icon={m.icon}
+                className={selectedMood === m.id ? 'ring-warm-focus' : undefined}
+              />
+            </button>
           ))}
         </div>
       </section>
 
       <section className="pt-7 animate-fade-up">
-        <SectionRow title={t('home.recent')} viewAllHref={ROUTES.dish(featured.dishId)} />
+        <SectionRow title={t('home.recent')} viewAllHref={ROUTES.profile} />
         <div className="mt-3 flex flex-row gap-2.5">
-          {recentlyViewed.map((entry, idx) => (
-            <div key={`${entry.dish.dishId}-${idx}`} className="min-w-0 flex-1">
-              <RecentlyViewedItem
-                dish={entry.dish}
-                viewedAgo={`${entry.agoMins} ${t('home.mins')}`}
-                href={ROUTES.dish(entry.dish.dishId)}
-              />
+          {recentlyViewed.length > 0 ? (
+            recentlyViewed.map((entry, idx) => (
+              <div key={`${entry.dish.dishId}-${idx}`} className="min-w-0 flex-1">
+                <RecentlyViewedItem
+                  dish={entry.dish}
+                  viewedAgo={entry.viewedAgo}
+                  href={getDishHref(entry.dish.dishId)}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="w-full rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground shadow-soft">
+              Your recently viewed dishes will appear here after you start exploring.
             </div>
-          ))}
+          )}
+        </div>
+      </section>
+
+      <section className="pt-7 animate-fade-up">
+        <div className="rounded-[24px] border border-border bg-card px-4 py-4 shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-serif text-[19px] text-foreground">Share a dish guide</div>
+              <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                Send a recipe card with cook time and the app link so someone else can cook it chef-style too.
+              </div>
+            </div>
+            <Share2 className="h-5 w-5 text-primary" />
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">
+            {shareCount} shared so far • Version 2.0: upload your picture and get the recipe
+          </div>
         </div>
       </section>
     </AppShell>
