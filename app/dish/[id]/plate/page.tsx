@@ -9,12 +9,43 @@ import { GradientButton, ScreenCard, SectionEyebrow } from '@/components/dish/sc
 import { ROUTES } from '@/lib/constants/routes';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { getPlatingGuide } from '@/lib/dish-flow';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 export default function DishPlatePage() {
   const params = useParams<{ id: string }>();
+  const { lang } = useLanguage();
   const dish = getDishOrThrow(params.id);
   const guide = getPlatingGuide(dish);
   const [style, setStyle] = useState(guide.defaultStyle);
+  const copy = {
+    en: {
+      title: 'Plate like a chef',
+      subtitle: 'Turn your dish into a restaurant-style presentation.',
+      choose: 'Choose a plating style',
+      garnish: 'Garnish suggestions',
+      photoTips: 'Photo tips',
+      capture: 'Capture Final Plate',
+      captureSub: 'Upload the finished presentation and get share-ready feedback.',
+    },
+    hi: {
+      title: 'Plate like a chef',
+      subtitle: 'अपनी डिश को रेस्टोरेंट-स्टाइल प्रेज़ेंटेशन दें।',
+      choose: 'प्लेटिंग स्टाइल चुनें',
+      garnish: 'गार्निश सुझाव',
+      photoTips: 'फोटो टिप्स',
+      capture: 'Capture Final Plate',
+      captureSub: 'फाइनल प्रेज़ेंटेशन अपलोड करें और शेयर-रेडी फीडबैक पाएँ।',
+    },
+    te: {
+      title: 'Plate like a chef',
+      subtitle: 'మీ డిష్‌ను రెస్టారెంట్-స్టైల్ ప్రెజెంటేషన్‌గా మార్చండి.',
+      choose: 'ప్లేటింగ్ స్టైల్ ఎంచుకోండి',
+      garnish: 'గార్నిష్ సూచనలు',
+      photoTips: 'ఫోటో సూచనలు',
+      capture: 'Capture Final Plate',
+      captureSub: 'ఫైనల్ ప్రెజెంటేషన్‌ను అప్‌లోడ్ చేసి షేర్-రెడీ ఫీడ్‌బ్యాక్ పొందండి.',
+    },
+  }[lang];
 
   const filteredSteps = useMemo(() => guide.steps, [guide.steps]);
   const styleDescription = useMemo(() => {
@@ -39,14 +70,14 @@ export default function DishPlatePage() {
       <Header backHref={ROUTES.dishFinish(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">Plate like a chef</h1>
+        <h1 className="text-[36px] leading-none">{copy.title}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-          Turn your dish into a restaurant-style presentation.
+          {copy.subtitle}
         </p>
       </section>
 
       <ScreenCard className="mt-5">
-        <SectionEyebrow label="Choose a plating style" />
+        <SectionEyebrow label={copy.choose} />
         <div className="mt-3 flex flex-wrap gap-3">
           {guide.styles.map((option) => {
             const active = option === style;
@@ -103,7 +134,7 @@ export default function DishPlatePage() {
       </div>
 
       <ScreenCard className="mt-4">
-        <SectionEyebrow label="Garnish suggestions" />
+        <SectionEyebrow label={copy.garnish} />
         <div className="flex flex-wrap gap-2">
           {guide.garnishSuggestions.map((item) => (
             <span key={item} className="rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-dark">
@@ -112,7 +143,7 @@ export default function DishPlatePage() {
           ))}
         </div>
         <div className="mt-4 rounded-[20px] border border-border/60 bg-background px-4 py-4">
-          <div className="text-sm font-semibold text-foreground">Photo tips</div>
+          <div className="text-sm font-semibold text-foreground">{copy.photoTips}</div>
           <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
             {guide.photoTips.map((tip) => (
               <li key={tip}>• {tip}</li>
@@ -124,8 +155,8 @@ export default function DishPlatePage() {
       <div className="mt-6">
         <GradientButton
           href={ROUTES.dishShare(dish.dishId)}
-          label="Capture Final Plate"
-          subline="Upload the finished presentation and get share-ready feedback."
+          label={copy.capture}
+          subline={copy.captureSub}
           icon={Camera}
         />
       </div>

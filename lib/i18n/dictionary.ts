@@ -22,14 +22,14 @@ export const en = {
   'app.name': 'ChefSense AI',
   'app.tagline.lead': 'Cook like a chef,',
   'app.tagline.tail': 'not like a recipe follower',
-  'app.headline.line1Pre': 'Master every',
-  'app.headline.line1Em': 'Indian dish',
+  'app.headline.line1Pre': 'Master',
+  'app.headline.line1Em': 'every Indian dish',
   'app.headline.line1Post': '',
   'app.headline.line2Pre': 'with chef-guided precision',
   'app.headline.line2Em': '',
   'app.headline.line2Post': '',
   'app.subtitle':
-    'We compare trusted methods, choose the best one, and guide you step by step until the dish feels restaurant-ready.',
+    'We compare trusted methods, choose the strongest one, and guide you through every cue until the dish feels restaurant-ready.',
   'app.madeFor': 'Made with ♥ for Indian kitchens',
 
   'welcome.aiPill': 'AI-Powered Cooking Assistant',

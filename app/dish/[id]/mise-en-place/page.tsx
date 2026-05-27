@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ChevronRight, Clock3, PlugZap, Soup, UtensilsCrossed } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock3, PlugZap, Soup, UtensilsCrossed } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import {
@@ -40,6 +40,7 @@ export default function DishMiseEnPlacePage() {
   const [elapsedBeforePause, setElapsedBeforePause] = useState(0);
   const [running, setRunning] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
     try {
@@ -97,6 +98,15 @@ export default function DishMiseEnPlacePage() {
     hi: 'Kitchen Tayyari Checklist',
     te: 'Kitchen Tayyari Checklist',
   });
+  const metricCopy = {
+    prepTimer: copyForLang(lang, { en: 'Prep Timer', hi: 'Prep Timer', te: 'Prep Timer' }),
+    tools: copyForLang(lang, { en: 'Tools Needed', hi: 'Tools Needed', te: 'Tools Needed' }),
+    ingredients: copyForLang(lang, { en: 'Ingredients', hi: 'Ingredients', te: 'Ingredients' }),
+    running: copyForLang(lang, { en: 'Running now', hi: 'Running now', te: 'Running now' }),
+    ready: copyForLang(lang, { en: 'Ready to start', hi: 'Ready to start', te: 'Ready to start' }),
+    nearby: copyForLang(lang, { en: 'Keep nearby', hi: 'Keep nearby', te: 'Keep nearby' }),
+    checked: copyForLang(lang, { en: 'Already checked', hi: 'Already checked', te: 'Already checked' }),
+  };
 
   function toggleTask(taskId: string) {
     const nextChecked = !checkedSet.has(taskId);
@@ -127,6 +137,7 @@ export default function DishMiseEnPlacePage() {
     'Set your spices in cooking order so you do not overheat the pan while searching for the next one.',
     'Keep one clean spoon and one tasting spoon ready from the start for a calmer cooking flow.',
   ];
+  const activeTip = chefTips[tipIndex] ?? chefTips[0];
 
   return (
     <AppShell className="pb-32">
@@ -162,9 +173,9 @@ export default function DishMiseEnPlacePage() {
       </ScreenCard>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <MetricTile icon={Clock3} title="Prep Timer" value={formatCountdown(remainingSeconds)} detail={running ? 'Running now' : 'Ready to start'} />
-        <MetricTile icon={UtensilsCrossed} title="Tools Needed" value={`${dish.tools.length}`} detail="Keep nearby" />
-        <MetricTile icon={Soup} title="Ingredients" value={`${dish.ingredients.length}`} detail="Already checked" />
+        <MetricTile icon={Clock3} title={metricCopy.prepTimer} value={formatCountdown(remainingSeconds)} detail={running ? metricCopy.running : metricCopy.ready} />
+        <MetricTile icon={UtensilsCrossed} title={metricCopy.tools} value={`${dish.tools.length}`} detail={metricCopy.nearby} />
+        <MetricTile icon={Soup} title={metricCopy.ingredients} value={`${dish.ingredients.length}`} detail={metricCopy.checked} />
       </div>
 
       <ScreenCard className="mt-5">
@@ -222,15 +233,29 @@ export default function DishMiseEnPlacePage() {
         </div>
       </ScreenCard>
 
-      <div className="mt-5 -mx-5 overflow-x-auto px-5 scrollbar-hide">
-        <div className="flex gap-3 pb-1">
-          {chefTips.map((tip, index) => (
-            <ScreenCard key={index} className="w-[280px] shrink-0">
-              <SectionEyebrow label={`Chef Tip ${index + 1}`} />
-              <p className="text-[17px] leading-8 text-muted-foreground">{tip}</p>
-            </ScreenCard>
-          ))}
+      <div className="mt-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <SectionEyebrow label={`Chef Tip ${tipIndex + 1}`} className="mb-0" />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTipIndex((current) => (current === 0 ? chefTips.length - 1 : current - 1))}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-soft"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipIndex((current) => (current + 1) % chefTips.length)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-soft"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
+        <ScreenCard>
+          <p className="text-[17px] leading-8 text-muted-foreground">{activeTip}</p>
+        </ScreenCard>
       </div>
 
       <div className="mt-6">

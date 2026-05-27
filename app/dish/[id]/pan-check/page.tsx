@@ -16,6 +16,7 @@ import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { getStepAwareRescueCopy, getStepFallbackGlyph } from '@/lib/dish-flow';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 type ValidationState = {
   status: 'idle' | 'ready' | 'rejected';
@@ -25,6 +26,7 @@ type ValidationState = {
 export default function DishPanCheckPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const { lang } = useLanguage();
   const dish = getDishOrThrow(params.id);
   const stepIndex = Number(searchParams.get('step') ?? dish.cookingSteps[0]?.index ?? 1);
   const step = dish.cookingSteps.find((item) => item.index === stepIndex) ?? dish.cookingSteps[0];
@@ -47,6 +49,35 @@ export default function DishPanCheckPage() {
     [dish.rescueIssues, selectedIssues],
   );
   const primaryIssue = chosenIssues[0] ?? dish.rescueIssues[0];
+  const copy = {
+    en: {
+      title: 'AI Pan Checker',
+      subtitle:
+        'Upload one photo and ChefSense will combine visual analysis with the right fix suggestions for this exact cooking stage.',
+      prompt: 'Add your live pan photo',
+      promptBody: 'Center the pan or plated dish in the frame. Non-food or unclear uploads will be rejected.',
+      chipsHeading: 'What tastes off so far?',
+      chipsSubheading: 'Pick one or more issues so ChefSense can focus the correction.',
+    },
+    hi: {
+      title: 'AI Pan Checker',
+      subtitle:
+        'एक फोटो अपलोड करें और ChefSense इसी स्टेज के लिए सही विज़ुअल और फिक्स सुझाव एक साथ देगा।',
+      prompt: 'अपनी लाइव पैन फोटो जोड़ें',
+      promptBody: 'पैन या प्लेटेड डिश को फ्रेम के बीच में रखें। नॉन-फूड या अस्पष्ट फोटो रिजेक्ट की जाएँगी।',
+      chipsHeading: 'अब तक स्वाद में क्या गड़बड़ है?',
+      chipsSubheading: 'एक या अधिक विकल्प चुनें ताकि सही सुधार मिले।',
+    },
+    te: {
+      title: 'AI Pan Checker',
+      subtitle:
+        'ఒక ఫోటోను అప్‌లోడ్ చేయండి, ChefSense ఈ స్టేజ్‌కు సరిపోయే విజువల్ మరియు ఫిక్స్ సూచనలను ఒకే చోట ఇస్తుంది.',
+      prompt: 'మీ లైవ్ పాన్ ఫోటోను జోడించండి',
+      promptBody: 'పాన్ లేదా ప్లేటెడ్ డిష్ ఫ్రేమ్ మధ్యలో ఉండాలి. ఫుడ్ కాని లేదా క్లియర్ కాని ఫోటోలను తిరస్కరిస్తాము.',
+      chipsHeading: 'ఇప్పటివరకు రుచిలో ఏమి తప్పుగా ఉంది?',
+      chipsSubheading: 'సరైన సరిదిద్దు కోసం ఒకటి లేదా ఎక్కువ ఎంపికలు ఎంచుకోండి.',
+    },
+  }[lang];
 
   const analysis = useMemo(() => {
     const hasTextureCue = step.sensoryCues.find((cue) => cue.type === 'texture');
@@ -85,12 +116,12 @@ export default function DishPanCheckPage() {
 
   return (
     <AppShell className="pb-32">
-      <Header backHref={ROUTES.dishCook(dish.dishId, step.index)} title="AI Pan Checker" />
+      <Header backHref={ROUTES.dishCook(dish.dishId, step.index)} title={copy.title} />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">AI Pan Checker</h1>
+        <h1 className="text-[36px] leading-none">{copy.title}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-          Upload one photo and ChefSense will combine visual analysis with the right fix suggestions for this exact cooking stage.
+          {copy.subtitle}
         </p>
       </section>
 
@@ -105,9 +136,9 @@ export default function DishPanCheckPage() {
                   <span className="text-3xl">{getStepFallbackGlyph(step.title, step.instruction)}</span>
                 </span>
                 <div>
-                  <div className="font-serif text-[28px] text-foreground">Add your live pan photo</div>
+                  <div className="font-serif text-[28px] text-foreground">{copy.prompt}</div>
                   <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Center the pan or plated dish in the frame. Non-food or unclear uploads will be rejected.
+                    {copy.promptBody}
                   </div>
                 </div>
               </div>
@@ -166,7 +197,12 @@ export default function DishPanCheckPage() {
         </div>
       ) : null}
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-5">
+        <div className="mb-3">
+          <div className="text-[15px] font-semibold text-foreground">{copy.chipsHeading}</div>
+          <div className="mt-1 text-sm text-muted-foreground">{copy.chipsSubheading}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {dish.rescueIssues.map((issue) => {
           const active = selectedIssues.includes(issue.id);
           return (
@@ -190,6 +226,7 @@ export default function DishPanCheckPage() {
             </button>
           );
         })}
+        </div>
       </div>
 
       {canAnalyze ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
@@ -104,11 +105,24 @@ export default function WelcomePage() {
 }
 
 function HeadlineLine({ pre, em, post }: { pre: string; em: string; post: string }) {
+  const parts = [
+    pre ? { type: 'text' as const, value: pre } : null,
+    em ? { type: 'em' as const, value: em } : null,
+    post ? { type: 'text' as const, value: post } : null,
+  ].filter(Boolean) as { type: 'text' | 'em'; value: string }[];
+
   return (
     <>
-      {pre}
-      {em && <span className="text-primary">{em}</span>}
-      {post}
+      {parts.map((part, index) => (
+        <Fragment key={`${part.type}-${index}`}>
+          {index > 0 ? ' ' : null}
+          {part.type === 'em' ? (
+            <span className="text-primary">{part.value}</span>
+          ) : (
+            part.value
+          )}
+        </Fragment>
+      ))}
     </>
   );
 }

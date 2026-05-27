@@ -136,11 +136,11 @@ export function MetricTile({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-[24px] border border-border/80 bg-card px-4 py-4 text-center shadow-sm', className)}>
-      <Icon className="mx-auto h-6 w-6 text-primary" />
-      <div className="mt-3 text-[13px] text-muted-foreground">{title}</div>
-      <div className="mt-1 font-serif text-[24px] leading-none text-foreground">{value}</div>
-      {detail ? <div className="mt-1 text-xs text-muted-foreground">{detail}</div> : null}
+    <div className={cn('rounded-[24px] border border-border/80 bg-card px-4 py-4 text-center shadow-sm shadow-[0_12px_28px_-24px_rgba(114,66,35,0.42)]', className)}>
+      <Icon className="mx-auto h-5 w-5 text-primary" />
+      <div className="mt-3 text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{title}</div>
+      <div className="mt-2 font-sans text-[30px] font-semibold leading-none tracking-[-0.04em] text-foreground tabular-nums">{value}</div>
+      {detail ? <div className="mt-2 text-[12px] leading-5 text-muted-foreground">{detail}</div> : null}
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/60 via-black/28 to-transparent" />
           {featured && (
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/90 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
               <Star className="h-3 w-3 fill-current" />
@@ -83,12 +83,12 @@ export function DishHeroCard({
           )}
         </div>
 
-        <div className="absolute inset-x-3 bottom-3 rounded-[26px] border border-copper/20 bg-[hsl(var(--surface-warm))/0.94] p-4 shadow-[0_18px_30px_-18px_rgba(114,66,35,0.38)] backdrop-blur-[1px]">
-          <h3 className="max-w-[78%] font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
+        <div className="absolute inset-x-3 bottom-3 rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,249,242,0.97),rgba(252,244,235,0.96))] p-4 shadow-[0_22px_34px_-18px_rgba(114,66,35,0.48)] backdrop-blur-[10px]">
+          <h3 className="font-serif text-[24px] font-bold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[26px]">
             {name}
           </h3>
 
-          <p className="mt-1.5 max-w-[75%] line-clamp-2 text-[12.5px] leading-snug text-foreground/75">
+          <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-foreground/78">
             {summary}
           </p>
 
@@ -106,7 +106,7 @@ export function DishHeroCard({
           {showInlineCta && (
             <Link
               href={href ?? '#'}
-              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-3 text-[13.5px] font-medium text-white shadow-cta transition-transform active:scale-[0.98]"
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full gradient-cta px-4 py-3.5 text-[14px] font-semibold text-white shadow-cta transition-transform active:scale-[0.98]"
             >
               {t('cta.startGuidedCook')}
               <ChevronRight className="h-4 w-4" />

@@ -38,7 +38,11 @@ export function getResumeStepForDish(dishId: string, fallbackStep = 1) {
 
 export function hasInProgressDish(dishId: string) {
   const stored = getStoredCookingSession(dishId);
-  return Boolean(stored && !stored.finishedAt && (stored.completedSteps.length > 0 || stored.activeStep > 1));
+  return Boolean(
+    stored &&
+      !stored.finishedAt &&
+      (stored.activeStep >= 1 || stored.completedSteps.length > 0 || Object.keys(stored.elapsedByStep).length > 0),
+  );
 }
 
 export function getTotalCookingMinutes(dishId: string) {

@@ -28,14 +28,40 @@ const AXIS_META = {
 
 export default function DishFinishPage() {
   const params = useParams<{ id: string }>();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const dish = getDishOrThrow(params.id);
   const [selectedTouches, setSelectedTouches] = useState<string[]>([]);
+  const copy = {
+    en: {
+      almostReady: 'Almost ready',
+      added: 'Added',
+      plate: 'Plate Like a Chef',
+      plateSub: 'Turn your dish into a restaurant-style presentation.',
+      share: 'Share My Plate',
+      shareSub: 'Upload the final plate, rate it, and grab a premium caption.',
+    },
+    hi: {
+      almostReady: 'Almost ready',
+      added: 'Added',
+      plate: 'Plate Like a Chef',
+      plateSub: 'अपनी डिश को रेस्टोरेंट-स्टाइल प्रेज़ेंटेशन दें।',
+      share: 'Share My Plate',
+      shareSub: 'फाइनल प्लेट अपलोड करें, रेट करें और एक प्रीमियम कैप्शन लें।',
+    },
+    te: {
+      almostReady: 'Almost ready',
+      added: 'Added',
+      plate: 'Plate Like a Chef',
+      plateSub: 'మీ డిష్‌ను రెస్టారెంట్-స్టైల్ ప్రెజెంటేషన్‌గా మార్చండి.',
+      share: 'Share My Plate',
+      shareSub: 'ఫైనల్ ప్లేట్‌ను అప్‌లోడ్ చేసి, రేట్ చేసి, ప్రీమియం క్యాప్షన్ పొందండి.',
+    },
+  }[lang];
 
   const balanceLabel = useMemo(() => {
     if (selectedTouches.length >= 3) return t('finish.veryWellBalanced');
-    return 'Almost ready';
-  }, [selectedTouches.length, t]);
+    return copy.almostReady;
+  }, [copy.almostReady, selectedTouches.length, t]);
 
   return (
     <AppShell className="pb-32">
@@ -107,7 +133,7 @@ export default function DishFinishPage() {
                       : 'rounded-full border border-primary/25 px-5 py-2 text-primary'
                   }
                 >
-                  {active ? 'Added' : t('finish.add')}
+                  {active ? copy.added : t('finish.add')}
                 </span>
               </button>
             );
@@ -136,8 +162,8 @@ export default function DishFinishPage() {
       <div className="mt-6 space-y-3">
         <GradientButton
           href={ROUTES.dishPlate(dish.dishId)}
-          label="Plate Like a Chef"
-          subline="Turn your dish into a restaurant-style presentation."
+          label={copy.plate}
+          subline={copy.plateSub}
         />
         <Link
           href={ROUTES.dishShare(dish.dishId)}
@@ -146,8 +172,8 @@ export default function DishFinishPage() {
           <span className="flex items-center gap-3">
             <Sparkles className="h-6 w-6 text-primary" />
             <span className="flex flex-col leading-tight text-left">
-              <span className="font-serif text-[20px]">Share My Plate</span>
-              <span className="text-sm text-muted-foreground">Upload the final plate, rate it, and grab a premium caption.</span>
+              <span className="font-serif text-[20px]">{copy.share}</span>
+              <span className="text-sm text-muted-foreground">{copy.shareSub}</span>
             </span>
           </span>
           <span className="text-lg text-primary">→</span>

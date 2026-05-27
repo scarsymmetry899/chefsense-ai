@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, BookOpen, Clock3, Share2 } from 'lucide-react';
+import { Bell, BookOpen, Share2 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -31,8 +31,56 @@ const MOOD_META = [
   { id: 'festive', icon: 'flame', key: 'mood.festive' as DictionaryKey },
 ] as const;
 
+const HOME_COPY = {
+  en: {
+    eyebrow: 'Chef-guided Indian cooking',
+    headline: 'Cook exactly like a chef, one clear step at a time.',
+    subhead:
+      'We compare trusted source styles, choose the strongest method, and guide you through every cue until the dish feels restaurant-ready.',
+    chipOne: 'Source-backed recipe intelligence',
+    chipTwo: 'Guided cues for every major stage',
+    guidance: 'chef-guided detail inside',
+    ingredients: 'Ingredients',
+    recentEmpty: 'Your recently viewed dishes will appear here after you start exploring.',
+    shareTitle: 'Share a dish guide',
+    shareBody:
+      'Send a dish card with time, ingredient access, and the app link so someone else can cook it with the same guided flow.',
+    shareFoot: 'shared so far • Version 2.0: upload your picture and get the recipe',
+  },
+  hi: {
+    eyebrow: 'शेफ़-गाइडेड इंडियन कुकिंग',
+    headline: 'हर डिश शेफ़ जैसी, एकदम साफ़ स्टेप्स के साथ।',
+    subhead:
+      'हम भरोसेमंद स्रोतों की तुलना करके सबसे सही तरीका चुनते हैं और हर क्यू के साथ आपको रेस्टोरेंट-स्टाइल रिज़ल्ट तक ले जाते हैं।',
+    chipOne: 'सोर्स-बैक्ड रेसिपी इंटेलिजेंस',
+    chipTwo: 'हर स्टेज के लिए गाइडेड क्यूज़',
+    guidance: 'अंदर पूरी गाइडेड डिटेल',
+    ingredients: 'इंग्रेडिएंट्स',
+    recentEmpty: 'जैसे ही आप डिशेज़ देखना शुरू करेंगे, हाल ही में देखी गई डिशेज़ यहाँ दिखेंगी।',
+    shareTitle: 'डिश गाइड शेयर करें',
+    shareBody:
+      'किसी और को भी वही गाइडेड कुकिंग फ्लो भेजें — समय, इंग्रेडिएंट्स और ऐप लिंक के साथ।',
+    shareFoot: 'अब तक शेयर किए गए • Version 2.0: upload your picture and get the recipe',
+  },
+  te: {
+    eyebrow: 'చెఫ్-గైడెడ్ ఇండియన్ కుకింగ్',
+    headline: 'ప్రతి డిష్ చెఫ్‌లా, స్పష్టమైన స్టెప్‌లతో.',
+    subhead:
+      'మేము విశ్వసనీయ సోర్సులను పోల్చి సరైన విధానాన్ని ఎంచుకుని, ప్రతి క్యూతో రెస్టారెంట్-స్టైల్ ఫలితం వచ్చే వరకు మీకు మార్గం చూపిస్తాము.',
+    chipOne: 'సోర్స్-బ్యాక్డ్ రెసిపీ ఇంటెలిజెన్స్',
+    chipTwo: 'ప్రతి దశకు గైడెడ్ క్యూస్',
+    guidance: 'లోపల పూర్తి గైడెడ్ వివరాలు',
+    ingredients: 'పదార్థాలు',
+    recentEmpty: 'మీరు డిష్‌లను చూడటం మొదలుపెట్టిన తర్వాత, ఇటీవలి డిష్‌లు ఇక్కడ కనిపిస్తాయి.',
+    shareTitle: 'డిష్ గైడ్‌ను షేర్ చేయండి',
+    shareBody:
+      'ఇతరులూ అదే గైడెడ్ ఫ్లోతో వండేందుకు టైమ్, ఇంగ్రిడియెంట్ యాక్సెస్, యాప్ లింక్‌తో కార్డ్ పంపండి.',
+    shareFoot: 'ఇప్పటివరకు షేర్ చేసినవి • Version 2.0: upload your picture and get the recipe',
+  },
+} as const;
+
 export default function HomePage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const featured = getDishOrThrow(FEATURED_DISH_ID);
   const heroSlides = useMemo(
     () => [
@@ -49,6 +97,7 @@ export default function HomePage() {
   const [recentIds, setRecentIds] = useState<{ dishId: string; viewedAgo: string }[]>([]);
   const [shareCount, setShareCount] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const copy = HOME_COPY[lang];
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -145,17 +194,17 @@ export default function HomePage() {
 
       <div className="mt-4 rounded-[24px] border border-border/70 bg-card px-4 py-4 shadow-soft">
         <div className="text-[13px] font-semibold uppercase tracking-[0.18em] text-copper">
-          Chef-guided Indian cooking
+          {copy.eyebrow}
         </div>
         <div className="mt-2 font-serif text-[27px] leading-[1.02] text-foreground">
-          Restaurant-style dishes, one guided step at a time.
+          {copy.headline}
         </div>
         <div className="mt-2 text-sm leading-6 text-muted-foreground">
-          We compare trusted source styles, lock the best method, and guide you cue by cue until the dish is worth serving.
+          {copy.subhead}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-primary-dark">Source-backed recipe intelligence</span>
-          <span className="rounded-full bg-accent-green-soft px-3 py-1.5 text-accent-green">Guided cues for every major stage</span>
+          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-primary-dark">{copy.chipOne}</span>
+          <span className="rounded-full bg-accent-green-soft px-3 py-1.5 text-accent-green">{copy.chipTwo}</span>
         </div>
       </div>
 
@@ -192,15 +241,13 @@ export default function HomePage() {
         <div className="mt-3 flex items-center justify-between rounded-[22px] border border-border/70 bg-card px-4 py-3 shadow-soft">
           <div>
             <div className="text-sm font-semibold text-foreground">{activeFeaturedDish.dishName}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {activeFeaturedDish.totalTimeMin} min • professional restaurant-style guidance
-            </div>
+            <div className="mt-1 text-xs text-muted-foreground">{`${activeFeaturedDish.totalTimeMin} min • ${copy.guidance}`}</div>
           </div>
           <Link
             href={ROUTES.dish(activeFeaturedDish.dishId)}
             className="inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
           >
-            Ingredients
+            {copy.ingredients}
             <BookOpen className="h-4 w-4" />
           </Link>
         </div>
@@ -254,7 +301,7 @@ export default function HomePage() {
             ))
           ) : (
             <div className="w-full rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground shadow-soft">
-              Your recently viewed dishes will appear here after you start exploring.
+              {copy.recentEmpty}
             </div>
           )}
         </div>
@@ -264,15 +311,15 @@ export default function HomePage() {
         <div className="rounded-[24px] border border-border bg-card px-4 py-4 shadow-soft">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="font-serif text-[19px] text-foreground">Share a dish guide</div>
+              <div className="font-serif text-[19px] text-foreground">{copy.shareTitle}</div>
               <div className="mt-1 text-sm leading-6 text-muted-foreground">
-                Send a recipe card with cook time and the app link so someone else can cook it chef-style too.
+                {copy.shareBody}
               </div>
             </div>
             <Share2 className="h-5 w-5 text-primary" />
           </div>
           <div className="mt-3 text-xs text-muted-foreground">
-            {shareCount} shared so far • Version 2.0: upload your picture and get the recipe
+            {shareCount} {copy.shareFoot}
           </div>
         </div>
       </section>
