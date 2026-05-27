@@ -105,12 +105,24 @@ export const paneerButterMasala: Dish = {
   ],
 
   tools: [
-    { id: 'kadhai', name: 'Kadhai or heavy pan' },
-    { id: 'blender', name: 'Blender / mixer' },
-    { id: 'strainer', name: 'Fine strainer' },
-    { id: 'knife', name: "Chef's knife" },
-    { id: 'board', name: 'Cutting board' },
-    { id: 'spatula', name: 'Wooden spatula' },
+    {
+      id: 'kadhai',
+      name: 'Kadhai or heavy pan',
+      note: 'Use this for searing paneer, sauteing the onions, and simmering the finished gravy.',
+    },
+    {
+      id: 'blender',
+      name: 'Blender / mixer',
+      note: 'Needed to blend the soaked cashews and tomato base into a smooth tomato-cashew masala.',
+    },
+    {
+      id: 'strainer',
+      name: 'Fine strainer',
+      note: 'Use after blending so the gravy turns silky and restaurant-style.',
+    },
+    { id: 'knife', name: "Chef's knife", note: 'For slicing onions, chopping tomatoes, and trimming ginger.' },
+    { id: 'board', name: 'Cutting board', note: 'Keep one sturdy board ready for all prep work.' },
+    { id: 'spatula', name: 'Wooden spatula', note: 'Best for stirring the masala gently without scraping too harshly.' },
   ],
 
   miseEnPlace: [
@@ -186,9 +198,9 @@ export const paneerButterMasala: Dish = {
     {
       index: 2,
       title: 'Lightly sear the paneer (optional)',
-      instruction: 'Pan-sear paneer cubes in 1 tsp butter until light golden.',
+      instruction: 'Use a flat pan or the same heavy kadhai. Pan-sear paneer cubes in 1 tsp butter until light golden.',
       beginnerExplanation:
-        "Quickly brown the paneer in a hot pan for about 30 seconds per side. Don't crowd the pan. Move them to a plate of warm water right after — this keeps them soft.",
+        "Heat a flat pan or the same heavy kadhai on medium heat. Add 1 tsp butter. Brown the paneer for about 30 seconds per side. Do not crowd the pan. Move it to warm water right after - this keeps it soft.",
       heat: 'Medium',
       durationSec: 120,
       sensoryCues: [
@@ -205,9 +217,9 @@ export const paneerButterMasala: Dish = {
     {
       index: 3,
       title: 'Sauté the onions',
-      instruction: 'Sauté sliced onions in butter and oil until soft and lightly golden.',
+      instruction: 'In the same kadhai or a fresh heavy pan, saute sliced onions in butter and oil until soft and lightly golden.',
       beginnerExplanation:
-        'Heat 2 tbsp butter and 1 tbsp oil in a heavy pan over medium heat. Add the sliced onions. Stir every 30–40 seconds. Cook until they look soft, see-through, and just start turning a light golden colour at the edges.',
+        'If you seared paneer in the kadhai, use that same pan now. Otherwise start with a clean heavy pan. Heat 2 tbsp butter and 1 tbsp oil over medium heat. Add the sliced onions. Stir every 30–40 seconds until they look soft, see-through, and lightly golden at the edges.',
       heat: 'Medium',
       durationSec: 360,
       sensoryCues: [
@@ -225,7 +237,7 @@ export const paneerButterMasala: Dish = {
     {
       index: 4,
       title: 'Add ginger & garlic',
-      instruction: 'Add the ginger and garlic. Cook for 1 minute, stirring often.',
+      instruction: 'Add the ginger and garlic to the same pan. Cook for 1 minute, stirring often.',
       beginnerExplanation:
         "Drop in the ginger and garlic. Stir constantly. They cook fast, so don't walk away — when the raw smell turns into a warm, mellow aroma, you're done.",
       heat: 'Medium',
@@ -241,9 +253,9 @@ export const paneerButterMasala: Dish = {
     {
       index: 5,
       title: 'Add the tomatoes',
-      instruction: 'Add chopped tomatoes and a pinch of salt. Stir to combine.',
+      instruction: 'Add chopped tomatoes and a pinch of salt to the same pan. Stir until they soften into the onion base.',
       beginnerExplanation:
-        'Add the tomatoes. A small pinch of salt now helps them break down faster. Stir everything together until the tomatoes mix evenly with the onions.',
+        'Add the tomatoes. A small pinch of salt now helps them break down faster. Stir everything together until the tomatoes collapse into the onion base.',
       heat: 'Medium',
       durationSec: 90,
       sensoryCues: [
@@ -258,9 +270,9 @@ export const paneerButterMasala: Dish = {
       index: 6,
       title: 'Wake up the spices',
       instruction:
-        'Add red chilli powder, turmeric and coriander powder. Stir for 30 seconds.',
+        'Lower the heat slightly, then add red chilli powder, turmeric and coriander powder. Stir for 30 seconds.',
       beginnerExplanation:
-        "Sprinkle the dry spice powders in. Stir constantly so they don't sit in one spot. They cook in just 20–30 seconds. If you smell anything sharp or burnt, lower the heat and add a splash of water immediately.",
+        "Lower the heat to medium-low before the dry spices go in. Stir constantly so they do not sit in one spot. They cook in just 20–30 seconds. If you smell anything sharp or burnt, lower the heat further and add a splash of water immediately.",
       heat: 'Medium-low',
       durationSec: 30,
       sensoryCues: [
@@ -278,9 +290,9 @@ export const paneerButterMasala: Dish = {
       index: 7,
       title: 'Cook the tomato-cashew masala',
       instruction:
-        'Slow cook until the masala thickens and the oil begins to separate.',
+        'Cook the tomato base first, then blend it with the soaked cashews into a smooth masala and return it to the pan. Slow cook until it thickens and the oil begins to separate.',
       beginnerExplanation:
-        'Lower the heat to medium-low. Add the soaked cashews. Stir every minute or so. Keep cooking patiently. The mixture will slowly turn thick, glossy, and a deeper red-orange. Tiny oil drops will start to appear around the edges of the pan — that is your signal that the masala is ready.',
+        'Lower the heat to medium-low. Let the tomato-onion base cook until the tomatoes fully collapse and lose their raw smell. The soaked cashews are part of this same gravy base - they will be blended with it in the next step. Keep cooking patiently. The mixture should turn thick, glossy, and a deeper red-orange. Tiny oil drops around the edges tell you the base is ready to blend.',
       heat: 'Medium-low',
       durationSec: 510, // 8:30 — matches the 08:32 screenshot
       sensoryCues: [
@@ -298,9 +310,9 @@ export const paneerButterMasala: Dish = {
     {
       index: 8,
       title: 'Cool and blend',
-      instruction: 'Let the masala cool for 5 minutes. Then blend until completely smooth.',
+      instruction: 'Let the tomato base cool for 5 minutes. Add the soaked cashews, then blend everything in the mixer until completely smooth.',
       beginnerExplanation:
-        'Turn off the heat. Wait 5 minutes — hot liquid in a blender can splash dangerously. Transfer everything to a blender and blend until you see no specks. The mixture should look like a velvety, glossy paste.',
+        'Turn off the heat and wait 5 minutes so the blender stays safe. Transfer the cooked tomato base and the soaked cashews to the blender. Blend until you see no specks at all. The mixture should look like a velvety, glossy paste - this is your tomato-cashew masala.',
       heat: 'Off',
       durationSec: 300,
       sensoryCues: [
@@ -329,9 +341,9 @@ export const paneerButterMasala: Dish = {
       index: 10,
       title: 'Bring to a gentle simmer',
       instruction:
-        'Turn heat to low-medium. Stir in the garam masala and 1/4 cup hot water.',
+        'Return the strained gravy to the kadhai, keep the heat low-medium, then stir in the garam masala and 1/4 cup hot water.',
       beginnerExplanation:
-        'Place the pan back on low-medium heat. Stir in the garam masala. Add hot water a little at a time until the gravy reaches a thick but pourable consistency — like warm honey.',
+        'Return the smooth strained gravy to the kadhai or heavy pan. Keep the heat on low-medium. Stir in the garam masala. Add hot water a little at a time until the gravy reaches a thick but pourable consistency — like warm honey.',
       heat: 'Medium-low',
       durationSec: 180,
       sensoryCues: [
@@ -374,7 +386,7 @@ export const paneerButterMasala: Dish = {
     {
       index: 13,
       title: 'Add the cream',
-      instruction: 'Lower the heat. Slowly stir in the cream.',
+      instruction: 'Lower the heat fully. Slowly stir in the cream.',
       beginnerExplanation:
         'Make sure the heat is low. Pour cream in slowly while stirring gently in one direction. Never add cream to a boiling gravy — it can split into ugly white flakes.',
       heat: 'Low',
@@ -392,7 +404,7 @@ export const paneerButterMasala: Dish = {
     {
       index: 14,
       title: 'Add the paneer',
-      instruction: 'Gently slide paneer cubes into the gravy.',
+      instruction: 'Keep the heat low. Gently slide the paneer cubes into the gravy.',
       beginnerExplanation:
         'Drop paneer cubes in one by one. Do not stir hard — push them gently with the back of a spoon so they sit in the gravy without breaking.',
       heat: 'Low',

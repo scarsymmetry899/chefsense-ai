@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
+  CircleHelp,
   ChevronRight,
   Clock3,
   Leaf,
@@ -25,7 +26,7 @@ import {
 } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
-import { getBaseServings, scaleQuantity } from '@/lib/dish-flow';
+import { getBaseServings, getToolReference, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { playSoundEffect } from '@/lib/sound-effects';
 import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
@@ -49,6 +50,7 @@ export default function DishPage() {
 
   const [servings, setServings] = useState(baseServings);
   const [checked, setChecked] = useState<string[]>([]);
+  const [shareNotice, setShareNotice] = useState('');
 
   useEffect(() => {
     recordRecentlyViewedDish(dish.dishId);
@@ -97,6 +99,27 @@ export default function DishPage() {
   });
   const resumeStep = getResumeStepForDish(dish.dishId, 1);
   const hasProgress = hasInProgressDish(dish.dishId);
+
+  async function handleShareDish() {
+    const ingredientPreview = dish.ingredients
+      .slice(0, 5)
+      .map((ingredient) => `${ingredient.name} (${scaleQuantity(ingredient.quantity, servings, baseServings)})`)
+      .join(', ');
+    const shareText = `${dish.dishName} • ${dish.totalTimeMin} min\nRestaurant-style guided recipe with ChefSense.\nIngredients preview: ${ingredientPreview}\nCook it here: ${window.location.origin}${ROUTES.dish(dish.dishId)}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: `${dish.dishName} • ChefSense`,
+        text: shareText,
+        url: `${window.location.origin}${ROUTES.dish(dish.dishId)}`,
+      });
+      setShareNotice('Shared with the app link, cook time, and ingredient-led preview.');
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    setShareNotice('Direct share was unavailable, so the full chef-style recipe card content was copied.');
+  }
 
   return (
     <AppShell className="pb-32">
@@ -247,11 +270,23 @@ export default function DishPage() {
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {dish.tools.map((tool) => (
-            <span key={tool.id} className="rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground shadow-soft">
-              {tool.name}
-            </span>
-          ))}
+          {dish.tools.map((tool) => {
+            const ref = getToolReference(tool.name);
+            return (
+              <div key={tool.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground shadow-soft">
+                <span>{tool.name}</span>
+                <a
+                  href={tool.infoUrl ?? ref.infoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-soft text-primary"
+                  aria-label={`Learn more about ${tool.name}`}
+                >
+                  <CircleHelp className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            );
+          })}
         </div>
       </ScreenCard>
 
@@ -265,6 +300,19 @@ export default function DishPage() {
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Share the app link, cook time, and ingredient-led preview so someone else can cook this dish restaurant-style too.
         </p>
+        <button
+          type="button"
+          onClick={() => void handleShareDish()}
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 gradient-cta px-5 py-3 text-sm font-semibold text-white shadow-cta"
+        >
+          <Share2 className="h-4 w-4" />
+          Share this dish
+        </button>
+        {shareNotice ? (
+          <div className="mt-3 rounded-[18px] border border-border/60 bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
+            {shareNotice}
+          </div>
+        ) : null}
       </ScreenCard>
 
       <div className="mt-6">

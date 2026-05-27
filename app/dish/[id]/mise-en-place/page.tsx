@@ -89,12 +89,12 @@ export default function DishMiseEnPlacePage() {
   const completed = checked.length;
   const progress = Math.round((completed / dish.miseEnPlace.length) * 100);
   const prepLabel = copyForLang(lang, {
-    en: 'Kitchen Tayyari Planner',
+    en: 'Kitchen Prep Planner',
     hi: 'Kitchen Tayyari Planner',
     te: 'Kitchen Tayyari Planner',
   });
   const prepChecklist = copyForLang(lang, {
-    en: 'Kitchen Tayyari Checklist',
+    en: 'Kitchen Prep Checklist',
     hi: 'Kitchen Tayyari Checklist',
     te: 'Kitchen Tayyari Checklist',
   });
@@ -120,15 +120,22 @@ export default function DishMiseEnPlacePage() {
 
   function toggleTimer() {
     if (running && startedAt) {
+      const nowTs = Date.now();
       playSoundEffect('stop');
       setElapsedBeforePause(elapsedSeconds);
       setStartedAt(null);
       setRunning(false);
+      setNow(nowTs);
       return;
     }
 
+    const nowTs = Date.now();
     playSoundEffect('start');
-    setStartedAt(Date.now());
+    setNow(nowTs);
+    if (!checked.length && elapsedBeforePause === 0) {
+      setElapsedBeforePause(0);
+    }
+    setStartedAt(nowTs);
     setRunning(true);
   }
 

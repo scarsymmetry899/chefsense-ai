@@ -57,10 +57,10 @@ export function useCookingSession(dishId: string, initialStep: number) {
   const [state, setState] = useState<CookingSessionState>({
     activeStep: initialStep,
     completedSteps: [],
-    runningStep: initialStep,
-    startedAt: Date.now(),
+    runningStep: null,
+    startedAt: null,
     elapsedByStep: {},
-    timerArmedAt: Date.now(),
+    timerArmedAt: null,
     finishedAt: null,
   });
   const [now, setNow] = useState(() => Date.now());
@@ -120,9 +120,9 @@ export function useCookingSession(dishId: string, initialStep: number) {
         : {
             ...current,
             activeStep: initialStep,
-            runningStep: current.runningStep ?? initialStep,
-            startedAt: current.startedAt ?? Date.now(),
-            timerArmedAt: current.timerArmedAt ?? Date.now(),
+            runningStep: current.runningStep,
+            startedAt: current.startedAt,
+            timerArmedAt: current.timerArmedAt,
           },
     );
   }, [initialStep]);
@@ -146,21 +146,25 @@ export function useCookingSession(dishId: string, initialStep: number) {
   }
 
   function startStep(stepIndex: number) {
+    const nowTs = Date.now();
+    setNow(nowTs);
     setState((current) => ({
       ...current,
       activeStep: stepIndex,
       runningStep: stepIndex,
-      startedAt: Date.now(),
-      timerArmedAt: Date.now(),
+      startedAt: nowTs,
+      timerArmedAt: nowTs,
       finishedAt: null,
     }));
   }
 
   function pauseStep() {
+    const nowTs = Date.now();
+    setNow(nowTs);
     setState((current) => {
       if (!current.runningStep || !current.startedAt) return current;
       const stepIndex = current.runningStep;
-      const elapsed = (current.elapsedByStep[stepIndex] ?? 0) + Math.floor((Date.now() - current.startedAt) / 1000);
+      const elapsed = (current.elapsedByStep[stepIndex] ?? 0) + Math.floor((nowTs - current.startedAt) / 1000);
       return {
         ...current,
         runningStep: null,
@@ -174,11 +178,13 @@ export function useCookingSession(dishId: string, initialStep: number) {
   }
 
   function markStepComplete(stepIndex: number, nextStep?: number) {
+    const nowTs = Date.now();
+    setNow(nowTs);
     setState((current) => {
       const alreadyDone = current.completedSteps.includes(stepIndex);
       const elapsed =
         current.runningStep === stepIndex && current.startedAt
-          ? (current.elapsedByStep[stepIndex] ?? 0) + Math.floor((Date.now() - current.startedAt) / 1000)
+          ? (current.elapsedByStep[stepIndex] ?? 0) + Math.floor((nowTs - current.startedAt) / 1000)
           : (current.elapsedByStep[stepIndex] ?? 0);
 
       return {
@@ -187,26 +193,28 @@ export function useCookingSession(dishId: string, initialStep: number) {
         completedSteps: alreadyDone
           ? current.completedSteps
           : [...current.completedSteps, stepIndex].sort((a, b) => a - b),
-        runningStep: nextStep ?? null,
-        startedAt: nextStep ? Date.now() : null,
-        timerArmedAt: nextStep ? Date.now() : current.timerArmedAt,
+        runningStep: null,
+        startedAt: null,
+        timerArmedAt: null,
         elapsedByStep: {
           ...current.elapsedByStep,
           [stepIndex]: elapsed,
         },
-        finishedAt: nextStep ? null : Date.now(),
+        finishedAt: nextStep ? null : nowTs,
       };
     });
   }
 
   function reopenStep(stepIndex: number) {
+    const nowTs = Date.now();
+    setNow(nowTs);
     setState((current) => ({
       ...current,
       activeStep: stepIndex,
       completedSteps: current.completedSteps.filter((item) => item !== stepIndex),
       runningStep: stepIndex,
-      startedAt: Date.now(),
-      timerArmedAt: Date.now(),
+      startedAt: nowTs,
+      timerArmedAt: nowTs,
       finishedAt: null,
     }));
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Camera, Copy, Lock, Save, Share2, Star } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/app-shell';
@@ -39,6 +40,7 @@ const COPY = {
     copy: 'Copy Caption',
     share: 'Share',
     save: 'Save',
+    done: 'Done cooking',
     next: 'What to try next',
     overall: 'Overall',
     presentation: 'Presentation',
@@ -69,6 +71,7 @@ const COPY = {
     copy: 'Copy Caption',
     share: 'Share',
     save: 'Save',
+    done: 'Done cooking',
     next: 'What to try next',
     overall: 'Overall',
     presentation: 'Presentation',
@@ -99,6 +102,7 @@ const COPY = {
     copy: 'Copy Caption',
     share: 'Share',
     save: 'Save',
+    done: 'Done cooking',
     next: 'What to try next',
     overall: 'Overall',
     presentation: 'Presentation',
@@ -154,7 +158,10 @@ export default function DishSharePage() {
   );
 
   const overallScore = uploadedImage
-    ? Math.round((scores.reduce((sum, item) => sum + item.value, 0) / scores.length + selfRating * 4) / 1)
+    ? Math.min(
+        100,
+        Math.round(scores.reduce((sum, item) => sum + item.value, 0) / scores.length + selfRating * 2),
+      )
     : null;
 
   const finalAssessment = uploadedImage
@@ -162,24 +169,38 @@ export default function DishSharePage() {
     : 'Upload the final plate to unlock the presentation rating.';
 
   async function handleShare() {
+    const shareBody = [
+      `${dish.dishName} by ChefSense`,
+      `${dish.totalTimeMin} min guided cook`,
+      caption,
+      `Cook it here: ${window.location.origin}${ROUTES.dish(dish.dishId)}`,
+    ].join('\n');
+
     if (navigator.share) {
       await navigator.share({
         title: `${dish.dishName} by ChefSense`,
-        text: caption,
+        text: shareBody,
+        url: `${window.location.origin}${ROUTES.dish(dish.dishId)}`,
       });
       recordShareAction(dish.dishId, 'share');
       setShareNote(copy.sheet);
       return;
     }
 
-    await navigator.clipboard.writeText(caption);
+    await navigator.clipboard.writeText(shareBody);
     recordShareAction(dish.dishId, 'copy');
     setCopied(true);
     setShareNote(copy.fallback);
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(caption);
+    const copyBody = [
+      `${dish.dishName} by ChefSense`,
+      `${dish.totalTimeMin} min guided cook`,
+      caption,
+      `Cook it here: ${window.location.origin}${ROUTES.dish(dish.dishId)}`,
+    ].join('\n');
+    await navigator.clipboard.writeText(copyBody);
     recordShareAction(dish.dishId, 'copy');
     setCopied(true);
     setShareNote(copy.copied);
@@ -383,6 +404,15 @@ export default function DishSharePage() {
           <span className="rounded-full bg-primary-soft px-3 py-1.5 text-sm text-primary-dark">Practice a richer finish</span>
         </div>
       </ScreenCard>
+
+      <div className="mt-5">
+        <Link
+          href={ROUTES.home}
+          className="flex w-full items-center justify-center rounded-[24px] border border-primary/20 gradient-cta px-5 py-4 text-[17px] font-medium text-white shadow-cta"
+        >
+          {copy.done}
+        </Link>
+      </div>
     </AppShell>
   );
 }

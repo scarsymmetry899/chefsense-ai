@@ -8,9 +8,11 @@ import {
   Eye,
   Flame,
   LifeBuoy,
+  MessageCircleMore,
   Mic,
   PauseCircle,
   PlayCircle,
+  Send,
   TimerReset,
   Waves,
 } from 'lucide-react';
@@ -28,7 +30,6 @@ import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import {
   formatCountdown,
-  getDefaultRescueIssue,
   getHeatMeta,
   getStepProgress,
   getStructuredCues,
@@ -42,71 +43,87 @@ const COPY = {
   en: {
     step: 'Step',
     of: 'of',
-    stillRunning: 'Your timer is still running. Tap Next step again if you still want to move ahead now.',
-    timeUp: 'Time for this step is up. Check the cues once more, then move to the next step when you are ready.',
+    timeUp:
+      'Time for this step is up. Check the cues once more, then move on only when the pan looks ready.',
     openFullChat: 'Open full chat',
     openMic: 'Open mic',
     voiceRunning: 'Voice can keep guiding while the timer continues.',
-    voicePaused: 'Resume this step to use live voice help.',
-    voiceHelp: 'Ask about cues, timing, or what to correct before moving ahead.',
+    voicePaused: 'Start the timer or open voice help whenever you are ready.',
+    voiceHelp:
+      'Ask about cues, timing, pan choice, heat, or what to correct before moving ahead.',
     userPrompt: 'You: What should I look for now?',
+    chatPlaceholder: 'Type a quick cooking question',
     pauseTimer: 'Pause timer',
+    startTimer: 'Start timer',
     resumeTimer: 'Resume timer',
     reopenStep: 'Reopen step',
     markDone: 'Mark step done',
     finishCooking: 'Finish cooking',
     panChecker: 'AI Pan Checker',
-    finishLikeChef: 'Finish Like a Chef',
-    timerContinues: 'Your timer keeps running unless you pause it.',
-    finishSub: 'Taste balance, finishing touches, and plating come next.',
     finalCheck:
       'Final taste check: if anything feels off, open AI Pan Checker for a guided analysis and fix path without losing your place.',
+    markHint: 'Mark this step done below to unlock the next step.',
+    prev: 'Prev',
+    next: 'Next',
+    voiceAssistant: 'Voice Cook Mode',
+    nextReady: 'Next step unlocked above',
+    timerHint: 'Start the timer only when you begin actively cooking this step.',
   },
   hi: {
     step: 'कदम',
     of: 'में से',
-    stillRunning: 'टाइमर अभी चल रहा है। अगर आप फिर भी आगे बढ़ना चाहते हैं, तो Next step दोबारा दबाएँ।',
-    timeUp: 'इस स्टेप का समय पूरा हो गया है। क्यूज़ एक बार और देखें, फिर तैयार होने पर आगे बढ़ें।',
+    timeUp:
+      'इस स्टेप का समय पूरा हो गया है। क्यूज़ एक बार और देखें, फिर पैन सही लगे तो आगे बढ़ें।',
     openFullChat: 'पूरा चैट खोलें',
     openMic: 'Open mic',
     voiceRunning: 'टाइमर चलते हुए भी वॉइस गाइड साथ चलता रहेगा।',
-    voicePaused: 'लाइव वॉइस हेल्प के लिए इस स्टेप को फिर शुरू करें।',
-    voiceHelp: 'क्यूज़, टाइमिंग या क्या सुधारना है — उसके बारे में पूछें।',
+    voicePaused: 'जब आप तैयार हों तब टाइमर या वॉइस हेल्प शुरू करें।',
+    voiceHelp: 'क्यूज़, टाइमिंग, सही पैन, हीट, या क्या सुधारना है उसके बारे में पूछें।',
     userPrompt: 'आप: अभी मुझे क्या देखना चाहिए?',
+    chatPlaceholder: 'अपना कुकिंग सवाल लिखें',
     pauseTimer: 'टाइमर रोकें',
+    startTimer: 'टाइमर शुरू करें',
     resumeTimer: 'टाइमर फिर चलाएँ',
     reopenStep: 'स्टेप फिर खोलें',
     markDone: 'स्टेप पूरा करें',
     finishCooking: 'कुकिंग पूरी करें',
     panChecker: 'AI Pan Checker',
-    finishLikeChef: 'Finish Like a Chef',
-    timerContinues: 'जब तक आप रोकेंगे नहीं, टाइमर चलता रहेगा।',
-    finishSub: 'अब स्वाद संतुलन, अंतिम टच और प्लेटिंग आएगी।',
     finalCheck:
-      'आखिरी स्वाद जाँच: अगर कुछ भी ठीक न लगे, तो AI Pan Checker खोलें और अपनी जगह खोए बिना गाइडेड फिक्स पाएँ।',
+      'आख़िरी स्वाद जाँच: अगर कुछ भी ठीक न लगे, तो AI Pan Checker खोलें और अपनी जगह खोए बिना guided fix पाएँ।',
+    markHint: 'अगला स्टेप खोलने के लिए नीचे Mark step done दबाएँ।',
+    prev: 'पीछे',
+    next: 'आगे',
+    voiceAssistant: 'Voice Cook Mode',
+    nextReady: 'अगला स्टेप ऊपर खुल गया है',
+    timerHint: 'जब आप सच में यह स्टेप शुरू करें, तभी टाइमर चालू करें।',
   },
   te: {
     step: 'దశ',
     of: 'లో',
-    stillRunning: 'టైమర్ ఇంకా నడుస్తోంది. అయినా ముందుకు వెళ్లాలనుకుంటే Next step మళ్లీ నొక్కండి.',
-    timeUp: 'ఈ దశ సమయం పూర్తైంది. క్యూస్‌ను మరోసారి చూసి, సిద్ధమైతే తదుపరి దశకు వెళ్లండి.',
+    timeUp:
+      'ఈ దశ సమయం పూర్తైంది. క్యూ‌లను మరోసారి చూసి, పాన్ సిద్ధంగా కనిపిస్తేనే ముందుకు వెళ్లండి.',
     openFullChat: 'పూర్తి చాట్ తెరవండి',
     openMic: 'Open mic',
     voiceRunning: 'టైమర్ నడుస్తున్నప్పటికీ వాయిస్ గైడ్ కొనసాగుతుంది.',
-    voicePaused: 'లైవ్ వాయిస్ సహాయం కోసం ఈ దశను మళ్లీ ప్రారంభించండి.',
-    voiceHelp: 'క్యూస్, టైమింగ్ లేదా ఏమి సరిచేయాలో అడగండి.',
+    voicePaused: 'మీరు సిద్ధమైనప్పుడు టైమర్ లేదా వాయిస్ సహాయాన్ని ప్రారంభించండి.',
+    voiceHelp: 'క్యూ‌లు, టైమింగ్, సరైన పాన్, హీట్, లేదా ఏం సరిచేయాలో అడగండి.',
     userPrompt: 'మీరు: ఇప్పుడు నేను ఏమి గమనించాలి?',
+    chatPlaceholder: 'మీ కుకింగ్ ప్రశ్నను టైప్ చేయండి',
     pauseTimer: 'టైమర్ ఆపండి',
+    startTimer: 'టైమర్ ప్రారంభించండి',
     resumeTimer: 'టైమర్ మళ్లీ ప్రారంభించండి',
     reopenStep: 'దశ మళ్లీ తెరవండి',
     markDone: 'దశ పూర్తి చేయండి',
     finishCooking: 'వంట పూర్తి చేయండి',
     panChecker: 'AI Pan Checker',
-    finishLikeChef: 'Finish Like a Chef',
-    timerContinues: 'మీరు ఆపకపోతే టైమర్ కొనసాగుతుంది.',
-    finishSub: 'ఇప్పుడు టేస్ట్ బ్యాలెన్స్, ఫైనల్ టచ్‌లు, ప్లేటింగ్ వస్తాయి.',
     finalCheck:
-      'చివరి టేస్ట్ చెక్: ఏదైనా తప్పుగా అనిపిస్తే, AI Pan Checker తెరిచి మీ స్థానాన్ని కోల్పోకుండా గైడెడ్ ఫిక్స్ పొందండి.',
+      'చివరి టేస్ట్ చెక్: ఏదైనా తప్పుగా అనిపిస్తే, AI Pan Checker తెరిచి మీ స్థానాన్ని కోల్పోకుండా guided fix పొందండి.',
+    markHint: 'తదుపరి దశకు వెళ్లడానికి ముందు కింద Mark step done నొక్కండి.',
+    prev: 'వెనక్కి',
+    next: 'తర్వాత',
+    voiceAssistant: 'Voice Cook Mode',
+    nextReady: 'తదుపరి దశ పైభాగంలో తెరుచుకుంది',
+    timerHint: 'ఈ దశను నిజంగా మొదలుపెట్టినప్పుడు మాత్రమే టైమర్ ప్రారంభించండి.',
   },
 } as const;
 
@@ -114,6 +131,29 @@ const CUE_LABELS = {
   en: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
   hi: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
   te: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
+} as const;
+
+const CUE_PALETTE = {
+  visual: {
+    text: 'text-accent-green',
+    bg: 'bg-[linear-gradient(180deg,rgba(240,247,231,0.96),rgba(251,252,247,0.98))]',
+    bubble: 'bg-accent-green-soft',
+  },
+  smell: {
+    text: 'text-[#8a9a46]',
+    bg: 'bg-[linear-gradient(180deg,rgba(245,247,229,0.96),rgba(252,252,246,0.98))]',
+    bubble: 'bg-[rgba(229,238,197,0.9)]',
+  },
+  sound: {
+    text: 'text-copper',
+    bg: 'bg-[linear-gradient(180deg,rgba(255,245,234,0.96),rgba(255,251,247,0.98))]',
+    bubble: 'bg-primary-soft',
+  },
+  texture: {
+    text: 'text-primary-dark',
+    bg: 'bg-[linear-gradient(180deg,rgba(255,241,232,0.96),rgba(255,250,246,0.98))]',
+    bubble: 'bg-[rgba(255,228,212,0.9)]',
+  },
 } as const;
 
 export default function DishCookPage() {
@@ -132,9 +172,10 @@ export default function DishCookPage() {
   const { session, getElapsedForStep, startStep, pauseStep, markStepComplete, reopenStep } =
     useCookingSession(dish.dishId, step.index);
 
-  const [skipIntent, setSkipIntent] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [timeAlerted, setTimeAlerted] = useState(false);
+  const [chatDraft, setChatDraft] = useState('');
+  const [chatMessages, setChatMessages] = useState<string[]>([]);
 
   useEffect(() => {
     recordRecentlyViewedDish(dish.dishId);
@@ -146,18 +187,13 @@ export default function DishCookPage() {
   const isCompleted = session.completedSteps.includes(step.index);
   const progress = getStepProgress(step.index, session.completedSteps, dish.cookingSteps.length);
   const heatMeta = getHeatMeta(step.heat);
-  const rescueIssue = getDefaultRescueIssue(dish, step.index);
   const sensoryCards = getStructuredCues(step.title, step.sensoryCues);
 
   useEffect(() => {
-    setSkipIntent(false);
-  }, [step.index]);
-
-  useEffect(() => {
-    if (remainingSeconds !== 0 || timeAlerted) return;
+    if (elapsedSeconds <= 0 || remainingSeconds !== 0 || timeAlerted) return;
     playSoundEffect('stop');
     setTimeAlerted(true);
-  }, [remainingSeconds, timeAlerted]);
+  }, [elapsedSeconds, remainingSeconds, timeAlerted]);
 
   useEffect(() => {
     if (remainingSeconds > 0 && timeAlerted) {
@@ -172,24 +208,6 @@ export default function DishCookPage() {
     return `${step.title}. ${sensory} Why this matters: ${step.whyThisMatters}`;
   }, [cueLabels, sensoryCards, step.title, step.whyThisMatters]);
 
-  function moveForward() {
-    if (!isCompleted && remainingSeconds > 0 && !skipIntent) {
-      setSkipIntent(true);
-      return;
-    }
-
-    playSoundEffect('tap');
-    setSkipIntent(false);
-    if (nextStep) {
-      markStepComplete(step.index, nextStep.index);
-      router.push(ROUTES.dishCook(dish.dishId, nextStep.index));
-      return;
-    }
-
-    markStepComplete(step.index);
-    router.push(ROUTES.dishFinish(dish.dishId));
-  }
-
   function handlePrimaryAction() {
     if (isCompleted) {
       playSoundEffect('tap');
@@ -200,7 +218,6 @@ export default function DishCookPage() {
     playSoundEffect('check');
     if (nextStep) {
       markStepComplete(step.index, nextStep.index);
-      router.push(ROUTES.dishCook(dish.dishId, nextStep.index));
       return;
     }
 
@@ -219,6 +236,23 @@ export default function DishCookPage() {
     startStep(step.index);
   }
 
+  function sendChatPrompt() {
+    const trimmed = chatDraft.trim();
+    if (!trimmed) return;
+    setChatMessages((current) =>
+      [...current, `You: ${trimmed}`, `ChefSense: ${buildReply(trimmed, step.title)}`].slice(-4),
+    );
+    setChatDraft('');
+    if (!isRunning && !isCompleted) {
+      startStep(step.index);
+    }
+  }
+
+  const progressColor =
+    progress < 40 ? 'text-primary' : progress < 75 ? 'text-copper' : 'text-accent-green';
+  const progressRing =
+    progress < 40 ? 'border-primary/80' : progress < 75 ? 'border-secondary' : 'border-accent-green';
+
   return (
     <AppShell className="pb-32">
       <Header
@@ -231,19 +265,39 @@ export default function DishCookPage() {
 
       <div className="text-center">
         <div className="text-[15px] font-medium text-copper">{dish.dishName}</div>
-        <div className="mx-auto mt-3 inline-flex rounded-full border border-border bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-6 py-2.5 text-[18px] font-medium text-foreground shadow-soft">
-          {copy.step} {step.index} {copy.of} {dish.cookingSteps.length}
+        <div className="mx-auto mt-3 flex max-w-[360px] items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => prevStep && router.push(ROUTES.dishCook(dish.dishId, prevStep.index))}
+            disabled={!prevStep}
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:opacity-45"
+          >
+            {copy.prev}
+          </button>
+          <div className="inline-flex rounded-full border border-border bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-6 py-2.5 font-sans text-[20px] font-semibold text-foreground shadow-soft tabular-nums">
+            {copy.step} {step.index} {copy.of} {dish.cookingSteps.length}
+          </div>
+          <button
+            type="button"
+            onClick={() => nextStep && router.push(ROUTES.dishCook(dish.dishId, nextStep.index))}
+            disabled={!nextStep || !isCompleted}
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:opacity-45"
+          >
+            {copy.next}
+          </button>
         </div>
         <div className="mt-4 scale-110">
           <StepDots count={Math.min(dish.cookingSteps.length, 8)} active={Math.min(step.index, 8)} />
         </div>
       </div>
 
+      {!isCompleted && nextStep ? (
+        <div className="mt-3 text-center text-sm text-muted-foreground">{copy.markHint}</div>
+      ) : null}
+
       <section className="mt-5 text-center">
-        <h1 className="mx-auto max-w-[360px] text-[56px] font-serif leading-[0.92] tracking-[-0.06em]">{step.title}</h1>
-        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">
-          {step.instruction}
-        </p>
+        <h1 className="mx-auto max-w-[360px] text-[58px] font-serif leading-[0.9] tracking-[-0.06em]">{step.title}</h1>
+        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">{step.instruction}</p>
       </section>
 
       <ScreenCard className="mt-6 overflow-hidden p-0">
@@ -271,20 +325,14 @@ export default function DishCookPage() {
           </div>
           <div className="px-4 py-5">
             <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">{t('cook.progress')}</div>
-            <div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-primary/80 bg-white/70 font-sans text-[31px] font-semibold tracking-[-0.05em] text-foreground shadow-inner tabular-nums">
+            <div className={`mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] ${progressRing} bg-white/70 font-sans text-[31px] font-semibold tracking-[-0.05em] ${progressColor} shadow-inner tabular-nums`}>
               {progress}%
             </div>
           </div>
         </div>
       </ScreenCard>
 
-      {skipIntent ? (
-        <div className="mt-4 rounded-[22px] border border-secondary/55 bg-secondary-soft px-4 py-4 text-sm leading-6 text-foreground">
-          {copy.stillRunning}
-        </div>
-      ) : null}
-
-      {remainingSeconds === 0 ? (
+      {elapsedSeconds > 0 && remainingSeconds === 0 ? (
         <div className="mt-4 rounded-[22px] border border-primary/30 bg-primary-soft/55 px-4 py-4 text-sm leading-6 text-primary-dark">
           {copy.timeUp}
         </div>
@@ -292,10 +340,13 @@ export default function DishCookPage() {
 
       <ScreenCard className="mt-4">
         <div className="flex items-center justify-between gap-3">
-          <SectionEyebrow icon={Mic} label={t('voice.title')} className="mb-0" />
+          <SectionEyebrow icon={Mic} label={copy.voiceAssistant} className="mb-0" />
           <button
             type="button"
-            onClick={() => setVoiceOpen((current) => !current)}
+            onClick={() => {
+              if (!isRunning && !isCompleted) startStep(step.index);
+              setVoiceOpen((current) => !current);
+            }}
             className="rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
           >
             {voiceOpen ? copy.openFullChat : copy.openMic}
@@ -304,9 +355,7 @@ export default function DishCookPage() {
         <div className="mt-3 rounded-[22px] border border-border/60 bg-background px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-medium text-foreground">
-                {isRunning ? copy.voiceRunning : copy.voicePaused}
-              </div>
+              <div className="text-sm font-medium text-foreground">{isRunning ? copy.voiceRunning : copy.voicePaused}</div>
               <div className="mt-1 text-sm text-muted-foreground">{copy.voiceHelp}</div>
             </div>
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -318,6 +367,34 @@ export default function DishCookPage() {
               <div className="rounded-[18px] bg-card px-3 py-3 text-sm text-foreground">ChefSense: {step.beginnerExplanation}</div>
               <div className="rounded-[18px] bg-primary-soft px-3 py-3 text-right text-sm text-primary-dark">{copy.userPrompt}</div>
               <div className="rounded-[18px] bg-card px-3 py-3 text-sm text-foreground">ChefSense: {voiceRecap}</div>
+              {chatMessages.map((message) => (
+                <div
+                  key={message}
+                  className={
+                    message.startsWith('You:')
+                      ? 'rounded-[18px] bg-primary-soft px-3 py-3 text-right text-sm text-primary-dark'
+                      : 'rounded-[18px] bg-card px-3 py-3 text-sm text-foreground'
+                  }
+                >
+                  {message}
+                </div>
+              ))}
+              <div className="flex items-center gap-2 rounded-[18px] border border-border/60 bg-background px-3 py-2">
+                <MessageCircleMore className="h-4 w-4 text-primary" />
+                <input
+                  value={chatDraft}
+                  onChange={(event) => setChatDraft(event.target.value)}
+                  placeholder={copy.chatPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={sendChatPrompt}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
               <Link href={ROUTES.dishVoice(dish.dishId, step.index)} className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 {copy.openFullChat} →
               </Link>
@@ -332,13 +409,11 @@ export default function DishCookPage() {
           {sensoryCards.map((cue) => {
             const meta = cueMeta[cue.type];
             const Icon = meta?.icon ?? Eye;
+            const palette = CUE_PALETTE[cue.type as keyof typeof CUE_PALETTE] ?? CUE_PALETTE.visual;
             return (
-              <ScreenCard
-                key={`${cue.type}-${cue.cue}`}
-                className="border border-secondary/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,247,239,0.98))] p-4"
-              >
-                <div className="flex items-center gap-2 text-accent-green">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent-green-soft">
+              <ScreenCard key={`${cue.type}-${cue.cue}`} className={`border border-secondary/35 p-4 ${palette.bg}`}>
+                <div className={`flex items-center gap-2 ${palette.text}`}>
+                  <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${palette.bubble}`}>
                     <Icon className="h-5 w-5" />
                   </span>
                   <div className="text-[16px] font-medium">{cueLabels[cue.type as keyof typeof cueLabels] ?? cue.type}</div>
@@ -361,7 +436,7 @@ export default function DishCookPage() {
           className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-center text-[15px] font-medium text-foreground shadow-soft"
         >
           {isRunning ? <PauseCircle className="h-5 w-5 text-primary" /> : <PlayCircle className="h-5 w-5 text-primary" />}
-          {isRunning ? copy.pauseTimer : copy.resumeTimer}
+          {isRunning ? copy.pauseTimer : elapsedSeconds > 0 ? copy.resumeTimer : copy.startTimer}
         </button>
         <button
           type="button"
@@ -373,15 +448,7 @@ export default function DishCookPage() {
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => prevStep && router.push(ROUTES.dishCook(dish.dishId, prevStep.index))}
-          disabled={!prevStep}
-          className="inline-flex items-center justify-center rounded-[22px] border border-border bg-card px-3 py-4 text-center text-[15px] font-medium text-foreground shadow-soft disabled:opacity-45"
-        >
-          {t('cta.previousStep')}
-        </button>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link
           href={ROUTES.dishPanCheck(dish.dishId, step.index)}
           className="inline-flex items-center justify-center rounded-[22px] border border-border bg-card px-3 py-4 text-center text-[15px] font-medium text-foreground shadow-soft"
@@ -389,30 +456,38 @@ export default function DishCookPage() {
           <LifeBuoy className="mr-2 h-4 w-4 text-primary" />
           {copy.panChecker}
         </Link>
-      </div>
-
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={moveForward}
-          className="flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-white shadow-cta transition-transform active:scale-[0.985]"
+        <div
+          className={
+            nextStep && !isCompleted
+              ? 'inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-muted-foreground'
+              : 'inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-accent-green'
+          }
         >
-          <span className="flex items-center gap-3">
-            <ChefHat className="h-6 w-6" />
-            <span className="flex flex-col leading-tight text-left">
-              <span className="font-serif text-[20px]">{nextStep ? t('cta.nextStep') : copy.finishLikeChef}</span>
-              <span className="text-sm text-white/90">
-                {nextStep ? copy.timerContinues : copy.finishSub}
-              </span>
-            </span>
-          </span>
-          <span className="text-lg">→</span>
-        </button>
+          {nextStep && !isCompleted ? copy.markHint : copy.nextReady}
+        </div>
       </div>
 
       <div className="mt-4 rounded-[22px] border border-border bg-card px-4 py-4 text-sm leading-6 text-muted-foreground shadow-soft">
         {copy.finalCheck}
       </div>
+
+      {!isRunning && !isCompleted ? (
+        <div className="mt-3 text-center text-sm text-muted-foreground">{copy.timerHint}</div>
+      ) : null}
     </AppShell>
   );
+}
+
+function buildReply(input: string, stepTitle: string) {
+  const lower = input.toLowerCase();
+  if (lower.includes('pan')) {
+    return `Use the pan mentioned for ${stepTitle.toLowerCase()} and keep the flame exactly where the heat card shows before moving ahead.`;
+  }
+  if (lower.includes('sticking') || lower.includes('stick')) {
+    return 'Lower the heat slightly, add a spoon of hot water, and scrape gently so the masala loosens without burning.';
+  }
+  if (lower.includes('look') || lower.includes('ready')) {
+    return `For ${stepTitle.toLowerCase()}, watch the sensory cues on screen first - colour, aroma, sound, and texture should all line up before you move on.`;
+  }
+  return 'Keep following the on-screen cues. If something looks off, ask about colour, texture, aroma, or pan control and ChefSense will guide you.';
 }

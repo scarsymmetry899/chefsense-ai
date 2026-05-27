@@ -229,11 +229,19 @@ export function DishVisual({
 }
 
 export function ProgressBar({ value, className }: { value: number; className?: string }) {
+  const safeValue = Math.max(0, Math.min(100, value));
+  const barStyle =
+    safeValue < 40
+      ? 'linear-gradient(90deg, rgba(214,96,48,0.98), rgba(244,137,73,0.98))'
+      : safeValue < 75
+        ? 'linear-gradient(90deg, rgba(244,137,73,0.98), rgba(234,174,52,0.98))'
+        : 'linear-gradient(90deg, rgba(234,174,52,0.98), rgba(125,153,61,0.98))';
+
   return (
     <div className={cn('h-3 overflow-hidden rounded-full bg-primary-soft/60', className)}>
       <div
-        className="h-full rounded-full bg-gradient-to-r from-secondary to-primary"
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        className="h-full rounded-full transition-all duration-500"
+        style={{ width: `${safeValue}%`, background: barStyle }}
       />
     </div>
   );

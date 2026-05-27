@@ -77,6 +77,8 @@ export type Ingredient = z.infer<typeof IngredientSchema>;
 export const ToolSchema = z.object({
   id: z.string(),
   name: z.string(),
+  note: z.string().optional(),
+  infoUrl: z.string().url().optional(),
 });
 export type Tool = z.infer<typeof ToolSchema>;
 
