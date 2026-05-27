@@ -456,15 +456,18 @@ export default function DishCookPage() {
           <LifeBuoy className="mr-2 h-4 w-4 text-primary" />
           {copy.panChecker}
         </Link>
-        <div
-          className={
-            nextStep && !isCompleted
-              ? 'inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-muted-foreground'
-              : 'inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-accent-green'
-          }
-        >
-          {nextStep && !isCompleted ? copy.markHint : copy.nextReady}
-        </div>
+        {isCompleted ? (
+          <Link
+            href={nextStep ? ROUTES.dishCook(dish.dishId, nextStep.index) : ROUTES.dishFinish(dish.dishId)}
+            className="inline-flex items-center justify-center rounded-[22px] border border-primary/20 gradient-cta px-4 py-4 text-center text-[15px] font-medium text-white shadow-cta"
+          >
+            {nextStep ? copy.next : copy.finishCooking}
+          </Link>
+        ) : (
+          <div className="inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-muted-foreground">
+            {copy.markHint}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-[22px] border border-border bg-card px-4 py-4 text-sm leading-6 text-muted-foreground shadow-soft">

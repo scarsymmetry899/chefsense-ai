@@ -49,6 +49,7 @@ export default function DishPage() {
   const storageKey = `${STORAGE_PREFIX}${dish.dishId}`;
 
   const [servings, setServings] = useState(baseServings);
+  const [customServings, setCustomServings] = useState(String(baseServings));
   const [checked, setChecked] = useState<string[]>([]);
   const [shareNotice, setShareNotice] = useState('');
 
@@ -62,6 +63,7 @@ export default function DishPage() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<IngredientState>;
       if (typeof parsed.servings === 'number') setServings(parsed.servings);
+      if (typeof parsed.servings === 'number') setCustomServings(String(parsed.servings));
       if (Array.isArray(parsed.checked)) setChecked(parsed.checked);
     } catch {
       // Ignore malformed saved state.
@@ -153,7 +155,7 @@ export default function DishPage() {
       </ScreenCard>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <MetricTile icon={Users} title="Servings" value={`${servings}`} detail={`Base ${dish.serves}`} />
+        <MetricTile icon={Users} title="Servings" value={`${servings}`} detail="Selected for this cook" />
         <MetricTile icon={ShoppingBasket} title="Ingredients" value={`${dish.ingredients.length}`} detail="Checklist items" />
         <MetricTile icon={UtensilsCrossed} title="Tools" value={`${dish.tools.length}`} detail="To keep ready" />
       </div>
@@ -179,7 +181,7 @@ export default function DishPage() {
             <SectionEyebrow icon={Scale} label="Serving Size" className="mb-1" />
             <h2 className="text-[22px]">How many people are you cooking for?</h2>
           </div>
-          <StatusPill label={`Scaled from ${dish.serves}`} />
+          <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           {SERVING_OPTIONS.map((option) => {
@@ -191,6 +193,7 @@ export default function DishPage() {
                 onClick={() => {
                   playSoundEffect('tap');
                   setServings(option);
+                  setCustomServings(String(option));
                 }}
                 className={
                   active
@@ -202,6 +205,31 @@ export default function DishPage() {
               </button>
             );
           })}
+        </div>
+        <div className="mt-4 rounded-[22px] border border-border/60 bg-background px-4 py-4">
+          <div className="text-sm font-medium text-foreground">Select number of people</div>
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={customServings}
+              onChange={(event) => setCustomServings(event.target.value)}
+              className="w-28 rounded-full border border-border bg-card px-4 py-2 text-base text-foreground outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const next = Math.max(1, Math.min(20, Number(customServings) || 1));
+                playSoundEffect('tap');
+                setServings(next);
+                setCustomServings(String(next));
+              }}
+              className="rounded-full border border-primary/20 gradient-cta px-4 py-2 text-sm font-semibold text-white shadow-cta"
+            >
+              Update
+            </button>
+          </div>
         </div>
       </ScreenCard>
 

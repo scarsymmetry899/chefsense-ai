@@ -126,6 +126,7 @@ export default function DishSharePage() {
   const captions = getShareCaptions(dish);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
   const [tone, setTone] = useState<(typeof TONE_KEYS)[number]['id']>('fineDining');
   const [caption, setCaption] = useState(captions.fineDining);
   const [copied, setCopied] = useState(false);
@@ -167,6 +168,28 @@ export default function DishSharePage() {
   const finalAssessment = uploadedImage
     ? `ChefSense rating: ${overallScore} / 100`
     : 'Upload the final plate to unlock the presentation rating.';
+
+  const suggestions = useMemo(() => {
+    if (!uploadedImage) return [];
+    const list: string[] = [];
+    if (imageMeta && imageMeta.width < imageMeta.height) {
+      list.push('Step back slightly so the full plate and rim stay in frame.');
+    } else {
+      list.push('Move a little closer so the dish fills more of the frame.');
+    }
+
+    if (dish.dishId === 'paneer-butter-masala') {
+      list.push('Add a small cream swirl and a pinch of kasuri methi for a richer finish.');
+    } else if (dish.dishId === 'bandi-chicken-fried-rice') {
+      list.push('Scatter fresh spring onion greens on top so the fried rice looks brighter.');
+    } else {
+      list.push('Add one fresh garnish detail so the plate has a stronger finishing touch.');
+    }
+
+    list.push('Use side light if possible so the texture reads clearly.');
+    list.push('Wipe the rim before sharing so the final plate looks cleaner.');
+    return list;
+  }, [dish.dishId, imageMeta, uploadedImage]);
 
   async function handleShare() {
     const shareBody = [
@@ -211,7 +234,11 @@ export default function DishSharePage() {
     if (uploadedImage?.startsWith('blob:')) {
       URL.revokeObjectURL(uploadedImage);
     }
-    setUploadedImage(URL.createObjectURL(file));
+    const nextUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => setImageMeta({ width: img.width, height: img.height });
+    img.src = nextUrl;
+    setUploadedImage(nextUrl);
     setShareNote('');
   }
 
@@ -295,10 +322,9 @@ export default function DishSharePage() {
           <ScreenCard className="mt-4">
             <SectionEyebrow label={copy.suggestions} />
             <ul className="space-y-2 text-[16px] leading-7 text-foreground">
-              <li>Move closer to the bowl</li>
-              <li>Add a small cream swirl</li>
-              <li>Use natural light from the side</li>
-              <li>Wipe the rim</li>
+              {suggestions.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           </ScreenCard>
         </>

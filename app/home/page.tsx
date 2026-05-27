@@ -221,6 +221,7 @@ export default function HomePage() {
                 variant="horizontal"
                 showInlineCta
                 href={getDishHref(dish.dishId)}
+                ctaLabel={hasInProgressDish(dish.dishId) ? 'Resume Guided Cook' : undefined}
               />
             </div>
           ))}

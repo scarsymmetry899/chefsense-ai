@@ -91,7 +91,7 @@ export const paneerButterMasala: Dish = {
     { id: 'ginger', name: 'Ginger', quantity: '1-inch piece, peeled', category: 'aromatic' },
     { id: 'garlic', name: 'Garlic', quantity: '4 cloves', category: 'aromatic' },
     { id: 'butter', name: 'Butter', quantity: '3 tbsp', category: 'main' },
-    { id: 'oil', name: 'Neutral oil', quantity: '1 tbsp', category: 'main' },
+    { id: 'oil', name: 'Sunflower oil', quantity: '1 tbsp', category: 'main', note: 'Can also use rice bran oil or light groundnut oil' },
     { id: 'cream', name: 'Fresh cream', quantity: '3 tbsp', category: 'finishing', note: 'At room temperature' },
     { id: 'kasuri-methi', name: 'Kasuri methi (dried fenugreek leaves)', quantity: '1 tsp', category: 'finishing' },
     { id: 'red-chilli', name: 'Kashmiri red chilli powder', quantity: '1 tsp', category: 'spice', note: 'Mild and colour-rich' },

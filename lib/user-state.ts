@@ -11,8 +11,24 @@ type ShareEntry = {
   channel: 'share' | 'copy' | 'save';
 };
 
+type ProfileSettings = {
+  name: string;
+  phone: string;
+  tagline: string;
+};
+
+type CompletedDishEntry = {
+  dishId: string;
+  finishedAt: number;
+  minutes: number;
+  score: number;
+  summary: string;
+};
+
 const RECENT_KEY = 'chefsense.recent';
 const SHARES_KEY = 'chefsense.shares';
+const PROFILE_KEY = 'chefsense.profile';
+const COMPLETED_KEY = 'chefsense.completed';
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -55,6 +71,33 @@ export function recordShareAction(dishId: string, channel: ShareEntry['channel']
 
 export function getShareActions() {
   return readJson<ShareEntry[]>(SHARES_KEY, []);
+}
+
+export function getProfileSettings() {
+  return readJson<ProfileSettings>(PROFILE_KEY, {
+    name: 'Abhit',
+    phone: '+91',
+    tagline: 'ChefSense home cook • guided Indian cooking enthusiast',
+  });
+}
+
+export function saveProfileSettings(settings: ProfileSettings) {
+  writeJson(PROFILE_KEY, settings);
+}
+
+export function getCompletedDishEntries() {
+  return readJson<CompletedDishEntry[]>(COMPLETED_KEY, []);
+}
+
+export function recordCompletedDish(entry: CompletedDishEntry) {
+  const current = readJson<CompletedDishEntry[]>(COMPLETED_KEY, []);
+  const next = [
+    entry,
+    ...current.filter(
+      (item) => !(item.dishId === entry.dishId && item.finishedAt === entry.finishedAt),
+    ),
+  ].slice(0, 20);
+  writeJson(COMPLETED_KEY, next);
 }
 
 export function formatViewedAgo(timestamp: number) {

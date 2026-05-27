@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Bell, Citrus, Flame, Leaf, Sparkles, Wheat } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
@@ -17,6 +17,8 @@ import {
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { getStoredCookingSession, getTotalCookingMinutes } from '@/lib/cooking-session';
+import { recordCompletedDish } from '@/lib/user-state';
 
 const AXIS_META = {
   salt: { icon: Sparkles, label: 'Salt' },
@@ -58,6 +60,39 @@ export default function DishFinishPage() {
     },
   }[lang];
 
+  useEffect(() => {
+    const stored = getStoredCookingSession(dish.dishId);
+    if (!stored?.finishedAt) return;
+    recordCompletedDish({
+      dishId: dish.dishId,
+      finishedAt: stored.finishedAt,
+      minutes: getTotalCookingMinutes(dish.dishId),
+      score: 84,
+      summary: 'Completed the full guided flow and reached the finish stage.',
+    });
+  }, [dish.dishId]);
+
+  const balanceAxes = useMemo(() => {
+    const added = new Set(selectedTouches);
+    return dish.tasteBalancing.map((axis) => {
+      let bonus = 0;
+      if (axis.axis === 'richness' && added.has('butter-knob')) bonus += 5;
+      if (axis.axis === 'aroma' && added.has('crush-kasuri')) bonus += 6;
+      if (axis.axis === 'salt' && added.has('adjust-salt')) bonus += 4;
+      if (axis.axis === 'richness' && added.has('cream-swirl')) bonus += 4;
+      if (axis.axis === 'heat' && added.has('chilli-oil')) bonus += 3;
+      return {
+        ...axis,
+        value: Math.min(100, axis.value + bonus),
+      };
+    });
+  }, [dish.tasteBalancing, selectedTouches]);
+
+  const overallBalance = useMemo(
+    () => Math.round(balanceAxes.reduce((sum, axis) => sum + axis.value, 0) / balanceAxes.length),
+    [balanceAxes],
+  );
+
   const balanceLabel = useMemo(() => {
     if (selectedTouches.length >= 3) return t('finish.veryWellBalanced');
     return copy.almostReady;
@@ -82,8 +117,14 @@ export default function DishFinishPage() {
           <SectionEyebrow label={t('finish.balanceMeter')} className="mb-0" />
           <StatusPill label={balanceLabel} />
         </div>
+        <div className="mt-3 rounded-[20px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-4 py-3">
+          <div className="text-sm text-muted-foreground">Overall balance</div>
+          <div className="mt-1 font-sans text-[34px] font-semibold tracking-[-0.05em] text-foreground tabular-nums">
+            {overallBalance}%
+          </div>
+        </div>
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
-          {dish.tasteBalancing.map((axis) => {
+          {balanceAxes.map((axis) => {
             const meta = AXIS_META[axis.axis];
             const Icon = meta.icon;
             return (
