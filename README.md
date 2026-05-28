@@ -55,7 +55,7 @@ All five dishes have complete guided cooking flows with 11–18 steps, mise-en-p
 - ResumeBanner — floating pill that surfaces an in-progress cook from anywhere in the app
 - "Finish cooking" navigates to a plating & score screen
 
-### Voice & Chat Cooking Coach
+### Voice & Chat Cooking Coach (In Progress)
 - **Talk to chef** — records audio via MediaRecorder → Whisper (STT) → GPT-4o → ElevenLabs (TTS)
 - **Chat with chef** — text input → GPT-4o, step-aware context injected in system prompt
 - Locale-aware (EN / HI / TE) voice IDs and system prompts
