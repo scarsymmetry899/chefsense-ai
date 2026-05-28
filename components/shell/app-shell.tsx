@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { BottomNav } from './bottom-nav';
+import { ResumeCookBanner } from './resume-cook-banner';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -13,6 +14,10 @@ interface AppShellProps {
  * - Centred container, max width 440px
  * - Warm ivory background flows through globals.css
  * - Safe-area padding top and bottom
+ *
+ * The ResumeCookBanner floats above the bottom nav whenever a user is mid-
+ * cook but has wandered off the cook flow — one tap returns them to the
+ * step they were on, eliminating the previous "I lost my place" complaint.
  */
 export function AppShell({
   children,
@@ -32,7 +37,12 @@ export function AppShell({
       >
         {children}
       </div>
-      {showBottomNav && <BottomNav />}
+      {showBottomNav && (
+        <>
+          <ResumeCookBanner />
+          <BottomNav />
+        </>
+      )}
     </>
   );
 }

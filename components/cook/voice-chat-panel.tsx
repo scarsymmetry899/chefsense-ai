@@ -73,11 +73,14 @@ export function VoiceChatPanel({
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [micUnavailable, setMicUnavailable] = useState(false);
+  const [chatActive, setChatActive] = useState(false);
+  const [chatFocusKey, setChatFocusKey] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaChunksRef = useRef<BlobPart[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const greetedRef = useRef(false);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   // Seed a single chef-voice primer message when the panel first opens for a
   // new step. Re-seeds when stepIndex changes — but never spams the user.
@@ -287,38 +290,72 @@ export function VoiceChatPanel({
     };
   }, []);
 
+  // Focus the chat input when the user explicitly taps "Chat with chef".
+  useEffect(() => {
+    if (chatFocusKey === 0) return;
+    const id = window.setTimeout(() => chatInputRef.current?.focus(), 50);
+    return () => window.clearTimeout(id);
+  }, [chatFocusKey]);
+
   return (
     <div className="mt-3 rounded-[22px] border border-border/60 bg-background px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-      <div className="flex items-start justify-between gap-3">
+      <div className="space-y-3">
         <div>
           <div className="text-sm font-medium text-foreground">
             {expanded ? expandedHint : collapsedHint}
           </div>
           <div className="mt-1 text-sm text-muted-foreground">{helperHint}</div>
         </div>
-        <button
-          type="button"
-          onClick={recording ? stopRecording : startRecording}
-          className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition ${
-            recording
-              ? 'bg-primary text-white shadow-cta'
-              : 'bg-primary-soft text-primary'
-          }`}
-          aria-label={recording ? 'Stop recording' : 'Start voice question'}
-          disabled={pending}
-        >
-          {recording ? <Square className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
-        </button>
+
+        {/* Two distinct affordances — Talk (mic) and Chat (text) — replace the
+            old single ambiguous "Open mic" pill. Both feed the same backend. */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={recording ? stopRecording : startRecording}
+            disabled={pending}
+            aria-label={recording ? 'Stop recording' : 'Talk to ChefSense'}
+            className={
+              recording
+                ? 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-cta disabled:opacity-50'
+                : 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary-soft px-4 py-2.5 text-sm font-semibold text-primary-dark shadow-soft disabled:opacity-50'
+            }
+          >
+            {recording ? (
+              <>
+                <Square className="h-4 w-4" />
+                <span>Stop &amp; send</span>
+              </>
+            ) : (
+              <>
+                <Mic className="h-4 w-4" />
+                <span>Talk to chef</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setChatActive(true);
+              setChatFocusKey((current) => current + 1);
+            }}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-soft"
+            aria-label="Open chat input"
+          >
+            <MessageCircleMore className="h-4 w-4 text-primary" />
+            <span>Chat with chef</span>
+          </button>
+        </div>
       </div>
 
       {micUnavailable ? (
         <div className="mt-3 flex items-center gap-2 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2 text-xs text-primary-dark">
           <MicOff className="h-3.5 w-3.5" />
-          Microphone unavailable. Use the text box below.
+          Microphone unavailable. Use the chat box below.
         </div>
       ) : null}
 
-      {expanded ? (
+      {expanded || chatActive ? (
         <div className="mt-4 space-y-2">
           {messages.length === 0 ? (
             <div className="rounded-[18px] border border-dashed border-border bg-card/60 px-3 py-3 text-sm text-muted-foreground">
@@ -361,6 +398,7 @@ export function VoiceChatPanel({
           <div className="flex items-center gap-2 rounded-[18px] border border-border/60 bg-background px-3 py-2">
             <MessageCircleMore className="h-4 w-4 text-primary" />
             <input
+              ref={chatInputRef}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {

@@ -16,6 +16,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -100,12 +101,58 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang;
   }, [lang]);
 
+  // Tracks dynamic translations fetched via Gemini for dictionary keys whose
+  // HI/TE entry still matches the English default (i.e. the dictionary was
+  // never given a real translation for that key). On first miss we queue a
+  // /api/translate call; the result is cached in state and surfaces on the
+  // next render so the user eventually sees the translated string without us
+  // needing to hand-translate the whole dictionary up front.
+  const [dynamicDictTranslations, setDynamicDictTranslations] = useState<
+    Record<string, string>
+  >({});
+  const pendingDictKeys = useRef<Set<string>>(new Set());
+
   const t = useCallback(
     (key: DictionaryKey) => {
       const dict: Dictionary = dictionaries[lang] ?? dictionaries[DEFAULT_LANG];
-      return dict[key] ?? dictionaries[DEFAULT_LANG][key] ?? key;
+      const value = dict[key] ?? dictionaries[DEFAULT_LANG][key] ?? key;
+      if (lang === 'en' || typeof window === 'undefined') return value;
+
+      const englishValue = dictionaries[DEFAULT_LANG][key] ?? key;
+      // Localised value is the same as the English default — assume the
+      // dictionary just doesn't have a real translation and ask Gemini once.
+      if (value === englishValue && englishValue) {
+        const cacheKey = `${lang}::${key}`;
+        const cached = dynamicDictTranslations[cacheKey];
+        if (cached) return cached;
+        if (!pendingDictKeys.current.has(cacheKey)) {
+          pendingDictKeys.current.add(cacheKey);
+          void (async () => {
+            try {
+              const { translateOnDemand } = await import('./translate-client');
+              const translated = await translateOnDemand({
+                text: englishValue,
+                targetLang: lang as 'hi' | 'te',
+                context: 'ChefSense AI app UI label.',
+              });
+              if (translated && translated !== englishValue) {
+                setDynamicDictTranslations((current) => ({
+                  ...current,
+                  [cacheKey]: translated,
+                }));
+              }
+            } catch {
+              // Network failure → leave English visible; we'll retry on the
+              // next render that hits this key.
+              pendingDictKeys.current.delete(cacheKey);
+            }
+          })();
+        }
+        return englishValue;
+      }
+      return value;
     },
-    [lang],
+    [lang, dynamicDictTranslations],
   );
 
   const tx = useCallback(

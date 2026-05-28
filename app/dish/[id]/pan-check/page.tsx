@@ -39,6 +39,8 @@ type PanAnalysisPayload = {
   burnRisk: 'Low' | 'Medium' | 'High';
   confidence: number;
   likelyIssueIds: string[];
+  suggestedIssueLabels: string[];
+  dishMatchConfidence: number;
 };
 
 export default function DishPanCheckPage() {
@@ -53,10 +55,11 @@ export default function DishPanCheckPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationState>({ status: 'idle' });
-  const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
+  const [selectedIssueLabels, setSelectedIssueLabels] = useState<string[]>([]);
   const [analysisState, setAnalysisState] = useState<PanAnalysisState>({ status: 'idle' });
   const [analysisResult, setAnalysisResult] = useState<PanAnalysisPayload | null>(null);
   const [rescueResult, setRescueResult] = useState<RescueIssue | null>(null);
+  const [matchWarningDismissed, setMatchWarningDismissed] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -66,11 +69,20 @@ export default function DishPanCheckPage() {
     };
   }, [uploadedImage]);
 
-  const chosenIssues = useMemo(
-    () => dish.rescueIssues.filter((issue) => selectedIssues.includes(issue.id)),
-    [dish.rescueIssues, selectedIssues],
-  );
+  const chosenIssues = useMemo(() => {
+    const normalized = selectedIssueLabels.map((label) => label.toLowerCase());
+    return dish.rescueIssues.filter((issue) => normalized.includes(issue.label.toLowerCase()));
+  }, [dish.rescueIssues, selectedIssueLabels]);
   const primaryIssue = rescueResult ?? chosenIssues[0] ?? dish.rescueIssues[0];
+
+  const defaultChipLabels = useMemo(
+    () => dish.rescueIssues.map((issue) => issue.label),
+    [dish.rescueIssues],
+  );
+  const chipLabels =
+    analysisResult?.suggestedIssueLabels && analysisResult.suggestedIssueLabels.length > 0
+      ? analysisResult.suggestedIssueLabels
+      : defaultChipLabels;
   const copy = {
     en: {
       title: 'AI Pan Checker',
@@ -154,7 +166,7 @@ export default function DishPanCheckPage() {
             dishId: dish.dishId,
             currentStep: step.index,
             imageUrl: uploadedDataUrl,
-            issueHints: selectedIssues,
+            issueHints: selectedIssueLabels,
           }),
         });
 
@@ -175,6 +187,7 @@ export default function DishPanCheckPage() {
 
         setAnalysisResult(payload.analysis);
         setRescueResult(payload.rescue);
+        setMatchWarningDismissed(false);
         setAnalysisState({
           status: 'ready',
           warning: payload.warning,
@@ -193,7 +206,7 @@ export default function DishPanCheckPage() {
     return () => {
       cancelled = true;
     };
-  }, [dish.dishId, selectedIssues, step.index, uploadedDataUrl, validation.status]);
+  }, [dish.dishId, selectedIssueLabels, step.index, uploadedDataUrl, validation.status]);
 
   async function handleFile(file: File | null) {
     if (!file) return;
@@ -326,17 +339,17 @@ export default function DishPanCheckPage() {
           <div className="mt-1 text-sm text-muted-foreground">{copy.chipsSubheading}</div>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {dish.rescueIssues.map((issue) => {
-          const active = selectedIssues.includes(issue.id);
+        {chipLabels.map((label) => {
+          const active = selectedIssueLabels.includes(label);
           return (
             <button
-              key={issue.id}
+              key={label}
               type="button"
               onClick={() =>
-                setSelectedIssues((current) =>
-                  current.includes(issue.id)
-                    ? current.filter((item) => item !== issue.id)
-                    : [...current, issue.id],
+                setSelectedIssueLabels((current) =>
+                  current.includes(label)
+                    ? current.filter((item) => item !== label)
+                    : [...current, label],
                 )
               }
               className={
@@ -345,7 +358,7 @@ export default function DishPanCheckPage() {
                   : 'rounded-[18px] border border-border bg-card px-3 py-3 text-center text-sm text-foreground shadow-soft'
               }
             >
-              {issue.label}
+              {label}
             </button>
           );
         })}
@@ -354,6 +367,23 @@ export default function DishPanCheckPage() {
 
       {canAnalyze ? (
         <>
+          {analysisResult && analysisResult.dishMatchConfidence < 50 && !matchWarningDismissed ? (
+            <div className="mt-4 flex items-start justify-between gap-3 rounded-[22px] border border-copper/40 bg-copper/10 px-4 py-4 text-sm leading-6 text-foreground">
+              <div>
+                <div className="font-semibold text-copper">Photo may not match this dish</div>
+                <div className="mt-1 text-muted-foreground">
+                  This photo doesn&apos;t look like {dish.dishName}. The analysis below is based on what&apos;s visible, not the recipe.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMatchWarningDismissed(true)}
+                className="shrink-0 rounded-full border border-copper/40 px-3 py-1 text-xs font-medium text-copper"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
           <ScreenCard className="mt-5">
             <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
               <div>

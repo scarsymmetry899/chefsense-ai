@@ -388,13 +388,16 @@ export function getPlatingGuide(dish: Dish): PlatingGuide {
 export function getShareCaptions(dish: Dish): ShareCaptions {
   if (dish.shareCaptions) return dish.shareCaptions;
 
+  const regionPrefix = dish.region ? `${dish.region}-style` : 'restaurant-style';
+  const firstSummarySentence = dish.summary?.split('.')[0]?.toLowerCase().trim();
+
   return {
-    fineDining: `${dish.dishName} in a velvety cashew-butter gravy, finished with kasuri methi and plated with fine-dining restraint.`,
-    instagramFoodie: `${dish.dishName}, glossy gravy, soft paneer, and a restaurant-style finish that absolutely deserved its own photo.`,
-    homeChefProud: `Made ${dish.dishName} from scratch today with proper chef-guided cues, and it came out beautifully.`,
-    simpleWarm: `Warm ${dish.dishName}, cooked with care and served the way it should be at home.`,
-    short: `${dish.dishName}, but make it chef-style.`,
-    hindi: `Aaj maine ${dish.dishName} ko professional restaurant-style presentation ke saath serve kiya.`,
-    telugu: `I roju nenu ${dish.dishName} ni restaurant-style presentation tho serve chesanu.`,
+    fineDining: `${dish.dishName} — ${regionPrefix} ${firstSummarySentence ?? 'plated with care'}.`,
+    instagramFoodie: `${dish.dishName} 🔥 ${dish.totalTimeMin} min of chef-guided cooking, and the plate did not survive the table.`,
+    homeChefProud: `Made ${dish.dishName} from scratch with proper chef-guided cues. Best one yet.`,
+    simpleWarm: `Warm ${dish.dishName}, cooked with care, plated the way it deserves.`,
+    short: `${dish.dishName}, chef-guided.`,
+    hindi: `आज ${dish.dishName} खुद बनाया, सही chef cues के साथ। प्लेट तैयार।`,
+    telugu: `ఈరోజు ${dish.dishName} ని chef cues తో నేనే వండాను. ప్లేట్ రెడీ.`,
   };
 }

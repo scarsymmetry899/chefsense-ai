@@ -30,6 +30,8 @@ type PanAnalysis = {
   burnRisk: 'Low' | 'Medium' | 'High';
   confidence: number;
   likelyIssueIds: string[];
+  suggestedIssueLabels: string[];
+  dishMatchConfidence: number;
 };
 
 type AnalyzePanResponse = {
@@ -40,7 +42,18 @@ type AnalyzePanResponse = {
   warning?: string;
 };
 
-type AnalyzePanModelPayload = PanAnalysis;
+type AnalyzePanModelPayload = {
+  title: string;
+  note: string;
+  caution: string;
+  suggestion: string;
+  stage: string;
+  burnRisk: 'Low' | 'Medium' | 'High';
+  confidence: number;
+  likelyIssueIds: string[];
+  suggestedIssueLabels?: string[];
+  dishMatchConfidence?: number;
+};
 
 export async function POST(request: Request) {
   const body = (await safeJson(request)) as AnalyzePanRequest;
@@ -60,7 +73,7 @@ export async function POST(request: Request) {
       ? dish.cookingSteps.find((item) => item.index === body.currentStep) ?? dish.cookingSteps[0]
       : dish.cookingSteps[0];
   const fallbackRescue = pickRescueIssue(dish.rescueIssues, body.issueHints) ?? getDefaultRescueIssue(dish, step.index);
-  const fallback = buildFallbackAnalysis(dish.dishName, step, fallbackRescue);
+  const fallback = buildFallbackAnalysis(dish.dishName, step, fallbackRescue, dish);
   const imageInput = normalizeImageInput(body.imageBase64, body.imageUrl);
 
   if (!hasOpenAIKey() || !imageInput) {
@@ -93,6 +106,8 @@ export async function POST(request: Request) {
           'Identify visible doneness signals such as colour (golden vs deep brown vs charred), sheen and gloss, oil sheen or droplets, blistering or bubbling pattern, separation of fat, surface moisture, charring, dryness, foam, or splitting.',
           'Tie what you see to the step.sensoryCues and step.title, then say whether the pan is on track, early, late, or in trouble for THIS step.',
           'When something looks off, map the finding to the closest rescueIssueOptions[].id (use the exact id string). Leave likelyIssueIds empty only when nothing is wrong.',
+          'ALSO produce suggestedIssueLabels: an array of 4-8 SHORT chip-style labels (each 2-4 words) describing what could realistically have gone wrong AT THIS DISH AND THIS STEP based on what you actually see in the photo. These MUST be DISH-SPECIFIC and step-aware. Examples — biryani: "Rice mushy", "Bottom burnt", "Salt off", "Layers uneven", "Chicken raw". Eggs kejriwal: "Bread soggy", "Cheese broke", "Yolk too set", "Bread burnt", "Salt off". Fried rice: "Rice clumped", "Soy too dark", "Veg soggy", "Garlic raw". Do NOT default to generic chips like "Too salty" or "Burnt smell" unless the photo genuinely shows those.',
+          'ALSO produce dishMatchConfidence: a number 0-100 indicating how confident you are that the photo actually matches the named dish at this step. If the photo looks like a completely different dish or an unrelated object, set this below 50. When dishMatchConfidence is low, lean toward FEWER and more generic labels rather than fabricating dish-specific issues.',
           'Keep outputs short, plain, practical, and warm for a home cook. Do not mention uncertainty excessively.',
           'Do not name external chefs, publishers, channels, or books.',
           'Return only JSON in the requested shape.',
@@ -129,6 +144,8 @@ export async function POST(request: Request) {
                 burnRisk: 'Low | Medium | High',
                 confidence: 0,
                 likelyIssueIds: ['string'],
+                suggestedIssueLabels: ['string (2-4 words, dish-specific, photo-grounded)'],
+                dishMatchConfidence: 0,
               },
             }),
           },
@@ -157,6 +174,8 @@ export async function POST(request: Request) {
 
   const likelyIssueIds = sanitizeIssueIds(aiResult.data.likelyIssueIds, dish.rescueIssues, fallbackRescue.id);
   const rescue = dish.rescueIssues.find((issue) => issue.id === likelyIssueIds[0]) ?? fallbackRescue;
+  const suggestedIssueLabels = sanitizeSuggestedLabels(aiResult.data.suggestedIssueLabels, fallback.suggestedIssueLabels);
+  const dishMatchConfidence = sanitizeConfidence(aiResult.data.dishMatchConfidence ?? 85);
 
   const response: AnalyzePanResponse = {
     ok: true,
@@ -170,6 +189,8 @@ export async function POST(request: Request) {
       burnRisk: sanitizeBurnRisk(aiResult.data.burnRisk, fallback.burnRisk),
       confidence: sanitizeConfidence(aiResult.data.confidence),
       likelyIssueIds,
+      suggestedIssueLabels,
+      dishMatchConfidence,
     },
     rescue,
   };
@@ -177,7 +198,7 @@ export async function POST(request: Request) {
   return NextResponse.json(response);
 }
 
-function buildFallbackAnalysis(dishName: string, step: NonNullable<ReturnType<typeof getDish>>['cookingSteps'][number], rescue: RescueIssue): PanAnalysis {
+function buildFallbackAnalysis(dishName: string, step: NonNullable<ReturnType<typeof getDish>>['cookingSteps'][number], rescue: RescueIssue, dish: NonNullable<ReturnType<typeof getDish>>): PanAnalysis {
   const cueSet = getStructuredCues(step.title, step.sensoryCues);
   const heatMeta = getHeatMeta(step.heat);
 
@@ -192,6 +213,8 @@ function buildFallbackAnalysis(dishName: string, step: NonNullable<ReturnType<ty
     burnRisk: step.heat === 'High' ? 'High' : step.heat === 'Medium-high' ? 'Medium' : 'Low',
     confidence: 72,
     likelyIssueIds: [rescue.id],
+    suggestedIssueLabels: dish.rescueIssues.map((issue) => issue.label),
+    dishMatchConfidence: 85,
   };
 }
 
@@ -214,6 +237,27 @@ function sanitizeIssueIds(candidate: string[] | undefined, issues: RescueIssue[]
 
 function sanitizeBurnRisk(value: string | undefined, fallback: PanAnalysis['burnRisk']): PanAnalysis['burnRisk'] {
   return value === 'Low' || value === 'Medium' || value === 'High' ? value : fallback;
+}
+
+function sanitizeSuggestedLabels(candidate: string[] | undefined, fallback: string[]): string[] {
+  if (!Array.isArray(candidate)) return fallback;
+  const cleaned: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of candidate) {
+    if (typeof raw !== 'string') continue;
+    const trimmed = raw.trim().replace(/\s+/g, ' ');
+    if (!trimmed) continue;
+    const wordCount = trimmed.split(' ').length;
+    if (wordCount < 1 || wordCount > 5) continue;
+    if (trimmed.length > 32) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(trimmed);
+    if (cleaned.length >= 8) break;
+  }
+  if (cleaned.length < 3) return fallback;
+  return cleaned;
 }
 
 function sanitizeConfidence(value: number | undefined) {

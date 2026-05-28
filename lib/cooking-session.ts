@@ -55,6 +55,40 @@ export function hasInProgressDish(dishId: string) {
   );
 }
 
+/**
+ * Scan localStorage for every cook-session key and return the dishId of the
+ * one most recently touched that is NOT finished. Used by the bottom nav and
+ * the resume banner so we never fall back to a hard-coded dish.
+ */
+export function getMostRecentInProgressDishId(): string | null {
+  if (typeof window === 'undefined') return null;
+  let bestId: string | null = null;
+  let bestStamp = 0;
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+      const dishId = key.slice(STORAGE_PREFIX.length);
+      const stored = readLocalJson<CookingSessionState | null>(key, null);
+      if (!stored || stored.finishedAt) continue;
+      const stamp = Math.max(
+        stored.startedAt ?? 0,
+        stored.timerArmedAt ?? 0,
+        // elapsedByStep entries are seconds, not timestamps — but having any
+        // elapsed time is a useful tiebreaker when timers haven't started.
+        Object.values(stored.elapsedByStep).reduce((sum, v) => sum + v, 0),
+      );
+      if (stamp >= bestStamp) {
+        bestStamp = stamp;
+        bestId = dishId;
+      }
+    }
+  } catch {
+    // localStorage may be unavailable; fall through to null.
+  }
+  return bestId;
+}
+
 export function getTotalCookingMinutes(dishId: string) {
   const stored = getStoredCookingSession(dishId);
   if (!stored) return 0;

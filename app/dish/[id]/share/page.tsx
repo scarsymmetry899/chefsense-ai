@@ -34,6 +34,7 @@ const COPY = {
   en: {
     title: 'Share my plate',
     subtitle: 'Upload the final dish, reveal the plating score, and use a ready-to-share caption.',
+    captionWriting: 'ChefSense is writing your caption…',
     photo: 'Final plate photo',
     upload: 'Upload photo',
     change: 'Change photo',
@@ -71,6 +72,7 @@ const COPY = {
   hi: {
     title: 'Share my plate',
     subtitle: 'फाइनल डिश अपलोड करें, तभी प्लेटिंग स्कोर देखें और शेयर-रेडी कैप्शन लें।',
+    captionWriting: 'ChefSense आपका caption लिख रहा है…',
     photo: 'फाइनल प्लेट फोटो',
     upload: 'Upload photo',
     change: 'Change photo',
@@ -108,6 +110,7 @@ const COPY = {
   te: {
     title: 'Share my plate',
     subtitle: 'ఫైనల్ డిష్‌ను అప్‌లోడ్ చేసి, ప్లేటింగ్ స్కోర్ చూసి, షేర్-రెడీ క్యాప్షన్ పొందండి.',
+    captionWriting: 'ChefSense మీ caption రాస్తోంది…',
     photo: 'ఫైనల్ ప్లేట్ ఫోటో',
     upload: 'Upload photo',
     change: 'Change photo',
@@ -183,7 +186,10 @@ export default function DishSharePage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [tone, setTone] = useState<ToneId>('fineDining');
   const [captionLang, setCaptionLang] = useState<CaptionLangId>(lang);
-  const [caption, setCaption] = useState(captions.fineDining);
+  const [captionCache, setCaptionCache] = useState<Record<string, string>>({});
+  const [caption, setCaption] = useState<string>(captions.fineDining);
+  const [captionLoading, setCaptionLoading] = useState(false);
+  const [userEditedCaption, setUserEditedCaption] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selfRating, setSelfRating] = useState(4);
   const [shareNote, setShareNote] = useState('');
@@ -192,15 +198,67 @@ export default function DishSharePage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [forceAccept, setForceAccept] = useState(false);
 
+  function getColdFallbackCaption(toneId: ToneId, langId: CaptionLangId): string {
+    if (langId === 'hi' && captions.hindi) return captions.hindi;
+    if (langId === 'te' && captions.telugu) return captions.telugu;
+    return captions[toneId];
+  }
+
   useEffect(() => {
-    if (captionLang === 'hi' && captions.hindi) {
-      setCaption(captions.hindi);
-    } else if (captionLang === 'te' && captions.telugu) {
-      setCaption(captions.telugu);
-    } else {
-      setCaption(captions[tone]);
+    const key = `${tone}|${captionLang}`;
+    const cached = captionCache[key];
+    if (cached) {
+      setCaption(cached);
+      setUserEditedCaption(false);
+      return;
     }
-  }, [captions, tone, captionLang]);
+
+    // Cold render: show templated fallback immediately.
+    setCaption(getColdFallbackCaption(tone, captionLang));
+    setUserEditedCaption(false);
+
+    let cancelled = false;
+    setCaptionLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch('/api/caption', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dishId: dish.dishId,
+            tone,
+            language: captionLang,
+            plateScore: analysis?.overall,
+            suggestions: analysis?.suggestions,
+          }),
+        });
+        const data = (await res.json()) as
+          | { ok: true; source: 'openai' | 'fallback'; caption: string; warning?: string }
+          | { ok: false; error: string };
+
+        if (cancelled) return;
+        if (data.ok && data.caption) {
+          setCaptionCache((prev) => ({ ...prev, [key]: data.caption }));
+          setCaption((current) => (userEditedCaptionRef.current ? current : data.caption));
+        }
+      } catch {
+        // keep the cold fallback
+      } finally {
+        if (!cancelled) setCaptionLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tone, captionLang, dish.dishId, analysis?.overall]);
+
+  const userEditedCaptionRef = useRef(false);
+  useEffect(() => {
+    userEditedCaptionRef.current = userEditedCaption;
+  }, [userEditedCaption]);
 
   useEffect(() => {
     return () => {
@@ -253,22 +311,55 @@ export default function DishSharePage() {
   const suggestions = !uploadedImage || mismatch || analyzing ? [] : (analysis?.suggestions ?? []);
 
   async function handleShare() {
+    const url = `${window.location.origin}${ROUTES.dish(dish.dishId)}`;
     const shareBody = [
       `${dish.dishName} by ChefSense`,
       `${dish.totalTimeMin} min guided cook`,
       caption,
-      `Cook it here: ${window.location.origin}${ROUTES.dish(dish.dishId)}`,
+      `Cook it here: ${url}`,
     ].join('\n');
 
-    if (navigator.share) {
-      await navigator.share({
-        title: `${dish.dishName} by ChefSense`,
-        text: shareBody,
-        url: `${window.location.origin}${ROUTES.dish(dish.dishId)}`,
-      });
-      recordShareAction(dish.dishId, 'share');
-      setShareNote(copy.sheet);
-      return;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        let imageFile: File | null = null;
+        if (uploadedImage?.startsWith('blob:')) {
+          try {
+            const blob = await fetch(uploadedImage).then((r) => r.blob());
+            const ext = (blob.type.split('/')[1] ?? 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+            imageFile = new File([blob], `${dish.dishId}-plate.${ext}`, {
+              type: blob.type || 'image/jpeg',
+            });
+          } catch {
+            imageFile = null;
+          }
+        }
+
+        const canShareFiles =
+          imageFile !== null &&
+          typeof navigator.canShare === 'function' &&
+          navigator.canShare({ files: [imageFile] });
+
+        if (canShareFiles && imageFile) {
+          await navigator.share({
+            title: `${dish.dishName} by ChefSense`,
+            text: shareBody,
+            url,
+            files: [imageFile],
+          });
+        } else {
+          await navigator.share({
+            title: `${dish.dishName} by ChefSense`,
+            text: shareBody,
+            url,
+          });
+        }
+
+        recordShareAction(dish.dishId, 'share');
+        setShareNote(copy.sheet);
+        return;
+      } catch {
+        // fall through to clipboard
+      }
     }
 
     await navigator.clipboard.writeText(shareBody);
@@ -534,9 +625,18 @@ export default function DishSharePage() {
 
         <textarea
           value={caption}
-          onChange={(event) => setCaption(event.target.value)}
+          onChange={(event) => {
+            setUserEditedCaption(true);
+            setCaption(event.target.value);
+          }}
           className="mt-4 min-h-[140px] w-full rounded-[22px] border border-border bg-background px-4 py-4 t-body-lg text-foreground outline-none focus:ring-2 focus:ring-primary/30"
         />
+        {captionLoading ? (
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            <span>{copy.captionWriting}</span>
+          </div>
+        ) : null}
       </ScreenCard>
 
       <ScreenCard className="mt-4">
