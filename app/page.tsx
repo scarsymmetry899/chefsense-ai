@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
@@ -10,21 +11,34 @@ import { FeaturePill } from '@/components/shared/feature-pill';
 import { ImageWithFallback } from '@/components/shared/image-with-fallback';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { ROUTES } from '@/lib/constants/routes';
-import { getDishOrThrow, FEATURED_DISH_ID } from '@/lib/data/dishes';
+import { getDishOrThrow, listDishSummaries } from '@/lib/data/dishes';
 import { hasAuthSession } from '@/lib/auth/browser';
 import { cn } from '@/lib/utils';
 
 export default function WelcomePage() {
+  const router = useRouter();
   const { t, tx, lang } = useLanguage();
-  const featured = getDishOrThrow(FEATURED_DISH_ID);
-  const trans = featured.translations as
+  const isAuthed = hasAuthSession();
+  const featuredDishes = useMemo(() => listDishSummaries().slice(0, 3), []);
+  const [selectedDishId, setSelectedDishId] = useState(featuredDishes[0]?.dishId ?? 'paneer-butter-masala');
+
+  useEffect(() => {
+    if (!isAuthed) {
+      router.replace(`${ROUTES.login}?next=${encodeURIComponent(ROUTES.welcome)}`);
+    }
+  }, [isAuthed, router]);
+
+  const selectedDish = getDishOrThrow(selectedDishId);
+  const trans = selectedDish.translations as
     | { hi?: Record<string, string>; te?: Record<string, string> }
     | undefined;
   const langMap = trans?.[lang as 'hi' | 'te'];
-  const dishName = tx('dish.name', featured.dishName, langMap);
-  const startHref = hasAuthSession()
-    ? ROUTES.dish(featured.dishId)
-    : `${ROUTES.login}?next=${encodeURIComponent(ROUTES.dish(featured.dishId))}`;
+  const dishName = tx('dish.name', selectedDish.dishName, langMap);
+  const startHref = ROUTES.dish(selectedDish.dishId);
+
+  if (!isAuthed) {
+    return null;
+  }
 
   return (
     <AppShell showBottomNav={false}>
@@ -72,7 +86,21 @@ export default function WelcomePage() {
       </div>
 
       <section className="mt-7 animate-fade-up">
-        <FoodHeroIllustration dishName={dishName} heroImage={featured.heroImage} />
+        <FoodHeroIllustration
+          dishes={featuredDishes.map((dish) => ({
+            ...dish,
+            localizedName:
+              tx(
+                'dish.name',
+                dish.dishName,
+                (getDishOrThrow(dish.dishId).translations as
+                  | { hi?: Record<string, string>; te?: Record<string, string> }
+                  | undefined)?.[lang as 'hi' | 'te'],
+              ),
+          }))}
+          selectedDishId={selectedDish.dishId}
+          onSelect={setSelectedDishId}
+        />
       </section>
 
       <section className="mt-7 flex flex-col items-center gap-3 animate-fade-up">
@@ -153,27 +181,89 @@ function DecorativeDivider({ className }: { className?: string }) {
 }
 
 function FoodHeroIllustration({
-  dishName,
-  heroImage,
+  dishes,
+  selectedDishId,
+  onSelect,
 }: {
-  dishName: string;
-  heroImage: string;
+  dishes: Array<{
+    dishId: string;
+    dishName: string;
+    localizedName: string;
+    heroImage: string;
+  }>;
+  selectedDishId: string;
+  onSelect: (dishId: string) => void;
 }) {
+  const selectedIndex = Math.max(
+    0,
+    dishes.findIndex((dish) => dish.dishId === selectedDishId),
+  );
+
   return (
-    <div className="card-warm paper-panel relative overflow-hidden rounded-[32px]">
-      <div className="relative h-[320px] overflow-hidden">
-        <ImageWithFallback
-          src={heroImage}
-          alt={dishName}
-          gradient="spice"
-          fallbackGlyph={'\u{1F35B}'}
-          ratioClassName="h-full"
-          rounded="none"
-        />
-      </div>
-      <div className="border-t border-border bg-card px-5 py-4 text-center">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-copper">Featured Dish</div>
-        <div className="mt-1 font-serif text-[24px] font-semibold text-foreground">{dishName}</div>
+    <div className="relative h-[360px]">
+      {dishes.map((dish, index) => {
+        const offset = index - selectedIndex;
+        const isSelected = dish.dishId === selectedDishId;
+        const translateX = offset * 34;
+        const scale = isSelected ? 1 : 0.94;
+        const opacity = Math.abs(offset) > 1 ? 0 : 1;
+
+        return (
+          <button
+            key={dish.dishId}
+            type="button"
+            onClick={() => onSelect(dish.dishId)}
+            className="absolute inset-x-0 top-0 mx-auto w-[90%] text-left transition-all duration-300"
+            style={{
+              transform: `translateX(${translateX}px) scale(${scale})`,
+              zIndex: 10 - Math.abs(offset),
+              opacity,
+            }}
+          >
+            <div className="card-warm paper-panel relative overflow-hidden rounded-[32px] shadow-card">
+              <div className="absolute left-4 top-4 z-20 rounded-full bg-card/95 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
+                Featured
+              </div>
+
+              <div className="relative h-[320px] overflow-hidden">
+                <ImageWithFallback
+                  src={dish.heroImage}
+                  alt={dish.localizedName}
+                  gradient="spice"
+                  fallbackGlyph={'\u{1F35B}'}
+                  ratioClassName="h-full"
+                  rounded="none"
+                />
+
+                <div className="absolute inset-y-4 left-4 z-10 flex w-[42%] max-w-[165px] flex-col justify-end rounded-[28px] bg-card/90 px-4 py-5 shadow-soft backdrop-blur-sm">
+                  <div className="font-serif text-[20px] font-semibold leading-[0.95] text-foreground">
+                    {dish.localizedName}
+                  </div>
+                  {isSelected ? (
+                    <div className="mt-4 text-xs font-medium text-primary">Swipe or tap to choose</div>
+                  ) : (
+                    <div className="mt-4 text-xs font-medium text-muted-foreground">Available guide</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </button>
+        );
+      })}
+
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2">
+        {dishes.map((dish) => (
+          <button
+            key={dish.dishId}
+            type="button"
+            onClick={() => onSelect(dish.dishId)}
+            className={cn(
+              'h-2.5 rounded-full transition-all',
+              dish.dishId === selectedDishId ? 'w-8 bg-primary' : 'w-2.5 bg-primary/25',
+            )}
+            aria-label={`Select ${dish.localizedName}`}
+          />
+        ))}
       </div>
     </div>
   );
