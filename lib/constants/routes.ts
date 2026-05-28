@@ -11,6 +11,7 @@
  */
 
 export const ROUTES = {
+  login: '/login',
   welcome: '/',
   home: '/home',
   dishes: '/dishes',
@@ -49,6 +50,7 @@ export const API_ROUTES = {
   rescue: '/api/rescue',
   translate: '/api/translate',
   analyzePan: '/api/analyze-pan',
+  voiceCoach: '/api/voice-coach',
 } as const;
 
 /** Bottom-nav targets — used by BottomNav. */
