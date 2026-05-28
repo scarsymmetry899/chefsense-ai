@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__list_projects",
+      "Bash(git fetch *)",
+      "Bash(gh repo *)",
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__list_migrations",
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__list_edge_functions",
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__get_advisors",
+      "mcp__b1abc6d2-3a16-49ee-90dd-039e2622316d__list_deployments",
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__list_tables",
+      "mcp__63fed065-e57d-45e6-9753-5cbe773b866a__execute_sql"
+    ]
+  }
+}

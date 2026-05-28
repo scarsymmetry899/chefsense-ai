@@ -12,6 +12,80 @@ type VoiceCoachRequest = {
   locale?: string;
 };
 
+type SupportedLocale = 'en' | 'hi' | 'te';
+
+function normalizeLocale(value: string | undefined): SupportedLocale {
+  if (!value) return 'en';
+  const lower = value.trim().toLowerCase();
+  if (lower.startsWith('hi')) return 'hi';
+  if (lower.startsWith('te')) return 'te';
+  return 'en';
+}
+
+function decodeJwtSub(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const json = Buffer.from(padded, 'base64').toString('utf-8');
+    const claims = JSON.parse(json) as { sub?: unknown };
+    return typeof claims.sub === 'string' ? claims.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveTranscriptTurns(opts: {
+  accessToken: string | null;
+  dishId: string;
+  stepIndex: number;
+  locale: SupportedLocale;
+  question: string;
+  reply: string;
+  source: 'openai' | 'fallback';
+}) {
+  if (!opts.accessToken) return;
+  const userId = decodeJwtSub(opts.accessToken);
+  if (!userId) return;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) return;
+  try {
+    await fetch(`${supabaseUrl.replace(/\/+$/, '')}/rest/v1/voice_turns`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${opts.accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify([
+        {
+          user_id: userId,
+          dish_id: opts.dishId,
+          step_index: opts.stepIndex,
+          locale: opts.locale,
+          role: 'user',
+          transcript: opts.question,
+          source: opts.source,
+        },
+        {
+          user_id: userId,
+          dish_id: opts.dishId,
+          step_index: opts.stepIndex,
+          locale: opts.locale,
+          role: 'assistant',
+          transcript: opts.reply,
+          source: opts.source,
+        },
+      ]),
+    });
+  } catch {
+    // Persistence is best-effort.
+  }
+}
+
 type VoiceCoachResponse = {
   ok: true;
   source: 'openai' | 'fallback';
@@ -87,7 +161,21 @@ export async function POST(request: Request) {
     ],
   });
 
+  const locale = normalizeLocale(body.locale);
+  const accessToken =
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() || null;
+
   if (!aiResult.ok) {
+    void saveTranscriptTurns({
+      accessToken,
+      dishId,
+      stepIndex: step.index,
+      locale,
+      question,
+      reply: fallbackReply,
+      source: 'fallback',
+    });
+
     const response: VoiceCoachResponse = {
       ok: true,
       source: 'fallback',
@@ -97,10 +185,22 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   }
 
+  const reply = aiResult.data.reply?.trim() || fallbackReply;
+
+  void saveTranscriptTurns({
+    accessToken,
+    dishId,
+    stepIndex: step.index,
+    locale,
+    question,
+    reply,
+    source: 'openai',
+  });
+
   return NextResponse.json({
     ok: true,
     source: 'openai',
-    reply: aiResult.data.reply?.trim() || fallbackReply,
+    reply,
   } satisfies VoiceCoachResponse);
 }
 

@@ -26,8 +26,15 @@ import {
   type DictionaryKey,
   type LanguageCode,
 } from './dictionary';
+import {
+  PERSISTENCE_EVENT,
+  readLocalJson,
+  syncKeyToSupabase,
+  writeLocalJson,
+} from '../persistence/supabase-browser';
 
-const STORAGE_KEY = 'chefsense.lang';
+export const LANG_STORAGE_KEY = 'chefsense.lang';
+const STORAGE_KEY = LANG_STORAGE_KEY;
 const DEFAULT_LANG: LanguageCode = 'en';
 
 type LanguageContextValue = {
@@ -46,26 +53,47 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+function readStoredLang(): LanguageCode | null {
+  if (typeof window === 'undefined') return null;
+  // Prefer the value the persistence engine wrote (matches its serialization).
+  const fromEngine = readLocalJson<LanguageCode | null>(STORAGE_KEY, null);
+  if (fromEngine && fromEngine in dictionaries) return fromEngine;
+  // Backward compatibility: older builds wrote the raw string (no JSON quotes).
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw && (raw as LanguageCode) in dictionaries) return raw as LanguageCode;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<LanguageCode>(DEFAULT_LANG);
 
   // Hydrate from localStorage after mount (avoid SSR mismatch).
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY) as LanguageCode | null;
-      if (stored && stored in dictionaries) setLangState(stored);
-    } catch {
-      /* localStorage may be unavailable; ignore */
-    }
+    const stored = readStoredLang();
+    if (stored) setLangState(stored);
+  }, []);
+
+  // Pick up updates pushed in by the Supabase hydration on auth changes.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ key: string }>).detail;
+      if (detail?.key !== STORAGE_KEY) return;
+      const stored = readStoredLang();
+      if (stored) setLangState(stored);
+    };
+    window.addEventListener(PERSISTENCE_EVENT, handler);
+    return () => window.removeEventListener(PERSISTENCE_EVENT, handler);
   }, []);
 
   const setLang = useCallback((code: LanguageCode) => {
     setLangState(code);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, code);
-    } catch {
-      /* ignore */
-    }
+    writeLocalJson(STORAGE_KEY, code);
+    void syncKeyToSupabase(STORAGE_KEY, code);
   }, []);
 
   useEffect(() => {

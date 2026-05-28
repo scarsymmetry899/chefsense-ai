@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -8,11 +8,9 @@ import {
   Eye,
   Flame,
   LifeBuoy,
-  MessageCircleMore,
   Mic,
   PauseCircle,
   PlayCircle,
-  Send,
   TimerReset,
   Waves,
 } from 'lucide-react';
@@ -26,6 +24,8 @@ import {
   StepDots,
   cueMeta,
 } from '@/components/dish/screen-kit';
+import { VoiceChatPanel } from '@/components/cook/voice-chat-panel';
+import { RescueCoach } from '@/components/cook/rescue-coach';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import {
@@ -36,6 +36,7 @@ import {
 } from '@/lib/dish-flow';
 import { useCookingSession } from '@/lib/cooking-session';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { useLocalizedStep } from '@/lib/i18n/use-localized-step';
 import { playSoundEffect } from '@/lib/sound-effects';
 import { recordRecentlyViewedDish } from '@/lib/user-state';
 
@@ -169,13 +170,14 @@ export default function DishCookPage() {
   const nextStep = dish.cookingSteps.find((item) => item.index === step.index + 1);
   const prevStep = dish.cookingSteps.find((item) => item.index === step.index - 1);
 
+  // Translated copy follows the language toggle (uses /api/translate when not English).
+  const localizedStep = useLocalizedStep(step);
+
   const { session, getElapsedForStep, startStep, pauseStep, markStepComplete, reopenStep } =
     useCookingSession(dish.dishId, step.index);
 
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [timeAlerted, setTimeAlerted] = useState(false);
-  const [chatDraft, setChatDraft] = useState('');
-  const [chatMessages, setChatMessages] = useState<string[]>([]);
 
   useEffect(() => {
     recordRecentlyViewedDish(dish.dishId);
@@ -187,7 +189,7 @@ export default function DishCookPage() {
   const isCompleted = session.completedSteps.includes(step.index);
   const progress = getStepProgress(step.index, session.completedSteps, dish.cookingSteps.length);
   const heatMeta = getHeatMeta(step.heat);
-  const sensoryCards = getStructuredCues(step.title, step.sensoryCues);
+  const sensoryCards = getStructuredCues(localizedStep.title, localizedStep.sensoryCues);
 
   useEffect(() => {
     if (elapsedSeconds <= 0 || remainingSeconds !== 0 || timeAlerted) return;
@@ -200,13 +202,6 @@ export default function DishCookPage() {
       setTimeAlerted(false);
     }
   }, [remainingSeconds, timeAlerted]);
-
-  const voiceRecap = useMemo(() => {
-    const sensory = sensoryCards
-      .map((cue) => `${cueLabels[cue.type as keyof typeof cueLabels] ?? cue.type}: ${cue.cue}`)
-      .join(' ');
-    return `${step.title}. ${sensory} Why this matters: ${step.whyThisMatters}`;
-  }, [cueLabels, sensoryCards, step.title, step.whyThisMatters]);
 
   function handlePrimaryAction() {
     if (isCompleted) {
@@ -234,18 +229,6 @@ export default function DishCookPage() {
 
     playSoundEffect('start');
     startStep(step.index);
-  }
-
-  function sendChatPrompt() {
-    const trimmed = chatDraft.trim();
-    if (!trimmed) return;
-    setChatMessages((current) =>
-      [...current, `You: ${trimmed}`, `ChefSense: ${buildReply(trimmed, step.title)}`].slice(-4),
-    );
-    setChatDraft('');
-    if (!isRunning && !isCompleted) {
-      startStep(step.index);
-    }
   }
 
   const progressColor =
@@ -296,8 +279,8 @@ export default function DishCookPage() {
       ) : null}
 
       <section className="mt-5 text-center">
-        <h1 className="mx-auto max-w-[360px] text-[58px] font-serif leading-[0.9] tracking-[-0.06em]">{step.title}</h1>
-        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">{step.instruction}</p>
+        <h1 className="mx-auto max-w-[360px] text-[58px] font-serif leading-[0.9] tracking-[-0.06em]">{localizedStep.title}</h1>
+        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">{localizedStep.instruction}</p>
       </section>
 
       <ScreenCard className="mt-6 overflow-hidden p-0">
@@ -352,55 +335,25 @@ export default function DishCookPage() {
             {voiceOpen ? copy.openFullChat : copy.openMic}
           </button>
         </div>
-        <div className="mt-3 rounded-[22px] border border-border/60 bg-background px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium text-foreground">{isRunning ? copy.voiceRunning : copy.voicePaused}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{copy.voiceHelp}</div>
-            </div>
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-primary">
-              <Mic className="h-5 w-5" />
-            </span>
-          </div>
-          {voiceOpen ? (
-            <div className="mt-4 space-y-2">
-              <div className="rounded-[18px] bg-card px-3 py-3 text-sm text-foreground">ChefSense: {step.beginnerExplanation}</div>
-              <div className="rounded-[18px] bg-primary-soft px-3 py-3 text-right text-sm text-primary-dark">{copy.userPrompt}</div>
-              <div className="rounded-[18px] bg-card px-3 py-3 text-sm text-foreground">ChefSense: {voiceRecap}</div>
-              {chatMessages.map((message) => (
-                <div
-                  key={message}
-                  className={
-                    message.startsWith('You:')
-                      ? 'rounded-[18px] bg-primary-soft px-3 py-3 text-right text-sm text-primary-dark'
-                      : 'rounded-[18px] bg-card px-3 py-3 text-sm text-foreground'
-                  }
-                >
-                  {message}
-                </div>
-              ))}
-              <div className="flex items-center gap-2 rounded-[18px] border border-border/60 bg-background px-3 py-2">
-                <MessageCircleMore className="h-4 w-4 text-primary" />
-                <input
-                  value={chatDraft}
-                  onChange={(event) => setChatDraft(event.target.value)}
-                  placeholder={copy.chatPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                />
-                <button
-                  type="button"
-                  onClick={sendChatPrompt}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
-              <Link href={ROUTES.dishVoice(dish.dishId, step.index)} className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                {copy.openFullChat} →
-              </Link>
-            </div>
-          ) : null}
-        </div>
+        <VoiceChatPanel
+          dishId={dish.dishId}
+          stepIndex={step.index}
+          stepTitle={localizedStep.title}
+          primer={localizedStep.beginnerExplanation}
+          expanded={voiceOpen}
+          collapsedHint={isRunning ? copy.voiceRunning : copy.voicePaused}
+          expandedHint={isRunning ? copy.voiceRunning : copy.voicePaused}
+          helperHint={copy.voiceHelp}
+          placeholder={copy.chatPlaceholder}
+        />
+        {voiceOpen ? (
+          <Link
+            href={ROUTES.dishVoice(dish.dishId, step.index)}
+            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"
+          >
+            {copy.openFullChat} →
+          </Link>
+        ) : null}
       </ScreenCard>
 
       <div className="mt-5">
@@ -426,7 +379,15 @@ export default function DishCookPage() {
       </div>
 
       <div className="mt-5">
-        <AlertCard title={t('cook.whyMatters')} detail={step.whyThisMatters} />
+        <AlertCard title={t('cook.whyMatters')} detail={localizedStep.whyThisMatters} />
+      </div>
+
+      <div className="mt-5">
+        <RescueCoach
+          dishId={dish.dishId}
+          stepIndex={step.index}
+          stepTitle={localizedStep.title}
+        />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
@@ -479,18 +440,4 @@ export default function DishCookPage() {
       ) : null}
     </AppShell>
   );
-}
-
-function buildReply(input: string, stepTitle: string) {
-  const lower = input.toLowerCase();
-  if (lower.includes('pan')) {
-    return `Use the pan mentioned for ${stepTitle.toLowerCase()} and keep the flame exactly where the heat card shows before moving ahead.`;
-  }
-  if (lower.includes('sticking') || lower.includes('stick')) {
-    return 'Lower the heat slightly, add a spoon of hot water, and scrape gently so the masala loosens without burning.';
-  }
-  if (lower.includes('look') || lower.includes('ready')) {
-    return `For ${stepTitle.toLowerCase()}, watch the sensory cues on screen first - colour, aroma, sound, and texture should all line up before you move on.`;
-  }
-  return 'Keep following the on-screen cues. If something looks off, ask about colour, texture, aroma, or pan control and ChefSense will guide you.';
 }

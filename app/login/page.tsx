@@ -75,6 +75,7 @@ export default function LoginPage() {
       name: normalizedName,
       phone: normalizedPhone,
       tagline: current.tagline,
+      avatarUrl: current.avatarUrl,
     });
   }
 

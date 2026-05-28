@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  hydrateKeyFromSupabase,
+  readLocalJson,
+  syncKeyToSupabase,
+  writeLocalJson,
+} from '@/lib/persistence/supabase-browser';
 
 export type CookingSessionState = {
   activeStep: number;
@@ -18,15 +24,19 @@ function getStorageKey(dishId: string) {
   return `${STORAGE_PREFIX}${dishId}`;
 }
 
+const EMPTY_SESSION: CookingSessionState = {
+  activeStep: 1,
+  completedSteps: [],
+  runningStep: null,
+  startedAt: null,
+  elapsedByStep: {},
+  timerArmedAt: null,
+  finishedAt: null,
+};
+
 export function getStoredCookingSession(dishId: string): CookingSessionState | null {
   if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(getStorageKey(dishId));
-    if (!raw) return null;
-    return JSON.parse(raw) as CookingSessionState;
-  } catch {
-    return null;
-  }
+  return readLocalJson<CookingSessionState | null>(getStorageKey(dishId), null);
 }
 
 export function getResumeStepForDish(dishId: string, fallbackStep = 1) {
@@ -55,53 +65,82 @@ export function getTotalCookingMinutes(dishId: string) {
 export function useCookingSession(dishId: string, initialStep: number) {
   const storageKey = getStorageKey(dishId);
   const [state, setState] = useState<CookingSessionState>({
+    ...EMPTY_SESSION,
     activeStep: initialStep,
-    completedSteps: [],
-    runningStep: null,
-    startedAt: null,
-    elapsedByStep: {},
-    timerArmedAt: null,
-    finishedAt: null,
   });
   const [now, setNow] = useState(() => Date.now());
+  const hasHydratedRef = useRef(false);
+  const lastSyncedRef = useRef<string | null>(null);
 
+  // Hydrate from localStorage first (instant), then from Supabase (async,
+  // last-write-wins). The Supabase hydrate may update localStorage which we
+  // pick up on a microtask.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<CookingSessionState>;
-      setState((current) => ({
-        activeStep: typeof parsed.activeStep === 'number' ? parsed.activeStep : current.activeStep,
-        completedSteps: Array.isArray(parsed.completedSteps) ? parsed.completedSteps : current.completedSteps,
-        runningStep:
-          typeof parsed.runningStep === 'number' || parsed.runningStep === null
-            ? (parsed.runningStep ?? null)
-            : current.runningStep,
-        startedAt:
-          typeof parsed.startedAt === 'number' || parsed.startedAt === null
-            ? (parsed.startedAt ?? null)
-            : current.startedAt,
-        elapsedByStep:
-          parsed.elapsedByStep && typeof parsed.elapsedByStep === 'object'
-            ? (parsed.elapsedByStep as Record<number, number>)
-            : current.elapsedByStep,
-        timerArmedAt:
-          typeof parsed.timerArmedAt === 'number' || parsed.timerArmedAt === null
-            ? (parsed.timerArmedAt ?? null)
-            : current.timerArmedAt,
-        finishedAt:
-          typeof parsed.finishedAt === 'number' || parsed.finishedAt === null
-            ? (parsed.finishedAt ?? null)
-            : current.finishedAt,
-      }));
-    } catch {
-      // Ignore malformed stored state.
+    let cancelled = false;
+
+    function applyFromStorage() {
+      if (cancelled) return;
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Partial<CookingSessionState>;
+        setState((current) => ({
+          activeStep: typeof parsed.activeStep === 'number' ? parsed.activeStep : current.activeStep,
+          completedSteps: Array.isArray(parsed.completedSteps) ? parsed.completedSteps : current.completedSteps,
+          runningStep:
+            typeof parsed.runningStep === 'number' || parsed.runningStep === null
+              ? (parsed.runningStep ?? null)
+              : current.runningStep,
+          startedAt:
+            typeof parsed.startedAt === 'number' || parsed.startedAt === null
+              ? (parsed.startedAt ?? null)
+              : current.startedAt,
+          elapsedByStep:
+            parsed.elapsedByStep && typeof parsed.elapsedByStep === 'object'
+              ? (parsed.elapsedByStep as Record<number, number>)
+              : current.elapsedByStep,
+          timerArmedAt:
+            typeof parsed.timerArmedAt === 'number' || parsed.timerArmedAt === null
+              ? (parsed.timerArmedAt ?? null)
+              : current.timerArmedAt,
+          finishedAt:
+            typeof parsed.finishedAt === 'number' || parsed.finishedAt === null
+              ? (parsed.finishedAt ?? null)
+              : current.finishedAt,
+        }));
+      } catch {
+        // Ignore malformed stored state.
+      }
     }
+
+    applyFromStorage();
+    hasHydratedRef.current = true;
+
+    // Pull from Supabase in the background — if it's newer, the local copy is
+    // refreshed and the next read after the microtask reflects it.
+    void hydrateKeyFromSupabase<CookingSessionState>(storageKey).then((updated) => {
+      if (updated && !cancelled) {
+        applyFromStorage();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [storageKey]);
 
+  // Persist locally + push to Supabase on every change, but skip the first
+  // render before hydration completes (otherwise we'd overwrite remote state
+  // with the empty default).
   useEffect(() => {
+    if (!hasHydratedRef.current) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(state));
+      writeLocalJson(storageKey, state);
+      const serialized = JSON.stringify(state);
+      if (serialized !== lastSyncedRef.current) {
+        lastSyncedRef.current = serialized;
+        void syncKeyToSupabase(storageKey, state);
+      }
     } catch {
       // Ignore write failures.
     }
@@ -220,15 +259,7 @@ export function useCookingSession(dishId: string, initialStep: number) {
   }
 
   function abandonDish() {
-    setState({
-      activeStep: 1,
-      completedSteps: [],
-      runningStep: null,
-      startedAt: null,
-      elapsedByStep: {},
-      timerArmedAt: null,
-      finishedAt: null,
-    });
+    setState({ ...EMPTY_SESSION });
   }
 
   return {

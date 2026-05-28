@@ -79,13 +79,24 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   }
 
+  const model = process.env.OPENAI_VISION_MODEL ?? 'gpt-4o';
+
   const aiResult = await callOpenAIJson<AnalyzePanModelPayload>({
+    model,
     temperature: 0.2,
     messages: [
       {
         role: 'system',
-        content:
-          'You are ChefSense AI. Review a cooking photo and return only JSON. Keep outputs short, plain, practical, and appropriate for a home cook. Do not mention uncertainty excessively. Do not name external chefs, publishers, channels, or books.',
+        content: [
+          'You are ChefSense AI, an Indian-cooking vision coach.',
+          'Look at the photo and judge it against the CURRENT STEP only — not the whole recipe.',
+          'Identify visible doneness signals such as colour (golden vs deep brown vs charred), sheen and gloss, oil sheen or droplets, blistering or bubbling pattern, separation of fat, surface moisture, charring, dryness, foam, or splitting.',
+          'Tie what you see to the step.sensoryCues and step.title, then say whether the pan is on track, early, late, or in trouble for THIS step.',
+          'When something looks off, map the finding to the closest rescueIssueOptions[].id (use the exact id string). Leave likelyIssueIds empty only when nothing is wrong.',
+          'Keep outputs short, plain, practical, and warm for a home cook. Do not mention uncertainty excessively.',
+          'Do not name external chefs, publishers, channels, or books.',
+          'Return only JSON in the requested shape.',
+        ].join(' '),
       },
       {
         role: 'user',
@@ -99,13 +110,16 @@ export async function POST(request: Request) {
                 title: step.title,
                 instruction: step.instruction,
                 heat: step.heat,
-                cues: getStructuredCues(step.title, step.sensoryCues),
+                sensoryCues: step.sensoryCues,
+                structuredCues: getStructuredCues(step.title, step.sensoryCues),
               },
               rescueIssueOptions: dish.rescueIssues.map((issue) => ({
                 id: issue.id,
                 label: issue.label,
               })),
               notes: body.notes ?? '',
+              instruction:
+                'Describe what is visible in the photo for this step only, judge doneness/risk, and map findings to a rescueIssue id when applicable.',
               responseShape: {
                 title: 'string',
                 note: 'string',

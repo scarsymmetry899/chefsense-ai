@@ -1,9 +1,10 @@
 'use client';
 
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat } from 'lucide-react';
+import { motion, type PanInfo } from 'framer-motion';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -20,7 +21,9 @@ export default function WelcomePage() {
   const { t, tx, lang } = useLanguage();
   const isAuthed = hasAuthSession();
   const featuredDishes = useMemo(() => listDishSummaries().slice(0, 3), []);
-  const [selectedDishId, setSelectedDishId] = useState(featuredDishes[0]?.dishId ?? 'paneer-butter-masala');
+  const [selectedDishId, setSelectedDishId] = useState(
+    featuredDishes[0]?.dishId ?? 'paneer-butter-masala',
+  );
 
   useEffect(() => {
     if (!isAuthed) {
@@ -29,16 +32,21 @@ export default function WelcomePage() {
   }, [isAuthed, router]);
 
   const selectedDish = getDishOrThrow(selectedDishId);
-  const trans = selectedDish.translations as
-    | { hi?: Record<string, string>; te?: Record<string, string> }
-    | undefined;
-  const langMap = trans?.[lang as 'hi' | 'te'];
-  const dishName = tx('dish.name', selectedDish.dishName, langMap);
   const startHref = ROUTES.dish(selectedDish.dishId);
 
   if (!isAuthed) {
     return null;
   }
+
+  const localizedDishes = featuredDishes.map((dish) => {
+    const trans = getDishOrThrow(dish.dishId).translations as
+      | { hi?: Record<string, string>; te?: Record<string, string> }
+      | undefined;
+    return {
+      ...dish,
+      localizedName: tx('dish.name', dish.dishName, trans?.[lang as 'hi' | 'te']),
+    };
+  });
 
   return (
     <AppShell showBottomNav={false}>
@@ -73,31 +81,13 @@ export default function WelcomePage() {
       </section>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 animate-fade-up">
-        <FeaturePill
-          icon={Thermometer}
-          label="Chef-guided cues"
-          accent="primary"
-        />
-        <FeaturePill
-          icon={Leaf}
-          label="Source-backed recipes"
-          accent="green"
-        />
+        <FeaturePill icon={Thermometer} label="Chef-guided cues" accent="primary" />
+        <FeaturePill icon={Leaf} label="Source-backed recipes" accent="green" />
       </div>
 
-      <section className="mt-7 animate-fade-up">
-        <FoodHeroIllustration
-          dishes={featuredDishes.map((dish) => ({
-            ...dish,
-            localizedName:
-              tx(
-                'dish.name',
-                dish.dishName,
-                (getDishOrThrow(dish.dishId).translations as
-                  | { hi?: Record<string, string>; te?: Record<string, string> }
-                  | undefined)?.[lang as 'hi' | 'te'],
-              ),
-          }))}
+      <section className="mt-8 animate-fade-up">
+        <CoverflowCarousel
+          dishes={localizedDishes}
           selectedDishId={selectedDish.dishId}
           onSelect={setSelectedDishId}
         />
@@ -180,17 +170,19 @@ function DecorativeDivider({ className }: { className?: string }) {
   );
 }
 
-function FoodHeroIllustration({
+type CarouselDish = {
+  dishId: string;
+  dishName: string;
+  localizedName: string;
+  heroImage: string;
+};
+
+function CoverflowCarousel({
   dishes,
   selectedDishId,
   onSelect,
 }: {
-  dishes: Array<{
-    dishId: string;
-    dishName: string;
-    localizedName: string;
-    heroImage: string;
-  }>;
+  dishes: CarouselDish[];
   selectedDishId: string;
   onSelect: (dishId: string) => void;
 }) {
@@ -199,67 +191,79 @@ function FoodHeroIllustration({
     dishes.findIndex((dish) => dish.dishId === selectedDishId),
   );
 
+  const handleDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const threshold = 60;
+      if (info.offset.x < -threshold && selectedIndex < dishes.length - 1) {
+        onSelect(dishes[selectedIndex + 1].dishId);
+      } else if (info.offset.x > threshold && selectedIndex > 0) {
+        onSelect(dishes[selectedIndex - 1].dishId);
+      }
+    },
+    [dishes, onSelect, selectedIndex],
+  );
+
   return (
-    <div className="relative h-[360px]">
-      {dishes.map((dish, index) => {
-        const offset = index - selectedIndex;
-        const isSelected = dish.dishId === selectedDishId;
-        const translateX = offset * 34;
-        const scale = isSelected ? 1 : 0.94;
-        const opacity = Math.abs(offset) > 1 ? 0 : 1;
+    <div className="flex flex-col items-center">
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.18}
+        dragMomentum={false}
+        onDragEnd={handleDragEnd}
+        className="relative mx-auto h-[320px] w-full max-w-[440px] touch-pan-y select-none"
+        style={{ perspective: '1200px' }}
+      >
+        {dishes.map((dish, index) => {
+          const offset = index - selectedIndex;
+          const abs = Math.abs(offset);
+          if (abs > 1) return null;
 
-        return (
-          <button
-            key={dish.dishId}
-            type="button"
-            onClick={() => onSelect(dish.dishId)}
-            className="absolute inset-x-0 top-0 mx-auto w-[90%] text-left transition-all duration-300"
-            style={{
-              transform: `translateX(${translateX}px) scale(${scale})`,
-              zIndex: 10 - Math.abs(offset),
-              opacity,
-            }}
-          >
-            <div className="card-warm paper-panel relative overflow-hidden rounded-[32px] shadow-card">
-              <div className="absolute left-4 top-4 z-20 rounded-full bg-card/95 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
-                Featured
-              </div>
+          const isCenter = offset === 0;
+          const sign = offset === 0 ? 0 : offset > 0 ? 1 : -1;
+          const translateX = sign * 132;
+          const translateZ = isCenter ? 0 : -220;
+          const rotateY = sign * -34;
+          const scale = isCenter ? 1 : 0.82;
 
-              <div className="relative h-[320px] overflow-hidden">
-                <ImageWithFallback
-                  src={dish.heroImage}
-                  alt={dish.localizedName}
-                  gradient="spice"
-                  fallbackGlyph={'\u{1F35B}'}
-                  ratioClassName="h-full"
-                  rounded="none"
-                />
+          return (
+            <motion.div
+              key={dish.dishId}
+              className="absolute left-1/2 top-1/2"
+              style={{
+                transformStyle: 'preserve-3d',
+                zIndex: 10 - abs,
+                marginLeft: '-105px',
+                marginTop: '-145px',
+              }}
+              initial={false}
+              animate={{
+                x: translateX,
+                z: translateZ,
+                rotateY,
+                scale,
+              }}
+              transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+            >
+              <CarouselCard
+                dish={dish}
+                isCenter={isCenter}
+                onSelect={() => onSelect(dish.dishId)}
+              />
+            </motion.div>
+          );
+        })}
+      </motion.div>
 
-                <div className="absolute inset-y-4 left-4 z-10 flex w-[42%] max-w-[165px] flex-col justify-end rounded-[28px] bg-card/90 px-4 py-5 shadow-soft backdrop-blur-sm">
-                  <div className="font-serif text-[20px] font-semibold leading-[0.95] text-foreground">
-                    {dish.localizedName}
-                  </div>
-                  {isSelected ? (
-                    <div className="mt-4 text-xs font-medium text-primary">Swipe or tap to choose</div>
-                  ) : (
-                    <div className="mt-4 text-xs font-medium text-muted-foreground">Available guide</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </button>
-        );
-      })}
-
-      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2">
+      <div className="mt-3 flex items-center justify-center gap-2">
         {dishes.map((dish) => (
           <button
             key={dish.dishId}
             type="button"
             onClick={() => onSelect(dish.dishId)}
             className={cn(
-              'h-2.5 rounded-full transition-all',
-              dish.dishId === selectedDishId ? 'w-8 bg-primary' : 'w-2.5 bg-primary/25',
+              'h-2 rounded-full transition-all',
+              dish.dishId === selectedDishId ? 'w-8 bg-primary' : 'w-2 bg-primary/25',
             )}
             aria-label={`Select ${dish.localizedName}`}
           />
@@ -269,9 +273,74 @@ function FoodHeroIllustration({
   );
 }
 
+function CarouselCard({
+  dish,
+  isCenter,
+  onSelect,
+}: {
+  dish: CarouselDish;
+  isCenter: boolean;
+  onSelect: () => void;
+}) {
+  const cardInner = (
+    <div className="relative h-[290px] w-[210px] overflow-hidden rounded-[28px] shadow-card ring-1 ring-black/5">
+      <ImageWithFallback
+        src={dish.heroImage}
+        alt={dish.localizedName}
+        gradient="spice"
+        fallbackGlyph={'\u{1F35B}'}
+        ratioClassName="h-full"
+        rounded="none"
+      />
+      {isCenter ? (
+        <>
+          <div className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-copper shadow-soft">
+            Featured
+          </div>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-4 pb-4 pt-12">
+            <div className="font-serif text-[20px] font-semibold leading-tight text-white text-balance">
+              {dish.localizedName}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/85">
+              <ChefHat className="h-3 w-3" />
+              <span>Tap to start cooking</span>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+
+  if (isCenter) {
+    return (
+      <Link
+        href={ROUTES.dish(dish.dishId)}
+        draggable={false}
+        className="block rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+        aria-label={`Start cooking ${dish.localizedName}`}
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+      >
+        {cardInner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="block rounded-[28px] opacity-90 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      aria-label={`Select ${dish.localizedName}`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      {cardInner}
+    </button>
+  );
+}
+
 function FooterMicrocopy({ className }: { className?: string }) {
   const { t } = useLanguage();
-  const heart = '\u2665';
+  const heart = '♥';
   const parts = t('app.madeFor').split(heart);
 
   return (

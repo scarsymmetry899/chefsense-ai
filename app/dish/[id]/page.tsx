@@ -28,6 +28,7 @@ import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { getBaseServings, getToolReference, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { useLocalizedDishView } from '@/lib/i18n/use-localized-dish';
 import { playSoundEffect } from '@/lib/sound-effects';
 import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
 import { recordRecentlyViewedDish } from '@/lib/user-state';
@@ -44,6 +45,13 @@ export default function DishPage() {
   const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const { lang } = useLanguage();
+  const localized = useLocalizedDishView(dish);
+  const localizedIngredientById = useMemo(() => {
+    return new Map(localized.ingredients.map((item) => [item.id, item]));
+  }, [localized.ingredients]);
+  const localizedToolById = useMemo(() => {
+    return new Map(localized.tools.map((item) => [item.id, item.name]));
+  }, [localized.tools]);
 
   const baseServings = useMemo(() => getBaseServings(dish.serves), [dish.serves]);
   const storageKey = `${STORAGE_PREFIX}${dish.dishId}`;
@@ -131,12 +139,12 @@ export default function DishPage() {
         <div className="grid gap-0 md:grid-cols-[1fr_1.05fr]">
           <DishVisual
             src={dish.heroImage}
-            alt={dish.dishName}
+            alt={localized.dishName}
             className="h-[220px] rounded-none border-0 md:h-full"
           />
           <div className="p-5">
             <SectionEyebrow label={setupLabel} />
-            <h1 className="text-[34px] leading-[0.95]">{dish.dishName}</h1>
+            <h1 className="text-[34px] leading-[0.95]">{localized.dishName}</h1>
             <p className="mt-3 text-[16px] leading-7 text-muted-foreground">{setupBody}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
@@ -248,6 +256,9 @@ export default function DishPage() {
           {dish.ingredients.map((ingredient) => {
             const isChecked = checkedSet.has(ingredient.id);
             const scaledQuantity = scaleQuantity(ingredient.quantity, servings, baseServings);
+            const localizedIngredient = localizedIngredientById.get(ingredient.id);
+            const displayName = localizedIngredient?.name ?? ingredient.name;
+            const displayNote = localizedIngredient?.note ?? ingredient.note;
             return (
               <button
                 key={ingredient.id}
@@ -274,14 +285,14 @@ export default function DishPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <span className={isChecked ? 'text-base text-muted-foreground line-through' : 'text-base text-foreground'}>
-                      {ingredient.name}
+                      {displayName}
                     </span>
                     <span className="shrink-0 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary-dark">
                       {scaledQuantity}
                     </span>
                   </div>
-                  {ingredient.note ? (
-                    <div className="mt-1 text-sm leading-6 text-muted-foreground">{ingredient.note}</div>
+                  {displayNote ? (
+                    <div className="mt-1 text-sm leading-6 text-muted-foreground">{displayNote}</div>
                   ) : null}
                 </div>
               </button>
@@ -300,15 +311,16 @@ export default function DishPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           {dish.tools.map((tool) => {
             const ref = getToolReference(tool.name);
+            const displayName = localizedToolById.get(tool.id) ?? tool.name;
             return (
               <div key={tool.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground shadow-soft">
-                <span>{tool.name}</span>
+                <span>{displayName}</span>
                 <a
                   href={tool.infoUrl ?? ref.infoUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-soft text-primary"
-                  aria-label={`Learn more about ${tool.name}`}
+                  aria-label={`Learn more about ${displayName}`}
                 >
                   <CircleHelp className="h-3.5 w-3.5" />
                 </a>
