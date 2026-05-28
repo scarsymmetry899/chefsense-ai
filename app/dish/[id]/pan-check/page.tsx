@@ -116,6 +116,22 @@ export default function DishPanCheckPage() {
 
   const analysis = analysisResult ?? fallbackAnalysis;
 
+  const dynamicAxisLabel = (() => {
+    const name = dish.dishName.toLowerCase();
+    if (name.includes('biryani')) return 'Rice doneness';
+    if (name.includes('fried rice')) return 'Wok integration';
+    if (name.includes('dal')) return 'Dal consistency';
+    if (name.includes('kejriwal')) return 'Cheese melt';
+    return 'Masala finish';
+  })();
+
+  const burnRiskColor =
+    analysis.burnRisk === 'High'
+      ? 'text-primary-dark'
+      : analysis.burnRisk === 'Medium'
+        ? 'text-copper'
+        : 'text-accent-green';
+
   useEffect(() => {
     if (validation.status !== 'ready' || !uploadedDataUrl) {
       setAnalysisState({ status: 'idle' });
@@ -208,7 +224,7 @@ export default function DishPanCheckPage() {
       <Header backHref={ROUTES.dishCook(dish.dishId, step.index)} title={copy.title} />
 
       <section className="text-center">
-        <h1 className="text-[36px] leading-none">{copy.title}</h1>
+        <h1 className="h-section">{copy.title}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
           {copy.subtitle}
         </p>
@@ -378,7 +394,7 @@ export default function DishPanCheckPage() {
             </ScreenCard>
             <ScreenCard className="p-4 text-center">
               <Camera className="mx-auto h-6 w-6 text-primary" />
-              <div className="mt-3 text-sm text-muted-foreground">Masala Thickness</div>
+              <div className="mt-3 text-sm text-muted-foreground">{dynamicAxisLabel}</div>
               <div className="mt-1 text-[18px] text-primary">{analysis.suggestion}</div>
             </ScreenCard>
             <ScreenCard className="p-4 text-center">
@@ -389,7 +405,7 @@ export default function DishPanCheckPage() {
             <ScreenCard className="p-4 text-center">
               <Flame className="mx-auto h-6 w-6 text-primary" />
               <div className="mt-3 text-sm text-muted-foreground">Burn Risk</div>
-              <div className="mt-1 text-[18px] text-accent-green">{analysis.burnRisk}</div>
+              <div className={`mt-1 text-[18px] ${burnRiskColor}`}>{analysis.burnRisk}</div>
             </ScreenCard>
           </div>
 

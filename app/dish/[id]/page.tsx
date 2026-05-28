@@ -6,10 +6,8 @@ import { useParams } from 'next/navigation';
 import {
   CircleHelp,
   ChevronRight,
-  Clock3,
   Leaf,
   Scale,
-  Share2,
   ShoppingBasket,
   Users,
   UtensilsCrossed,
@@ -57,9 +55,7 @@ export default function DishPage() {
   const storageKey = `${STORAGE_PREFIX}${dish.dishId}`;
 
   const [servings, setServings] = useState(baseServings);
-  const [customServings, setCustomServings] = useState(String(baseServings));
   const [checked, setChecked] = useState<string[]>([]);
-  const [shareNotice, setShareNotice] = useState('');
 
   useEffect(() => {
     recordRecentlyViewedDish(dish.dishId);
@@ -71,7 +67,6 @@ export default function DishPage() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<IngredientState>;
       if (typeof parsed.servings === 'number') setServings(parsed.servings);
-      if (typeof parsed.servings === 'number') setCustomServings(String(parsed.servings));
       if (Array.isArray(parsed.checked)) setChecked(parsed.checked);
     } catch {
       // Ignore malformed saved state.
@@ -110,27 +105,6 @@ export default function DishPage() {
   const resumeStep = getResumeStepForDish(dish.dishId, 1);
   const hasProgress = hasInProgressDish(dish.dishId);
 
-  async function handleShareDish() {
-    const ingredientPreview = dish.ingredients
-      .slice(0, 5)
-      .map((ingredient) => `${ingredient.name} (${scaleQuantity(ingredient.quantity, servings, baseServings)})`)
-      .join(', ');
-    const shareText = `${dish.dishName} • ${dish.totalTimeMin} min\nRestaurant-style guided recipe with ChefSense.\nIngredients preview: ${ingredientPreview}\nCook it here: ${window.location.origin}${ROUTES.dish(dish.dishId)}`;
-
-    if (navigator.share) {
-      await navigator.share({
-        title: `${dish.dishName} • ChefSense`,
-        text: shareText,
-        url: `${window.location.origin}${ROUTES.dish(dish.dishId)}`,
-      });
-      setShareNotice('Shared with the app link, cook time, and ingredient-led preview.');
-      return;
-    }
-
-    await navigator.clipboard.writeText(shareText);
-    setShareNotice('Direct share was unavailable, so the full chef-style recipe card content was copied.');
-  }
-
   return (
     <AppShell className="pb-32">
       <Header backHref={ROUTES.home} />
@@ -144,8 +118,8 @@ export default function DishPage() {
           />
           <div className="p-5">
             <SectionEyebrow label={setupLabel} />
-            <h1 className="text-[34px] leading-[0.95]">{localized.dishName}</h1>
-            <p className="mt-3 text-[16px] leading-7 text-muted-foreground">{setupBody}</p>
+            <h1 className="h-section">{localized.dishName}</h1>
+            <p className="mt-3 t-body-lg text-muted-foreground">{setupBody}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
               <StatusPill label={`${checked.length}/${dish.ingredients.length} ready`} tone="green" />
@@ -154,7 +128,7 @@ export default function DishPage() {
         </div>
 
         <div className="border-t border-border/70 px-5 py-5">
-          <div className="flex items-center justify-between gap-3 text-[16px]">
+          <div className="flex items-center justify-between gap-3 t-body-lg">
             <span className="font-medium text-foreground">{ingredientTitle}</span>
             <span className="text-muted-foreground">{progress}% ready</span>
           </div>
@@ -171,23 +145,8 @@ export default function DishPage() {
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={Clock3} label="Multi-source guide" className="mb-1" />
-            <h2 className="text-[22px]">Built by comparing trusted recipe styles</h2>
-          </div>
-          <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
-            Open guide
-          </Link>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          ChefSense compares technique, regional, tested-recipe, and food-science style inputs before locking the guided cooking flow.
-        </p>
-      </ScreenCard>
-
-      <ScreenCard className="mt-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
             <SectionEyebrow icon={Scale} label="Serving Size" className="mb-1" />
-            <h2 className="text-[22px]">How many people are you cooking for?</h2>
+            <h2 className="h-card">How many people are you cooking for?</h2>
           </div>
           <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
         </div>
@@ -201,7 +160,6 @@ export default function DishPage() {
                 onClick={() => {
                   playSoundEffect('tap');
                   setServings(option);
-                  setCustomServings(String(option));
                 }}
                 className={
                   active
@@ -214,38 +172,13 @@ export default function DishPage() {
             );
           })}
         </div>
-        <div className="mt-4 rounded-[22px] border border-border/60 bg-background px-4 py-4">
-          <div className="text-sm font-medium text-foreground">Select number of people</div>
-          <div className="mt-3 flex items-center gap-3">
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={customServings}
-              onChange={(event) => setCustomServings(event.target.value)}
-              className="w-28 rounded-full border border-border bg-card px-4 py-2 text-base text-foreground outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const next = Math.max(1, Math.min(20, Number(customServings) || 1));
-                playSoundEffect('tap');
-                setServings(next);
-                setCustomServings(String(next));
-              }}
-              className="rounded-full border border-primary/20 gradient-cta px-4 py-2 text-sm font-semibold text-white shadow-cta"
-            >
-              Update
-            </button>
-          </div>
-        </div>
       </ScreenCard>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <SectionEyebrow icon={Leaf} label="What you need" className="mb-1" />
-            <h2 className="text-[22px]">{ingredientTitle}</h2>
+            <h2 className="h-card">{ingredientTitle}</h2>
           </div>
           <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
             Source-backed plan
@@ -305,7 +238,7 @@ export default function DishPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <SectionEyebrow icon={UtensilsCrossed} label="Tools checklist" className="mb-1" />
-            <h2 className="text-[22px]">Pans and equipment for this dish</h2>
+            <h2 className="h-card">Pans and equipment for this dish</h2>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -328,31 +261,6 @@ export default function DishPage() {
             );
           })}
         </div>
-      </ScreenCard>
-
-      <ScreenCard className="mt-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <SectionEyebrow icon={Share2} label="Share this dish" className="mb-1" />
-            <h2 className="text-[22px]">Send a chef-style recipe card</h2>
-          </div>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Share the app link, cook time, and ingredient-led preview so someone else can cook this dish restaurant-style too.
-        </p>
-        <button
-          type="button"
-          onClick={() => void handleShareDish()}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 gradient-cta px-5 py-3 text-sm font-semibold text-white shadow-cta"
-        >
-          <Share2 className="h-4 w-4" />
-          Share this dish
-        </button>
-        {shareNotice ? (
-          <div className="mt-3 rounded-[18px] border border-border/60 bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
-            {shareNotice}
-          </div>
-        ) : null}
       </ScreenCard>
 
       <div className="mt-6">

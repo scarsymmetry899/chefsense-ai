@@ -47,6 +47,8 @@ const COPY = {
     timeUp:
       'Time for this step is up. Check the cues once more, then move on only when the pan looks ready.',
     openFullChat: 'Open full chat',
+    openVoiceScreen: 'Open dedicated voice screen →',
+    continueNext: '→ Continue to next step',
     openMic: 'Open mic',
     voiceRunning: 'Voice can keep guiding while the timer continues.',
     voicePaused: 'Start the timer or open voice help whenever you are ready.',
@@ -76,6 +78,8 @@ const COPY = {
     timeUp:
       'इस स्टेप का समय पूरा हो गया है। क्यूज़ एक बार और देखें, फिर पैन सही लगे तो आगे बढ़ें।',
     openFullChat: 'पूरा चैट खोलें',
+    openVoiceScreen: 'समर्पित वॉइस स्क्रीन खोलें →',
+    continueNext: '→ अगले स्टेप पर जाएँ',
     openMic: 'Open mic',
     voiceRunning: 'टाइमर चलते हुए भी वॉइस गाइड साथ चलता रहेगा।',
     voicePaused: 'जब आप तैयार हों तब टाइमर या वॉइस हेल्प शुरू करें।',
@@ -104,6 +108,8 @@ const COPY = {
     timeUp:
       'ఈ దశ సమయం పూర్తైంది. క్యూ‌లను మరోసారి చూసి, పాన్ సిద్ధంగా కనిపిస్తేనే ముందుకు వెళ్లండి.',
     openFullChat: 'పూర్తి చాట్ తెరవండి',
+    openVoiceScreen: 'ప్రత్యేక వాయిస్ స్క్రీన్ తెరవండి →',
+    continueNext: '→ తదుపరి దశకు వెళ్లండి',
     openMic: 'Open mic',
     voiceRunning: 'టైమర్ నడుస్తున్నప్పటికీ వాయిస్ గైడ్ కొనసాగుతుంది.',
     voicePaused: 'మీరు సిద్ధమైనప్పుడు టైమర్ లేదా వాయిస్ సహాయాన్ని ప్రారంభించండి.',
@@ -241,6 +247,7 @@ export default function DishCookPage() {
       <Header
         backHref={prevStep ? ROUTES.dishCook(dish.dishId, prevStep.index) : ROUTES.dishMiseEnPlace(dish.dishId)}
         showBrand={false}
+        showLanguageToggle={false}
         title={dish.dishName}
         actions={[{ icon: Waves, label: t('cook.exit'), href: ROUTES.home }]}
         className="mb-2"
@@ -253,7 +260,7 @@ export default function DishCookPage() {
             type="button"
             onClick={() => prevStep && router.push(ROUTES.dishCook(dish.dishId, prevStep.index))}
             disabled={!prevStep}
-            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:opacity-45"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:cursor-not-allowed disabled:opacity-35"
           >
             {copy.prev}
           </button>
@@ -264,7 +271,7 @@ export default function DishCookPage() {
             type="button"
             onClick={() => nextStep && router.push(ROUTES.dishCook(dish.dishId, nextStep.index))}
             disabled={!nextStep || !isCompleted}
-            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:opacity-45"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-soft disabled:cursor-not-allowed disabled:opacity-35"
           >
             {copy.next}
           </button>
@@ -279,36 +286,69 @@ export default function DishCookPage() {
       ) : null}
 
       <section className="mt-5 text-center">
-        <h1 className="mx-auto max-w-[360px] text-[58px] font-serif leading-[0.9] tracking-[-0.06em]">{localizedStep.title}</h1>
-        <p className="mx-auto mt-4 max-w-[360px] text-[19px] leading-8 text-muted-foreground">{localizedStep.instruction}</p>
+        <h1 className="h-section mx-auto max-w-[360px]">{localizedStep.title}</h1>
+        <p className="t-body-lg mx-auto mt-4 max-w-[360px] text-muted-foreground">{localizedStep.instruction}</p>
       </section>
 
       <ScreenCard className="mt-6 overflow-hidden p-0">
-        <div className="grid grid-cols-[1.05fr_1.05fr_0.9fr] gap-0 text-center">
-          <div className="px-4 py-5">
-            <div className="flex items-center justify-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
-              <Flame className="h-4 w-4" />
+        <div className="grid grid-cols-3 gap-0 text-center">
+          <div className="px-2 py-4 sm:px-4 sm:py-5">
+            <div className="flex items-center justify-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-primary sm:text-[12px] sm:tracking-[0.14em]">
+              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {t('cook.heat')}
             </div>
-            <div className="mt-3 font-sans text-[28px] font-semibold tracking-[-0.05em] text-primary-dark">{step.heat}</div>
-            <div className="mt-1 text-[12px] text-muted-foreground">{heatMeta.tempC.replace('C', ' degrees C')}</div>
-            <div className="mt-3">
+            <div className="mt-2 font-sans text-[20px] font-semibold leading-none tracking-[-0.04em] text-primary-dark sm:mt-3 sm:text-[26px]">
+              {step.heat}
+            </div>
+            <div className="mt-1 text-[10.5px] text-muted-foreground sm:text-[12px]">
+              {heatMeta.tempC.replace('C', ' °C')}
+            </div>
+            <div className="mt-2 flex justify-center sm:mt-3">
               <HeatMeter level={step.heat} tempLabel={heatMeta.tempLabel} />
             </div>
           </div>
-          <div className="border-x border-border/60 px-4 py-5">
-            <div className="flex items-center justify-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
-              <TimerReset className="h-4 w-4" />
+          <div className="border-x border-border/60 px-2 py-4 sm:px-4 sm:py-5">
+            <div className="flex items-center justify-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-primary sm:text-[12px] sm:tracking-[0.14em]">
+              <TimerReset className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {t('cook.timer')}
             </div>
-            <div className="mt-3 font-sans text-[40px] font-semibold leading-none tracking-[-0.06em] text-primary tabular-nums">
+            <div className="mt-2 font-sans text-[28px] font-semibold leading-none tracking-[-0.05em] text-primary tabular-nums sm:mt-3 sm:text-[36px]">
               {formatCountdown(remainingSeconds)}
             </div>
-            <div className="mt-2 text-sm text-muted-foreground">{t('cook.timeRemaining')}</div>
+            <div className="mt-1 text-[10.5px] text-muted-foreground sm:text-[12px]">
+              {t('cook.timeRemaining')}
+            </div>
+            <button
+              type="button"
+              onClick={toggleTimer}
+              disabled={isCompleted}
+              className={
+                isRunning
+                  ? 'mt-2 inline-flex items-center justify-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white shadow-cta disabled:opacity-40 sm:mt-3 sm:px-4 sm:py-2 sm:text-[12px]'
+                  : 'mt-2 inline-flex items-center justify-center gap-1 rounded-full border border-primary/30 bg-primary-soft px-3 py-1.5 text-[11px] font-semibold text-primary-dark shadow-soft disabled:opacity-40 sm:mt-3 sm:px-4 sm:py-2 sm:text-[12px]'
+              }
+              aria-label={isRunning ? copy.pauseTimer : copy.startTimer}
+            >
+              {isRunning ? (
+                <>
+                  <PauseCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span>Pause</span>
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span>{elapsedSeconds > 0 ? 'Resume' : 'Start'}</span>
+                </>
+              )}
+            </button>
           </div>
-          <div className="px-4 py-5">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">{t('cook.progress')}</div>
-            <div className={`mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] ${progressRing} bg-white/70 font-sans text-[31px] font-semibold tracking-[-0.05em] ${progressColor} shadow-inner tabular-nums`}>
+          <div className="px-2 py-4 sm:px-4 sm:py-5">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-primary sm:text-[12px] sm:tracking-[0.14em]">
+              {t('cook.progress')}
+            </div>
+            <div
+              className={`mx-auto mt-2 flex h-16 w-16 items-center justify-center rounded-full border-[5px] ${progressRing} bg-white/70 font-sans text-[18px] font-semibold tracking-[-0.04em] ${progressColor} shadow-inner tabular-nums sm:mt-3 sm:h-20 sm:w-20 sm:border-[6px] sm:text-[22px]`}
+            >
               {progress}%
             </div>
           </div>
@@ -351,7 +391,7 @@ export default function DishCookPage() {
             href={ROUTES.dishVoice(dish.dishId, step.index)}
             className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"
           >
-            {copy.openFullChat} →
+            {copy.openVoiceScreen}
           </Link>
         ) : null}
       </ScreenCard>
@@ -420,9 +460,9 @@ export default function DishCookPage() {
         {isCompleted ? (
           <Link
             href={nextStep ? ROUTES.dishCook(dish.dishId, nextStep.index) : ROUTES.dishFinish(dish.dishId)}
-            className="inline-flex items-center justify-center rounded-[22px] border border-primary/20 gradient-cta px-4 py-4 text-center text-[15px] font-medium text-white shadow-cta"
+            className="inline-flex items-center justify-center px-4 py-4 text-center text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
           >
-            {nextStep ? copy.next : copy.finishCooking}
+            {nextStep ? copy.continueNext : copy.finishCooking}
           </Link>
         ) : (
           <div className="inline-flex items-center justify-center rounded-[22px] border border-border/70 bg-background px-4 py-4 text-center text-[15px] font-medium text-muted-foreground">

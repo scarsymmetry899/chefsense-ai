@@ -27,8 +27,8 @@ export default function DishSourcesPage() {
       <Header backHref={ROUTES.dish(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="mx-auto max-w-[330px] text-[34px] leading-[0.98]">
-          Building your master-chef guide
+        <h1 className="mx-auto max-w-[330px] h-section">
+          Your master-chef guide is ready
         </h1>
         <p className="mx-auto mt-4 max-w-[330px] text-[16px] leading-7 text-muted-foreground">
           We compared 5 trusted source styles to create your most reliable version.
@@ -79,9 +79,6 @@ export default function DishSourcesPage() {
                     </div>
                     <div className="mt-1 font-serif text-[30px] leading-none text-accent-green">
                       {source.trustScore}%
-                    </div>
-                    <div className="mt-2">
-                      <StatusPill label="High" tone="green" />
                     </div>
                   </div>
                 </div>

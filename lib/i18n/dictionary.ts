@@ -76,7 +76,7 @@ export const en = {
   'nav.home': 'Home',
   'nav.cook': 'Cook',
   'nav.rescue': 'Rescue',
-  'nav.pantry': 'Pantry',
+  'nav.pantry': 'Tools',
   'nav.profile': 'Profile',
 
   'home.search': 'Search any Indian dish…',
@@ -245,7 +245,7 @@ export const hi: Dictionary = {
   'nav.home': 'होम',
   'nav.cook': 'कुक',
   'nav.rescue': 'रेस्क्यू',
-  'nav.pantry': 'पैंट्री',
+  'nav.pantry': 'टूल्स',
   'nav.profile': 'प्रोफ़ाइल',
 
   'home.search': 'कोई भी भारतीय डिश खोजें…',
@@ -411,7 +411,7 @@ export const te: Dictionary = {
   'nav.home': 'హోమ్',
   'nav.cook': 'కుక్',
   'nav.rescue': 'రెస్క్యూ',
-  'nav.pantry': 'పాంట్రీ',
+  'nav.pantry': 'టూల్స్',
   'nav.profile': 'ప్రొఫైల్',
 
   'home.search': 'ఏదైనా ఇండియన్ డిష్ వెతకండి…',

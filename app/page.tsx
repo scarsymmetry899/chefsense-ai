@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat } from 'lucide-react';
+import { Thermometer, Leaf, ChevronRight, BookOpen, ChefHat, Sprout } from 'lucide-react';
 import { motion, type PanInfo } from 'framer-motion';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
@@ -61,7 +61,7 @@ export default function WelcomePage() {
       <DecorativeDivider className="mt-6 animate-fade-up" />
 
       <section className="mt-7 text-center animate-fade-up">
-        <h1 className="font-serif text-[40px] font-bold leading-[0.98] tracking-[-0.04em] text-foreground text-balance px-2 sm:text-[44px]">
+        <h1 className="h-section px-2 text-balance">
           <HeadlineLine
             pre={t('app.headline.line1Pre')}
             em={t('app.headline.line1Em')}
@@ -75,7 +75,7 @@ export default function WelcomePage() {
           />
         </h1>
 
-        <p className="mx-auto mt-4 max-w-[340px] text-[14.5px] leading-relaxed text-muted-foreground text-pretty">
+        <p className="t-body-lg mx-auto mt-5 max-w-[340px] text-muted-foreground text-pretty">
           {t('app.subtitle')}
         </p>
       </section>
@@ -329,7 +329,7 @@ function CarouselCard({
     <button
       type="button"
       onClick={onSelect}
-      className="block rounded-[28px] opacity-90 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      className="block rounded-[28px] opacity-55 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       aria-label={`Select ${dish.localizedName}`}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
@@ -350,23 +350,13 @@ function FooterMicrocopy({ className }: { className?: string }) {
         className,
       )}
     >
-      <span className="inline-block text-accent-green" aria-hidden>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M2 13c0-5 4-9 9-11-1 7-4 11-9 11z" opacity="0.85" />
-          <path d="M2 13l5-5" stroke="currentColor" strokeWidth="1.2" opacity="0.6" fill="none" />
-        </svg>
-      </span>
+      <Sprout className="h-3.5 w-3.5 text-accent-green" aria-hidden />
       <span>
         {parts[0]}
         <span className="text-primary">{heart}</span>
         {parts[1] ?? ''}
       </span>
-      <span className="inline-block scale-x-[-1] text-accent-green" aria-hidden>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M2 13c0-5 4-9 9-11-1 7-4 11-9 11z" opacity="0.85" />
-          <path d="M2 13l5-5" stroke="currentColor" strokeWidth="1.2" opacity="0.6" fill="none" />
-        </svg>
-      </span>
+      <Sprout className="h-3.5 w-3.5 -scale-x-100 text-accent-green" aria-hidden />
     </div>
   );
 }

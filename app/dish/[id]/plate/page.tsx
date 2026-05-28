@@ -11,6 +11,40 @@ import { getDishOrThrow } from '@/lib/data/dishes';
 import { getPlatingGuide } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
 
+type PlateStyleMeta = {
+  description: string;
+  technique: string;
+};
+
+const PLATE_STYLES: Record<string, PlateStyleMeta> = {
+  'Classic Indian': {
+    description:
+      'Warm bowl, generous portioning, and familiar garnish balance for a premium home-style serve.',
+    technique: 'Center the dish, layer garnish in a small mound, and keep the rim clean.',
+  },
+  'Fine Dining': {
+    description: 'Tighter plating, more negative space, and one sharp visual focal point.',
+    technique: 'Use a small quenelle or tower, leave 60% of the plate empty, and add one accent line.',
+  },
+  'Modern Minimal': {
+    description: 'Cleaner lines, smaller garnish moments, and a quieter plate around the food.',
+    technique: 'Place a single garnish element off-center and avoid sauce splashes.',
+  },
+  'Dhaba Luxe': {
+    description: 'Bold warmth, lush finish, and slightly more indulgent garnish energy.',
+    technique: 'Drizzle ghee or cream on top and finish with fresh herbs and a wedge of lime.',
+  },
+  'Festive Serve': {
+    description: 'Richer garnish layering, celebratory colour, and a more abundant presentation.',
+    technique: 'Layer multiple garnishes — saffron threads, slivered nuts, edible silver — across the surface.',
+  },
+};
+
+const DEFAULT_PLATE_STYLE: PlateStyleMeta = {
+  description: 'Choose the plating mood that feels right for this dish.',
+  technique: 'Pick a style above to see plating technique guidance.',
+};
+
 export default function DishPlatePage() {
   const params = useParams<{ id: string }>();
   const { lang } = useLanguage();
@@ -24,7 +58,7 @@ export default function DishPlatePage() {
       choose: 'Choose a plating style',
       garnish: 'Garnish suggestions',
       photoTips: 'Photo tips',
-      capture: 'Capture Final Plate',
+      capture: 'Continue to share',
       captureSub: 'Upload the finished presentation and get share-ready feedback.',
     },
     hi: {
@@ -33,7 +67,7 @@ export default function DishPlatePage() {
       choose: 'प्लेटिंग स्टाइल चुनें',
       garnish: 'गार्निश सुझाव',
       photoTips: 'फोटो टिप्स',
-      capture: 'Capture Final Plate',
+      capture: 'Continue to share',
       captureSub: 'फाइनल प्रेज़ेंटेशन अपलोड करें और शेयर-रेडी फीडबैक पाएँ।',
     },
     te: {
@@ -42,35 +76,24 @@ export default function DishPlatePage() {
       choose: 'ప్లేటింగ్ స్టైల్ ఎంచుకోండి',
       garnish: 'గార్నిష్ సూచనలు',
       photoTips: 'ఫోటో సూచనలు',
-      capture: 'Capture Final Plate',
+      capture: 'Continue to share',
       captureSub: 'ఫైనల్ ప్రెజెంటేషన్‌ను అప్‌లోడ్ చేసి షేర్-రెడీ ఫీడ్‌బ్యాక్ పొందండి.',
     },
   }[lang];
 
   const filteredSteps = useMemo(() => guide.steps, [guide.steps]);
-  const styleDescription = useMemo(() => {
-    switch (style) {
-      case 'Classic Indian':
-        return 'Warm bowl, generous portioning, and familiar garnish balance for a premium home-style serve.';
-      case 'Fine Dining':
-        return 'Tighter plating, more negative space, and one sharp visual focal point.';
-      case 'Modern Minimal':
-        return 'Cleaner lines, smaller garnish moments, and a quieter plate around the food.';
-      case 'Dhaba Luxe':
-        return 'Bold warmth, lush finish, and slightly more indulgent garnish energy.';
-      case 'Festive Serve':
-        return 'Richer garnish layering, celebratory colour, and a more abundant presentation.';
-      default:
-        return 'Choose the plating mood that feels right for this dish.';
-    }
-  }, [style]);
+  const styleMeta = useMemo(
+    () => PLATE_STYLES[style] ?? DEFAULT_PLATE_STYLE,
+    [style],
+  );
+  const styleDescription = styleMeta.description;
 
   return (
     <AppShell className="pb-32">
       <Header backHref={ROUTES.dishFinish(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="text-[40px] leading-none">{copy.title}</h1>
+        <h1 className="h-display">{copy.title}</h1>
         <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
           {copy.subtitle}
         </p>

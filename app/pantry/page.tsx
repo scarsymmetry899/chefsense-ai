@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleHelp, ExternalLink } from 'lucide-react';
+import { CircleHelp } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
@@ -29,13 +29,13 @@ export default function PantryPage() {
 
   return (
     <AppShell>
-      <Header backHref={ROUTES.home} title="Pantry & Tools" />
+      <Header backHref={ROUTES.home} title="Tools" />
 
       <ScreenCard>
-        <SectionEyebrow label="Kitchen readiness" />
-        <div className="font-serif text-[28px] leading-none text-foreground">Know what your recipe will need before you begin.</div>
-        <div className="mt-3 text-sm leading-6 text-muted-foreground">
-          ChefSense now surfaces the pans, appliances, prep tools, and small finishing items that appear across your guided dish flows.
+        <SectionEyebrow label="Kitchen reference" />
+        <div className="h-section">Pans, appliances, and prep tools used in your guided dishes.</div>
+        <div className="mt-3 t-body text-muted-foreground">
+          Tap any tool to open a quick reference image so you know exactly what to grab from the kitchen.
         </div>
       </ScreenCard>
 
@@ -45,23 +45,19 @@ export default function PantryPage() {
           return (
           <ScreenCard key={item} className="p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-[17px] font-medium text-foreground">{item}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{ref.description}</div>
+              <div className="min-w-0">
+                <div className="h-card text-[18px]">{item}</div>
+                <div className="mt-1 t-body text-muted-foreground">{ref.description}</div>
               </div>
               <a
                 href={ref.infoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-primary shadow-soft"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-primary shadow-soft"
                 aria-label={`Learn more about ${item}`}
               >
                 <CircleHelp className="h-4 w-4" />
               </a>
-            </div>
-            <div className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-accent-green">
-              <ExternalLink className="h-3.5 w-3.5" />
-              Opens a quick reference link so you know what this tool looks like.
             </div>
           </ScreenCard>
           );

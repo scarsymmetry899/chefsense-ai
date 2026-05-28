@@ -35,7 +35,7 @@ export function LanguageToggle({ compact = false, className }: LanguageTogglePro
             aria-checked={active}
             onClick={() => setLang(l.code)}
             className={cn(
-              'rounded-full px-2.5 py-1 text-xs font-semibold transition-colors',
+              'inline-flex min-h-9 min-w-10 items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
               active
                 ? 'gradient-cta text-white shadow-cta'
                 : 'bg-background text-muted-foreground hover:text-foreground',

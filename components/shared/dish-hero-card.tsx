@@ -76,47 +76,48 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(33,18,10,0.62)_0%,rgba(33,18,10,0.34)_34%,rgba(33,18,10,0.08)_58%,rgba(33,18,10,0)_100%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/58 via-black/20 to-transparent" />
+          {/* Single bottom-up gradient for legibility — no glass overlay. */}
+          <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/50 to-transparent" />
+
           {featured && (
-            <span className="absolute left-3 top-3 z-20 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/95 px-3 py-1 text-[11px] font-semibold text-copper shadow-soft">
+            <span className="absolute left-3 top-3 z-20 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-copper shadow-soft">
               <Star className="h-3 w-3 fill-current" />
               {t('home.featured')}
             </span>
           )}
-        </div>
 
-        <div className="absolute inset-x-4 bottom-4 flex items-end gap-4">
-          <div className="max-w-[52%] rounded-[28px] border border-white/25 bg-[linear-gradient(180deg,rgba(255,250,245,0.82),rgba(246,236,224,0.72))] px-4 py-4 shadow-[0_22px_34px_-18px_rgba(114,66,35,0.48)] backdrop-blur-[14px]">
-          <h3 className="font-serif text-[26px] font-bold leading-[0.96] tracking-[-0.05em] text-foreground sm:text-[28px]">
-            {name}
-          </h3>
+          {/* Content sits flush at the bottom in a single column so nothing
+              overlaps the Featured pill or the image. */}
+          <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-4 pt-12 sm:p-5">
+            <h3 className="font-serif text-[22px] font-semibold leading-tight tracking-[-0.03em] text-white text-balance sm:text-[26px]">
+              {name}
+            </h3>
 
-          <p className="mt-2 line-clamp-3 text-[14px] leading-5 text-foreground/84">
-            {summary}
-          </p>
+            <p className="line-clamp-2 max-w-[88%] text-[12.5px] leading-snug text-white/85 sm:text-[13.5px]">
+              {summary}
+            </p>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-foreground/82">
-            <span className="inline-flex items-center gap-1">
-              <Flame className="h-3.5 w-3.5 text-primary" />
-              {difficultyLabel}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-copper" />
-              {dish.totalTimeMin} {t('common.min')}
-            </span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/90">
+              <span className="inline-flex items-center gap-1">
+                <Flame className="h-3.5 w-3.5 text-secondary" />
+                {difficultyLabel}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-secondary" />
+                {dish.totalTimeMin} {t('common.min')}
+              </span>
+            </div>
+
+            {showInlineCta && (
+              <Link
+                href={href ?? '#'}
+                className="mt-2 inline-flex items-center justify-center gap-1.5 self-start rounded-full gradient-cta px-4 py-2.5 text-[13px] font-semibold text-white shadow-cta transition-transform active:scale-[0.98]"
+              >
+                {ctaLabel ?? t('cta.startGuidedCook')}
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
-          </div>
-
-          {showInlineCta && (
-            <Link
-              href={href ?? '#'}
-              className="mt-auto inline-flex min-h-[56px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full gradient-cta px-6 py-4 text-[15px] font-semibold text-white shadow-cta transition-transform active:scale-[0.98]"
-            >
-              {ctaLabel ?? t('cta.startGuidedCook')}
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          )}
         </div>
       </article>
     );

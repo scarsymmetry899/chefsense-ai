@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Camera, Copy, Lock, Save, Share2, Star } from 'lucide-react';
+import { AlertTriangle, Camera, Copy, Loader2, Lock, Save, Share2, Star } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
@@ -18,9 +18,17 @@ const TONE_KEYS = [
   { id: 'instagramFoodie', label: 'Instagram Foodie' },
   { id: 'homeChefProud', label: 'Home Chef Proud' },
   { id: 'simpleWarm', label: 'Simple & Warm' },
-  { id: 'hindi', label: 'Hindi' },
-  { id: 'telugu', label: 'Telugu' },
 ] as const;
+
+type ToneId = (typeof TONE_KEYS)[number]['id'];
+
+const CAPTION_LANGS = [
+  { id: 'en', label: 'EN' },
+  { id: 'hi', label: 'HI' },
+  { id: 'te', label: 'TE' },
+] as const;
+
+type CaptionLangId = (typeof CAPTION_LANGS)[number]['id'];
 
 const COPY = {
   en: {
@@ -35,6 +43,7 @@ const COPY = {
     scoreSubtitle: 'Your final rating appears only after the plated dish is uploaded.',
     suggestions: 'ChefSense suggestions',
     captionTone: 'Caption tone',
+    captionLanguage: 'Caption language',
     finalRating: 'Final rating',
     selfRating: 'Your self-rating',
     copy: 'Copy Caption',
@@ -53,6 +62,11 @@ const COPY = {
     saved: 'Saved to your cooking journal preview.',
     nextBody:
       'Great job. Your plating is strong and the dish is share-ready. Next time, push the garnish contrast a little further and try another guided dish for a new chef technique.',
+    scoring: 'ChefSense is scoring your plate…',
+    mismatchTitle: "This doesn't look like",
+    retake: 'Retake',
+    forceAccept: 'Use this photo anyway',
+    forcedNote: 'Photo accepted — score below is a neutral estimate since the dish did not match.',
   },
   hi: {
     title: 'Share my plate',
@@ -66,6 +80,7 @@ const COPY = {
     scoreSubtitle: 'रेटिंग केवल फाइनल प्लेट अपलोड होने के बाद दिखाई जाएगी।',
     suggestions: 'ChefSense suggestions',
     captionTone: 'Caption tone',
+    captionLanguage: 'Caption language',
     finalRating: 'Final rating',
     selfRating: 'Your self-rating',
     copy: 'Copy Caption',
@@ -84,6 +99,11 @@ const COPY = {
     saved: 'Cooking journal preview में save कर दिया गया है।',
     nextBody:
       'बहुत बढ़िया। आपकी प्लेटिंग share-ready है। अगली बार garnish contrast थोड़ा और बढ़ाइए और किसी दूसरी guided dish के साथ नई technique आज़माइए।',
+    scoring: 'ChefSense आपकी प्लेट स्कोर कर रहा है…',
+    mismatchTitle: 'यह नहीं लगता',
+    retake: 'Retake',
+    forceAccept: 'Use this photo anyway',
+    forcedNote: 'फोटो स्वीकार की गई — डिश मैच नहीं हुई इसलिए नीचे neutral estimate है।',
   },
   te: {
     title: 'Share my plate',
@@ -97,6 +117,7 @@ const COPY = {
     scoreSubtitle: 'ఫైనల్ ప్లేట్ అప్‌లోడ్ చేసిన తర్వాతే రేటింగ్ కనిపిస్తుంది.',
     suggestions: 'ChefSense suggestions',
     captionTone: 'Caption tone',
+    captionLanguage: 'Caption language',
     finalRating: 'Final rating',
     selfRating: 'Your self-rating',
     copy: 'Copy Caption',
@@ -115,8 +136,42 @@ const COPY = {
     saved: 'Cooking journal preview‌లో save చేయబడింది.',
     nextBody:
       'చాలా బాగా చేశారు. మీ plating ఇప్పుడు share-ready గా ఉంది. వచ్చే సారి garnish contrast ని కొంచెం పెంచి, మరో guided dish తో కొత్త technique ప్రయత్నించండి.',
+    scoring: 'ChefSense మీ ప్లేట్‌ను స్కోర్ చేస్తోంది…',
+    mismatchTitle: 'ఇది అలా అనిపించడం లేదు',
+    retake: 'Retake',
+    forceAccept: 'Use this photo anyway',
+    forcedNote: 'ఫోటో అంగీకరించబడింది — డిష్ మ్యాచ్ కాలేదు కాబట్టి కింద neutral estimate.',
   },
 } as const;
+
+type PlateAnalysis = {
+  dishMatch: { matches: boolean; confidence: number; reason: string };
+  plating: { presentation: number; garnish: number; cleanliness: number; lighting: number };
+  overall: number;
+  suggestions: string[];
+  source: 'openai' | 'fallback';
+  warning?: string;
+};
+
+const NEUTRAL_FORCED_PLATING = {
+  presentation: 75,
+  garnish: 75,
+  cleanliness: 75,
+  lighting: 75,
+};
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') resolve(result);
+      else reject(new Error('Unexpected file reader result.'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('File read failed.'));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function DishSharePage() {
   const params = useParams<{ id: string }>();
@@ -126,16 +181,26 @@ export default function DishSharePage() {
   const captions = getShareCaptions(dish);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
-  const [tone, setTone] = useState<(typeof TONE_KEYS)[number]['id']>('fineDining');
+  const [tone, setTone] = useState<ToneId>('fineDining');
+  const [captionLang, setCaptionLang] = useState<CaptionLangId>(lang);
   const [caption, setCaption] = useState(captions.fineDining);
   const [copied, setCopied] = useState(false);
   const [selfRating, setSelfRating] = useState(4);
   const [shareNote, setShareNote] = useState('');
+  const [analysis, setAnalysis] = useState<PlateAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [forceAccept, setForceAccept] = useState(false);
 
   useEffect(() => {
-    setCaption(captions[tone]);
-  }, [captions, tone]);
+    if (captionLang === 'hi' && captions.hindi) {
+      setCaption(captions.hindi);
+    } else if (captionLang === 'te' && captions.telugu) {
+      setCaption(captions.telugu);
+    } else {
+      setCaption(captions[tone]);
+    }
+  }, [captions, tone, captionLang]);
 
   useEffect(() => {
     return () => {
@@ -145,51 +210,47 @@ export default function DishSharePage() {
     };
   }, [uploadedImage]);
 
-  const scores = useMemo(
-    () =>
-      uploadedImage
-        ? [
-            { label: copy.presentation, value: 82 },
-            { label: copy.garnish, value: 78 },
-            { label: copy.cleanliness, value: 84 },
-            { label: copy.lighting, value: 80 },
-          ]
-        : [],
-    [copy.cleanliness, copy.garnish, copy.lighting, copy.presentation, uploadedImage],
-  );
+  const mismatch = !!analysis && !analysis.dishMatch.matches && !forceAccept;
+  const usingForcedFallback = !!analysis && !analysis.dishMatch.matches && forceAccept;
 
-  const overallScore = uploadedImage
-    ? Math.min(
-        100,
-        Math.round(scores.reduce((sum, item) => sum + item.value, 0) / scores.length + selfRating * 2),
-      )
+  const effectivePlating = analysis
+    ? (usingForcedFallback ? NEUTRAL_FORCED_PLATING : analysis.plating)
     : null;
 
-  const finalAssessment = uploadedImage
-    ? `ChefSense rating: ${overallScore} / 100`
-    : 'Upload the final plate to unlock the presentation rating.';
+  const scores =
+    uploadedImage && effectivePlating && !mismatch && !analyzing
+      ? [
+          { label: copy.presentation, value: effectivePlating.presentation },
+          { label: copy.garnish, value: effectivePlating.garnish },
+          { label: copy.cleanliness, value: effectivePlating.cleanliness },
+          { label: copy.lighting, value: effectivePlating.lighting },
+        ]
+      : [];
 
-  const suggestions = useMemo(() => {
-    if (!uploadedImage) return [];
-    const list: string[] = [];
-    if (imageMeta && imageMeta.width < imageMeta.height) {
-      list.push('Step back slightly so the full plate and rim stay in frame.');
-    } else {
-      list.push('Move a little closer so the dish fills more of the frame.');
-    }
+  const baseOverall = usingForcedFallback
+    ? Math.round(
+        (NEUTRAL_FORCED_PLATING.presentation +
+          NEUTRAL_FORCED_PLATING.garnish +
+          NEUTRAL_FORCED_PLATING.cleanliness +
+          NEUTRAL_FORCED_PLATING.lighting) /
+          4,
+      )
+    : analysis?.overall ?? null;
 
-    if (dish.dishId === 'paneer-butter-masala') {
-      list.push('Add a small cream swirl and a pinch of kasuri methi for a richer finish.');
-    } else if (dish.dishId === 'bandi-chicken-fried-rice') {
-      list.push('Scatter fresh spring onion greens on top so the fried rice looks brighter.');
-    } else {
-      list.push('Add one fresh garnish detail so the plate has a stronger finishing touch.');
-    }
+  const overallScore =
+    baseOverall === null || mismatch || analyzing
+      ? null
+      : Math.min(100, baseOverall + Math.round(selfRating * 0.6));
 
-    list.push('Use side light if possible so the texture reads clearly.');
-    list.push('Wipe the rim before sharing so the final plate looks cleaner.');
-    return list;
-  }, [dish.dishId, imageMeta, uploadedImage]);
+  const finalAssessment = !uploadedImage
+    ? 'Upload the final plate to unlock the presentation rating.'
+    : analyzing
+      ? copy.scoring
+      : overallScore !== null
+        ? `ChefSense rating: ${overallScore} / 100`
+        : 'Score will appear once the photo is accepted.';
+
+  const suggestions = !uploadedImage || mismatch || analyzing ? [] : (analysis?.suggestions ?? []);
 
   async function handleShare() {
     const shareBody = [
@@ -235,11 +296,57 @@ export default function DishSharePage() {
       URL.revokeObjectURL(uploadedImage);
     }
     const nextUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => setImageMeta({ width: img.width, height: img.height });
-    img.src = nextUrl;
     setUploadedImage(nextUrl);
     setShareNote('');
+    setAnalysis(null);
+    setAnalysisError(null);
+    setForceAccept(false);
+    void analyzePlate(file);
+  }
+
+  async function analyzePlate(file: File) {
+    setAnalyzing(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch('/api/analyze-plate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dishId: dish.dishId, imageBase64: base64 }),
+      });
+      const data = (await res.json()) as
+        | { ok: true; source: 'openai' | 'fallback'; dishMatch: PlateAnalysis['dishMatch']; plating: PlateAnalysis['plating']; overall: number; suggestions: string[]; warning?: string }
+        | { ok: false; error: string };
+
+      if (!data.ok) {
+        setAnalysisError(data.error || 'Could not score the photo.');
+        return;
+      }
+
+      setAnalysis({
+        dishMatch: data.dishMatch,
+        plating: data.plating,
+        overall: data.overall,
+        suggestions: data.suggestions,
+        source: data.source,
+        warning: data.warning,
+      });
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : 'Network error while scoring the photo.');
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function handleRetake() {
+    if (uploadedImage?.startsWith('blob:')) {
+      URL.revokeObjectURL(uploadedImage);
+    }
+    setUploadedImage(null);
+    setAnalysis(null);
+    setAnalysisError(null);
+    setForceAccept(false);
+    if (uploadRef.current) uploadRef.current.value = '';
+    uploadRef.current?.click();
   }
 
   return (
@@ -247,8 +354,8 @@ export default function DishSharePage() {
       <Header backHref={ROUTES.dishPlate(dish.dishId)} />
 
       <section className="text-center">
-        <h1 className="text-[42px] leading-none">{copy.title}</h1>
-        <p className="mt-3 text-[16px] leading-7 text-muted-foreground">{copy.subtitle}</p>
+        <h1 className="h-display">{copy.title}</h1>
+        <p className="mt-3 t-body-lg text-muted-foreground">{copy.subtitle}</p>
       </section>
 
       <ScreenCard className="mt-5">
@@ -257,7 +364,7 @@ export default function DishSharePage() {
           <button
             type="button"
             onClick={() => uploadRef.current?.click()}
-            className="rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta"
           >
             {uploadedImage ? copy.change : copy.upload}
           </button>
@@ -271,8 +378,8 @@ export default function DishSharePage() {
               <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-primary shadow-soft">
                 <Camera className="h-8 w-8" />
               </span>
-              <div className="font-serif text-[30px] leading-none text-foreground">{copy.lockedTitle}</div>
-              <div className="text-sm leading-6 text-muted-foreground">{copy.lockedBody}</div>
+              <div className="h-card text-foreground">{copy.lockedTitle}</div>
+              <div className="t-body text-muted-foreground">{copy.lockedBody}</div>
             </div>
           )}
         </div>
@@ -288,45 +395,85 @@ export default function DishSharePage() {
 
       {uploadedImage ? (
         <>
-          <ScreenCard className="mt-4">
-            <SectionEyebrow label={copy.scoreTitle} />
-            <div className="rounded-[26px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-5 py-5">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">{copy.overall}</div>
-                  <div className="mt-1 font-sans text-[62px] font-semibold leading-none tracking-[-0.06em] text-foreground tabular-nums">
-                    {overallScore}
+          {analyzing ? (
+            <ScreenCard className="mt-4">
+              <div className="flex items-center justify-center gap-3 px-4 py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm">{copy.scoring}</span>
+              </div>
+            </ScreenCard>
+          ) : mismatch && analysis ? (
+            <ScreenCard className="mt-4 border-amber-300/60 bg-amber-50/70">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <AlertTriangle className="h-5 w-5" />
+                </span>
+                <div className="flex-1">
+                  <div className="h-card text-foreground">
+                    {copy.mismatchTitle} {dish.dishName}.
                   </div>
-                </div>
-                <div className="text-right text-sm leading-6 text-muted-foreground">
-                  <div>{copy.presentation} • {scores[0]?.value}%</div>
-                  <div>{copy.garnish} • {scores[1]?.value}%</div>
-                  <div>{copy.cleanliness} • {scores[2]?.value}%</div>
-                  <div>{copy.lighting} • {scores[3]?.value}%</div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{analysis.dishMatch.reason}</p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleRetake}
+                      className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta"
+                    >
+                      {copy.retake}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForceAccept(true)}
+                      className="inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-soft"
+                    >
+                      {copy.forceAccept}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {scores.map((item) => (
-                <ScreenCard key={item.label} className="p-4 text-center">
-                  <div className="text-sm text-muted-foreground">{item.label}</div>
-                  <div className="mt-2 font-sans text-[38px] font-semibold leading-none tracking-[-0.05em] text-foreground tabular-nums">
-                    {item.value}
-                    <span className="ml-1 text-base text-muted-foreground">%</span>
+            </ScreenCard>
+          ) : analysisError ? (
+            <ScreenCard className="mt-4">
+              <SectionEyebrow label={copy.scoreTitle} />
+              <p className="text-sm text-muted-foreground">{analysisError}</p>
+            </ScreenCard>
+          ) : (
+            <>
+              <ScreenCard className="mt-4">
+                <SectionEyebrow label={copy.scoreTitle} />
+                {usingForcedFallback ? (
+                  <p className="mb-3 text-xs leading-5 text-muted-foreground">{copy.forcedNote}</p>
+                ) : null}
+                <div className="rounded-[26px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] px-5 py-5">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground">{copy.overall}</div>
+                      <div className="mt-1 font-sans text-[62px] font-semibold leading-none tracking-[-0.06em] text-foreground tabular-nums">
+                        {overallScore}
+                      </div>
+                    </div>
+                    <div className="text-right text-sm leading-6 text-muted-foreground">
+                      <div>{copy.presentation} • {scores[0]?.value}%</div>
+                      <div>{copy.garnish} • {scores[1]?.value}%</div>
+                      <div>{copy.cleanliness} • {scores[2]?.value}%</div>
+                      <div>{copy.lighting} • {scores[3]?.value}%</div>
+                    </div>
                   </div>
-                </ScreenCard>
-              ))}
-            </div>
-          </ScreenCard>
+                </div>
+              </ScreenCard>
 
-          <ScreenCard className="mt-4">
-            <SectionEyebrow label={copy.suggestions} />
-            <ul className="space-y-2 text-[16px] leading-7 text-foreground">
-              {suggestions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </ScreenCard>
+              {suggestions.length > 0 ? (
+                <ScreenCard className="mt-4">
+                  <SectionEyebrow label={copy.suggestions} />
+                  <ul className="space-y-2 t-body-lg text-foreground">
+                    {suggestions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </ScreenCard>
+              ) : null}
+            </>
+          )}
         </>
       ) : (
         <ScreenCard className="mt-4">
@@ -352,8 +499,8 @@ export default function DishSharePage() {
                 onClick={() => setTone(option.id)}
                 className={
                   active
-                    ? 'rounded-full border border-primary/20 gradient-cta px-4 py-2 text-sm font-semibold text-white shadow-cta'
-                    : 'rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-soft'
+                    ? 'inline-flex min-h-11 items-center justify-center rounded-full border border-primary/20 gradient-cta px-5 py-2 text-sm font-semibold text-white shadow-cta'
+                    : 'inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-5 py-2 text-sm font-semibold text-foreground shadow-soft'
                 }
               >
                 {option.label}
@@ -361,23 +508,53 @@ export default function DishSharePage() {
             );
           })}
         </div>
+
+        <div className="mt-4">
+          <SectionEyebrow label={copy.captionLanguage} />
+          <div className="flex flex-wrap gap-3">
+            {CAPTION_LANGS.map((option) => {
+              const active = option.id === captionLang;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setCaptionLang(option.id)}
+                  className={
+                    active
+                      ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-primary/20 gradient-cta px-5 py-2 text-sm font-semibold text-white shadow-cta'
+                      : 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card px-5 py-2 text-sm font-semibold text-foreground shadow-soft'
+                  }
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <textarea
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
-          className="mt-4 min-h-[140px] w-full rounded-[22px] border border-border bg-background px-4 py-4 text-[16px] leading-7 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+          className="mt-4 min-h-[140px] w-full rounded-[22px] border border-border bg-background px-4 py-4 t-body-lg text-foreground outline-none focus:ring-2 focus:ring-primary/30"
         />
       </ScreenCard>
 
       <ScreenCard className="mt-4">
         <SectionEyebrow label={copy.finalRating} />
-        <p className="text-[16px] leading-7 text-muted-foreground">{finalAssessment}</p>
+        <p className="t-body-lg text-muted-foreground">{finalAssessment}</p>
         <div className="mt-4 flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{copy.selfRating}</span>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             {Array.from({ length: 5 }).map((_, index) => {
               const active = index < selfRating;
               return (
-                <button key={index} type="button" onClick={() => setSelfRating(index + 1)}>
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setSelfRating(index + 1)}
+                  className="inline-flex h-11 w-11 items-center justify-center"
+                  aria-label={`Rate ${index + 1} star${index === 0 ? '' : 's'}`}
+                >
                   <Star className={active ? 'h-5 w-5 fill-current text-primary' : 'h-5 w-5 text-border'} />
                 </button>
               );
@@ -390,7 +567,7 @@ export default function DishSharePage() {
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
         >
           <Copy className="h-4 w-4 text-primary" />
           {copy.copy}
@@ -398,7 +575,7 @@ export default function DishSharePage() {
         <button
           type="button"
           onClick={() => void handleShare()}
-          className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-primary/20 gradient-cta px-4 py-4 text-sm font-medium text-white shadow-cta"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[22px] border border-primary/20 gradient-cta px-4 py-4 text-sm font-medium text-white shadow-cta"
         >
           <Share2 className="h-4 w-4" />
           {copy.share}
@@ -409,7 +586,7 @@ export default function DishSharePage() {
             recordShareAction(dish.dishId, 'save');
             setShareNote(copy.saved);
           }}
-          className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[22px] border border-border bg-card px-4 py-4 text-sm font-medium text-foreground shadow-soft"
         >
           <Save className="h-4 w-4 text-primary" />
           {copy.save}

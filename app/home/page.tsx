@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, BookOpen, Share2 } from 'lucide-react';
+import { BookOpen, Share2 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -45,7 +45,7 @@ const HOME_COPY = {
     shareTitle: 'Share a dish guide',
     shareBody:
       'Send a dish card with time, ingredient access, and the app link so someone else can cook it with the same guided flow.',
-    shareFoot: 'shared so far • Version 2.0: upload your picture and get the recipe',
+    shareFoot: 'shared so far',
   },
   hi: {
     eyebrow: 'शेफ़-गाइडेड इंडियन कुकिंग',
@@ -60,7 +60,7 @@ const HOME_COPY = {
     shareTitle: 'डिश गाइड शेयर करें',
     shareBody:
       'किसी और को भी वही गाइडेड कुकिंग फ्लो भेजें — समय, इंग्रेडिएंट्स और ऐप लिंक के साथ।',
-    shareFoot: 'अब तक शेयर किए गए • Version 2.0: upload your picture and get the recipe',
+    shareFoot: 'अब तक शेयर किए गए',
   },
   te: {
     eyebrow: 'చెఫ్-గైడెడ్ ఇండియన్ కుకింగ్',
@@ -75,7 +75,7 @@ const HOME_COPY = {
     shareTitle: 'డిష్ గైడ్‌ను షేర్ చేయండి',
     shareBody:
       'ఇతరులూ అదే గైడెడ్ ఫ్లోతో వండేందుకు టైమ్, ఇంగ్రిడియెంట్ యాక్సెస్, యాప్ లింక్‌తో కార్డ్ పంపండి.',
-    shareFoot: 'ఇప్పటివరకు షేర్ చేసినవి • Version 2.0: upload your picture and get the recipe',
+    shareFoot: 'ఇప్పటివరకు షేర్ చేసినవి',
   },
 } as const;
 
@@ -177,14 +177,6 @@ export default function HomePage() {
         </Link>
         <div className="flex items-center gap-2">
           <LanguageToggle compact />
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:bg-surface-warm"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-          </button>
         </div>
       </header>
 
@@ -309,19 +301,25 @@ export default function HomePage() {
       </section>
 
       <section className="pt-7 animate-fade-up">
-        <div className="rounded-[24px] border border-border bg-card px-4 py-4 shadow-soft">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-serif text-[19px] text-foreground">{copy.shareTitle}</div>
-              <div className="mt-1 text-sm leading-6 text-muted-foreground">
+        <div className="rounded-[22px] border border-dashed border-border/70 bg-card/40 px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-copper/85">
+                {copy.shareTitle}
+              </div>
+              <div className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
                 {copy.shareBody}
               </div>
             </div>
-            <Share2 className="h-5 w-5 text-primary" />
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft/70 text-primary">
+              <Share2 className="h-4 w-4" />
+            </span>
           </div>
-          <div className="mt-3 text-xs text-muted-foreground">
-            {shareCount} {copy.shareFoot}
-          </div>
+          {shareCount > 0 ? (
+            <div className="mt-3 text-[11.5px] text-muted-foreground">
+              {shareCount} {copy.shareFoot}
+            </div>
+          ) : null}
         </div>
       </section>
     </AppShell>

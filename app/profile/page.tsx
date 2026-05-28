@@ -17,6 +17,7 @@ import {
 import { getTotalCookingMinutes, hasInProgressDish } from '@/lib/cooking-session';
 import { uploadAvatar } from '@/lib/persistence/storage';
 import { getSupabaseSession } from '@/lib/persistence/supabase-browser';
+import { getAuthUser } from '@/lib/auth/browser';
 
 function ScoreGauge({
   score,
@@ -35,7 +36,6 @@ function ScoreGauge({
   const radius = (size - stroke) / 2;
   const cx = size / 2;
   const cy = size / 2;
-  // 270 degree arc, starting at bottom-left (135deg) sweeping to bottom-right (45deg).
   const startAngle = 135;
   const endAngle = 45;
   const sweep = 360 - (startAngle - endAngle); // 270
@@ -49,7 +49,6 @@ function ScoreGauge({
   const start = polar(startAngle);
   const end = polar(endAngle);
   const largeArc = sweep > 180 ? 1 : 0;
-  // Sweep direction: we want to draw clockwise from startAngle around through 180/270 to endAngle.
   const arcPath = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 
   const numberSize = variant === 'compact' ? 'text-[28px]' : 'text-[44px]';
@@ -133,6 +132,11 @@ function StatCard({
 
 type UploadState = { status: 'idle' } | { status: 'uploading' } | { status: 'error'; message: string };
 
+function readString(meta: Record<string, unknown> | undefined, key: string): string {
+  const v = meta?.[key];
+  return typeof v === 'string' ? v : '';
+}
+
 export default function ProfilePage() {
   const recent = getRecentlyViewedDishes();
   const shares = getShareActions();
@@ -143,19 +147,63 @@ export default function ProfilePage() {
   );
   const inProgress = ALL_DISHES.filter((dish) => hasInProgressDish(dish.dishId)).length;
 
+  // Auth-derived identity. These are display-only and don't get edited from this screen.
+  const [authName, setAuthName] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+
   const [profile, setProfile] = useState(() => ({
-    name: 'Abhit',
-    phone: '+91',
+    name: '',
+    phone: '',
     tagline: 'ChefSense home cook • guided Indian cooking enthusiast',
     avatarUrl: null as string | null,
   }));
+  // Snapshot of the last-saved tagline+avatar, used to detect dirtiness.
+  const [savedSnapshot, setSavedSnapshot] = useState({
+    tagline: '',
+    avatarUrl: null as string | null,
+  });
   const [saved, setSaved] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // First-load hydration: read auth identity + stored tagline/avatar.
   useEffect(() => {
-    setProfile(getProfileSettings());
+    const user = getAuthUser();
+    const meta = user?.user_metadata;
+    const metaName = readString(meta, 'name');
+    const metaPhone = readString(meta, 'phone');
+    setAuthName(metaName);
+    setAuthPhone(metaPhone);
+    setAuthEmail(user?.email ?? '');
+
+    const stored = getProfileSettings();
+    // Prefer auth metadata for name/phone; fall back to stored, then to email handle.
+    const resolvedName =
+      metaName || (stored.name && stored.name !== 'Abhit' ? stored.name : '') || (user?.email?.split('@')[0] ?? '');
+    const resolvedPhone = metaPhone || (stored.phone && stored.phone !== '+91' ? stored.phone : '');
+    const tagline = stored.tagline;
+    const avatarUrl = stored.avatarUrl;
+
+    setProfile({
+      name: resolvedName,
+      phone: resolvedPhone,
+      tagline,
+      avatarUrl,
+    });
+    setSavedSnapshot({ tagline, avatarUrl });
+
+    // Ensure storage stays in sync with the auth-derived identity so other
+    // surfaces (e.g. recipe-card sharing) see the right name.
+    if (resolvedName !== stored.name || resolvedPhone !== stored.phone) {
+      saveProfileSettings({
+        name: resolvedName,
+        phone: resolvedPhone,
+        tagline,
+        avatarUrl,
+      });
+    }
   }, []);
 
   const averageScore = useMemo(() => {
@@ -164,7 +212,6 @@ export default function ProfilePage() {
   }, [completed]);
 
   const scoreDeltas = useMemo(() => {
-    // Sessions are stored newest-first. Compute delta vs the next (older) session.
     return completed.map((entry, index) => {
       const older = completed[index + 1];
       if (!older) return null;
@@ -184,6 +231,8 @@ export default function ProfilePage() {
     .slice(0, 4);
 
   const displayAvatar = avatarPreview ?? profile.avatarUrl;
+  const isDirty =
+    profile.tagline !== savedSnapshot.tagline || profile.avatarUrl !== savedSnapshot.avatarUrl;
 
   function handleAvatarClick() {
     if (uploadState.status === 'uploading') return;
@@ -192,7 +241,6 @@ export default function ProfilePage() {
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    // Reset the input so re-selecting the same file fires the event again.
     event.target.value = '';
     if (!file || typeof window === 'undefined') return;
 
@@ -201,7 +249,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // Local preview via FileReader.
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -227,128 +274,132 @@ export default function ProfilePage() {
       return;
     }
 
+    // Avatar is saved immediately (no need to wait for the explicit Save).
     const next = { ...profile, avatarUrl: result.url };
     setProfile(next);
     saveProfileSettings(next);
+    setSavedSnapshot((prev) => ({ ...prev, avatarUrl: result.url }));
     setAvatarPreview(null);
     setUploadState({ status: 'idle' });
   }
 
   function handleSaveProfile() {
     saveProfileSettings(profile);
+    setSavedSnapshot({ tagline: profile.tagline, avatarUrl: profile.avatarUrl });
     setSaved(true);
     if (typeof window !== 'undefined') {
       window.setTimeout(() => setSaved(false), 1600);
     }
   }
 
+  const displayName = profile.name || 'Cook';
+  const displayPhone = profile.phone || (authEmail ? authEmail : 'Add a phone number when you sign up');
+
   return (
     <AppShell>
       <Header backHref={ROUTES.home} title="Profile" />
 
+      {/* IDENTITY CARD — avatar + name/phone (display from auth) + editable tagline. */}
       <ScreenCard>
         <SectionEyebrow label="Your cooking profile" />
-        <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <div className="flex items-start gap-4">
-              <button
-                type="button"
-                onClick={handleAvatarClick}
-                disabled={uploadState.status === 'uploading'}
-                className="group relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/40 bg-primary-soft/40 text-primary transition-all hover:border-primary/70 hover:bg-primary-soft/60 disabled:cursor-wait"
-                aria-label={displayAvatar ? 'Change profile picture' : 'Add profile picture'}
-              >
-                {displayAvatar ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={displayAvatar}
-                      alt="Profile"
-                      className="h-full w-full object-cover"
-                    />
-                    <span className="absolute bottom-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-white shadow-md">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </span>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-1 px-2 text-center">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
-                      Add picture
-                    </span>
-                  </div>
-                )}
-                {uploadState.status === 'uploading' ? (
-                  <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </span>
-                ) : null}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => void handleFileChange(event)}
-              />
 
-              <div className="min-w-0 flex-1">
-                <input
-                  value={profile.name}
-                  onChange={(event) =>
-                    setProfile((current) => ({ ...current, name: event.target.value }))
-                  }
-                  className="w-full bg-transparent font-serif text-[28px] leading-none text-foreground outline-none"
+        <div className="flex flex-col items-center gap-4 text-center">
+          <button
+            type="button"
+            onClick={handleAvatarClick}
+            disabled={uploadState.status === 'uploading'}
+            className="group relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/40 bg-primary-soft/40 text-primary transition-all hover:border-primary/70 hover:bg-primary-soft/60 disabled:cursor-wait"
+            aria-label={displayAvatar ? 'Change profile picture' : 'Add profile picture'}
+          >
+            {displayAvatar ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={displayAvatar}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
                 />
-                <input
-                  value={profile.phone}
-                  onChange={(event) =>
-                    setProfile((current) => ({ ...current, phone: event.target.value }))
-                  }
-                  className="mt-3 w-full bg-transparent text-sm leading-6 text-muted-foreground outline-none"
-                />
+                <span className="absolute bottom-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-white shadow-md">
+                  <Pencil className="h-3.5 w-3.5" />
+                </span>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1 px-2 text-center">
+                <Camera className="h-6 w-6" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
+                  Add picture
+                </span>
               </div>
-            </div>
-
-            {uploadState.status === 'error' ? (
-              <div className="mt-3 rounded-full bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary-dark">
-                {uploadState.message}
-              </div>
+            )}
+            {uploadState.status === 'uploading' ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </span>
             ) : null}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => void handleFileChange(event)}
+          />
 
-            <textarea
-              value={profile.tagline}
-              onChange={(event) =>
-                setProfile((current) => ({ ...current, tagline: event.target.value }))
-              }
-              className="mt-4 min-h-[72px] w-full resize-none rounded-[18px] border border-border bg-background px-3 py-3 text-sm leading-6 text-muted-foreground outline-none"
-            />
+          <div>
+            <div className="font-serif text-[28px] leading-tight text-foreground">{displayName}</div>
+            <div className="mt-1 text-sm leading-6 text-muted-foreground">{displayPhone}</div>
+            {authEmail && profile.phone ? (
+              <div className="mt-0.5 text-[12px] text-muted-foreground/80">{authEmail}</div>
+            ) : null}
           </div>
+        </div>
 
-          <div className="flex flex-col items-center justify-between gap-4 rounded-[24px] border border-border/60 bg-background p-4">
-            <div className="text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                ChefScore average
-              </div>
-            </div>
-            <ScoreGauge score={averageScore || 0} label="avg score" />
-            <div className="text-center text-xs leading-5 text-muted-foreground">
-              {completed.length
-                ? `${completed.length} completed cooking session${completed.length === 1 ? '' : 's'} tracked`
-                : 'Your completed sessions will appear here once you finish a full guided cook.'}
-            </div>
-            <button
-              type="button"
-              onClick={handleSaveProfile}
-              className="w-full rounded-full border border-primary/20 gradient-cta px-5 py-3 text-sm font-semibold text-white shadow-cta"
-            >
-              Save profile
-            </button>
-            {saved ? <StatusPill label="Profile updated" tone="green" /> : null}
+        {uploadState.status === 'error' ? (
+          <div className="mt-4 rounded-full bg-primary-soft px-3 py-1.5 text-center text-xs font-medium text-primary-dark">
+            {uploadState.message}
+          </div>
+        ) : null}
+
+        <textarea
+          value={profile.tagline}
+          onChange={(event) =>
+            setProfile((current) => ({ ...current, tagline: event.target.value }))
+          }
+          placeholder="A line about how you cook…"
+          className="mt-4 min-h-[72px] w-full resize-none rounded-[18px] border border-border bg-background px-4 py-3 text-sm leading-6 text-muted-foreground outline-none transition focus:border-primary/40 focus:bg-card"
+        />
+
+        {/* Save button only appears when there are unsynced edits. */}
+        {isDirty ? (
+          <button
+            type="button"
+            onClick={handleSaveProfile}
+            className="mt-3 w-full rounded-full border border-primary/20 gradient-cta px-5 py-3 text-sm font-semibold text-white shadow-cta"
+          >
+            Save profile
+          </button>
+        ) : null}
+        {saved ? (
+          <div className="mt-3 flex justify-center">
+            <StatusPill label="Profile synced" tone="green" />
+          </div>
+        ) : null}
+      </ScreenCard>
+
+      {/* CHEFSCORE CARD — centered gauge with summary. */}
+      <ScreenCard className="mt-5">
+        <SectionEyebrow label="ChefScore average" />
+        <div className="flex flex-col items-center gap-3">
+          <ScoreGauge score={averageScore || 0} label="avg score" />
+          <div className="text-center text-xs leading-5 text-muted-foreground">
+            {completed.length
+              ? `${completed.length} completed cooking session${completed.length === 1 ? '' : 's'} tracked`
+              : 'Your completed sessions will appear here once you finish a full guided cook.'}
           </div>
         </div>
       </ScreenCard>
 
+      {/* STATS GRID */}
       <div className="mt-5 grid grid-cols-2 gap-3">
         <StatCard icon={Clock} label="Minutes cooking" value={totalMinutes} tint="primary" />
         <StatCard icon={Flame} label="In progress" value={inProgress} tint="copper" />
@@ -356,6 +407,7 @@ export default function ProfilePage() {
         <StatCard icon={Share2} label="Shared dishes" value={shares.length} tint="green" />
       </div>
 
+      {/* COMPLETED SESSIONS */}
       <div className="mt-5 -mx-5 overflow-x-auto px-5 scrollbar-hide">
         <div className="flex gap-3 pb-1">
           {recentlyCompleted.length > 0 ? (
@@ -375,9 +427,6 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-medium text-primary-dark">
-                    session
-                  </span>
                   {typeof delta === 'number' && delta !== 0 ? (
                     <span
                       className={

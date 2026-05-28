@@ -122,6 +122,62 @@
   }
 }
 
+/* ----------------------------------------------------------------------
+ * Type ladder — three steps, enforced everywhere.
+ *
+ *   .h-display  44px / 0.95 line / -0.04em tracking   — once per screen
+ *   .h-section  32px / 1.0 line  / -0.035em tracking  — section openers
+ *   .h-card     22px / 1.1 line  / -0.025em tracking  — card titles
+ *
+ * Body / meta:
+ *   .t-body-lg  16px / 1.7 line
+ *   .t-body     14px / 1.55 line
+ *   .t-meta     12px / 1.4 line / muted
+ *
+ * Sweep new screens to these. Don't reach for arbitrary px values for
+ * serif headings — pick one of the three.
+ * -------------------------------------------------------------------- */
+@layer components {
+  .h-display {
+    @apply font-serif font-semibold text-foreground;
+    font-size: 44px;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+  }
+
+  .h-section {
+    @apply font-serif font-semibold text-foreground;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.035em;
+  }
+
+  .h-card {
+    @apply font-serif font-semibold text-foreground;
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+
+  .t-body-lg {
+    @apply text-foreground;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .t-body {
+    @apply text-foreground;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .t-meta {
+    @apply text-muted-foreground;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
 @layer utilities {
   .app-frame {
     @apply mx-auto min-h-dvh w-full max-w-[440px] px-5 pb-28 pt-safe;

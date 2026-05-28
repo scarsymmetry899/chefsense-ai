@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ROUTES } from '@/lib/constants/routes';
 import { consumeAuthHashFromUrl, signInWithPassword, signUpWithPassword } from '@/lib/auth/browser';
 import { getProfileSettings, saveProfileSettings } from '@/lib/user-state';
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [forgotShown, setForgotShown] = useState(false);
   const [authBootstrapping, setAuthBootstrapping] = useState(true);
   const [next, setNext] = useState<string>(ROUTES.welcome);
 
@@ -41,7 +43,7 @@ export default function LoginPage() {
           if (!result.ok) {
             setError(result.error);
           } else {
-            setMessage('Email verified. You are now signed in.');
+            setMessage('Email verified — you are signed in.');
             router.replace(safeNext);
             router.refresh();
             return;
@@ -86,7 +88,7 @@ export default function LoginPage() {
 
     try {
       if (!email.trim() || !password.trim()) {
-        setError('Email and password are required.');
+        setError('Pop in both your email and password before we open the kitchen.');
         return;
       }
 
@@ -103,12 +105,12 @@ export default function LoginPage() {
       }
 
       if (!name.trim() || !phone.trim()) {
-        setError('Name and phone number are required for sign up.');
+        setError('We need a name and phone so we know who is at the stove.');
         return;
       }
 
       if (password !== confirmPassword) {
-        setError('Password and confirm password must match.');
+        setError('Those two passwords do not match yet — try once more.');
         return;
       }
 
@@ -124,7 +126,7 @@ export default function LoginPage() {
       hydrateProfileFromSession();
 
       if (result.requiresConfirmation) {
-        setMessage('Account created. Please confirm your email, then sign in.');
+        setMessage('Account ready. Confirm your email, then sign in to start cooking.');
         setMode('sign-in');
         return;
       }
@@ -137,216 +139,211 @@ export default function LoginPage() {
   }
 
   return (
-    <AppShell showBottomNav={false} className="pb-14">
-      <div className="flex min-h-[calc(100vh-3rem)] flex-col justify-center py-6">
-        <div className="mx-auto mb-6 text-center">
-          <BrandLogo size="xl" stacked />
-          <div className="mt-5 font-serif text-[18px] text-muted-foreground">
-            Cook smarter with an AI masterchef.
+    <AppShell showBottomNav={false} className="pb-0">
+      {/* Flex column: scrollable form above, sticky CTA pinned at the bottom of the viewport. */}
+      <div className="flex min-h-[calc(100dvh-2rem)] flex-col">
+        <div className="flex-1 pt-4">
+          <div className="mx-auto mb-5 text-center">
+            <BrandLogo size="xl" stacked />
+            <div className="t-body-lg mt-5 text-muted-foreground">
+              Cook smarter with an AI masterchef.
+            </div>
           </div>
-        </div>
 
-        <div className="rounded-[30px] border border-border/80 bg-card p-6 shadow-card">
-          {authBootstrapping ? (
-            <div className="rounded-[22px] border border-border/70 bg-background px-4 py-4 text-sm text-muted-foreground">
-              Preparing your ChefSense sign-in...
-            </div>
-          ) : null}
-
-          <div className="space-y-4">
-            <div className="flex rounded-full border border-border/70 bg-background p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('sign-in');
-                  setError('');
-                  setMessage('');
-                }}
-                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  mode === 'sign-in'
-                    ? 'bg-primary text-white shadow-soft'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('sign-up');
-                  setError('');
-                  setMessage('');
-                }}
-                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  mode === 'sign-up'
-                    ? 'bg-primary text-white shadow-soft'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            {error ? (
-              <div className="rounded-[22px] border border-primary/25 bg-primary-soft/55 px-4 py-3 text-sm text-primary-dark">
-                {error}
-              </div>
-            ) : null}
-
-            {message ? (
-              <div className="rounded-[22px] border border-accent-green/25 bg-accent-green-soft px-4 py-3 text-sm text-accent-green">
-                {message}
+          <div className="rounded-[30px] border border-border/80 bg-card p-5 shadow-card">
+            {authBootstrapping ? (
+              <div className="t-body rounded-[22px] border border-border/70 bg-background px-4 py-3 text-muted-foreground">
+                Warming up the kitchen…
               </div>
             ) : null}
 
             <div className="space-y-4">
-              {mode === 'sign-up' ? (
-                <>
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium text-foreground">
-                      Name
-                    </label>
-                    <Input
-                      id="name"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="Your full name"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      required
-                    />
-                  </div>
+              <div className="flex rounded-full border border-border/70 bg-background p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('sign-in');
+                    setError('');
+                    setMessage('');
+                  }}
+                  className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    mode === 'sign-in'
+                      ? 'bg-primary text-white shadow-soft'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('sign-up');
+                    setError('');
+                    setMessage('');
+                  }}
+                  className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    mode === 'sign-up'
+                      ? 'bg-primary text-white shadow-soft'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  Sign Up
+                </button>
+              </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="phone" className="text-sm font-medium text-foreground">
-                      Phone Number
-                    </label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="+91 98765 43210"
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      required
-                    />
-                  </div>
-                </>
+              {error ? (
+                <div className="t-body rounded-[22px] border border-primary/25 bg-primary-soft/55 px-4 py-3 text-primary-dark">
+                  {error}
+                </div>
               ) : null}
 
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
-              </div>
+              {message ? (
+                <div className="t-body rounded-[22px] border border-accent-green/25 bg-accent-green-soft px-4 py-3 text-accent-green">
+                  {message}
+                </div>
+              ) : null}
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="At least 6 characters"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      void submit(mode);
-                    }
-                  }}
-                  minLength={6}
-                  required
-                />
-              </div>
+              {forgotShown ? (
+                <div className="t-body rounded-[22px] border border-secondary/35 bg-secondary-soft/60 px-4 py-3 text-foreground/85">
+                  Password reset is coming soon. For now, sign back in with your existing password or create a new account.
+                </div>
+              ) : null}
 
-              {mode === 'sign-up' ? (
+              <div className="space-y-4">
+                {mode === 'sign-up' ? (
+                  <>
+                    <div className="space-y-2">
+                      <label htmlFor="name" className="t-body font-medium text-foreground">
+                        Name
+                      </label>
+                      <Input
+                        id="name"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="Your full name"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="phone" className="t-body font-medium text-foreground">
+                        Phone Number
+                      </label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="+91 98765 43210"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : null}
+
                 <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                    Confirm Password
+                  <label htmlFor="email" className="t-body font-medium text-foreground">
+                    Email
                   </label>
                   <Input
-                    id="confirmPassword"
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="password" className="t-body font-medium text-foreground">
+                      Password
+                    </label>
+                    {mode === 'sign-in' ? (
+                      <button
+                        type="button"
+                        onClick={() => setForgotShown((current) => !current)}
+                        className="text-[12px] font-semibold text-primary hover:text-primary-dark"
+                      >
+                        Forgot password?
+                      </button>
+                    ) : null}
+                  </div>
+                  <Input
+                    id="password"
                     type="password"
-                    autoComplete="new-password"
-                    placeholder="Repeat your password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+                    placeholder="At least 6 characters"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
-                        void submit('sign-up');
+                        void submit(mode);
                       }
                     }}
                     minLength={6}
                     required
                   />
                 </div>
-              ) : null}
 
-              <div className="grid gap-3 pt-1">
-                {mode === 'sign-in' ? (
-                  <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={pending || authBootstrapping}
-                  onClick={() => void submit('sign-in')}
-                >
-                    <LogIn className="h-4 w-4" />
-                    {pending ? 'Signing in...' : 'Sign In'}
-                  </Button>
-                ) : (
-                  <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={pending || authBootstrapping}
-                  onClick={() => void submit('sign-up')}
-                >
-                    <UserPlus className="h-4 w-4" />
-                    {pending ? 'Creating account...' : 'Sign Up'}
-                  </Button>
-                )}
+                {mode === 'sign-up' ? (
+                  <div className="space-y-2">
+                    <label htmlFor="confirmPassword" className="t-body font-medium text-foreground">
+                      Confirm Password
+                    </label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Repeat your password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          void submit('sign-up');
+                        }
+                      }}
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-5 text-center text-sm text-muted-foreground">
+        {/* Sticky bottom-anchored primary CTA — sits in the thumb zone on every viewport. */}
+        <div className="sticky bottom-0 -mx-5 mt-6 border-t border-border/40 bg-background/95 px-5 pb-4 pt-3 backdrop-blur-sm">
           {mode === 'sign-in' ? (
-            <>
-              New to ChefSense?{' '}
-              <button
-                type="button"
-                onClick={() => setMode('sign-up')}
-                className="font-semibold text-primary"
-              >
-                Create an account
-              </button>
-            </>
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              disabled={pending || authBootstrapping}
+              onClick={() => void submit('sign-in')}
+            >
+              <LogIn className="h-4 w-4" />
+              {pending ? 'Signing in…' : 'Sign In'}
+            </Button>
           ) : (
-            <>
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => setMode('sign-in')}
-                className="font-semibold text-primary"
-              >
-                Sign in
-              </button>
-            </>
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              disabled={pending || authBootstrapping}
+              onClick={() => void submit('sign-up')}
+            >
+              <UserPlus className="h-4 w-4" />
+              {pending ? 'Creating account…' : 'Sign Up'}
+            </Button>
           )}
         </div>
       </div>
