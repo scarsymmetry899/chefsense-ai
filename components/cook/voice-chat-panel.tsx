@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageCircleMore, Mic, MicOff, Send, Square } from 'lucide-react';
+import { MessageCircleMore, Mic, MicOff, RefreshCw, Send, ShieldOff, Square } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { getSupabaseSession } from '@/lib/persistence/supabase-browser';
 import type { LanguageCode } from '@/lib/i18n/dictionary';
@@ -45,12 +45,83 @@ type VoiceCoachResponse = {
   error?: string;
 };
 
+type MicErrorType = 'overlay' | 'denied' | 'notfound' | 'generic';
+
+type MicError = {
+  type: MicErrorType;
+  message: string;
+  retryable: boolean;
+};
+
 function newId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
 function localeFromLang(lang: LanguageCode): 'en' | 'hi' | 'te' {
   return lang === 'hi' || lang === 'te' ? lang : 'en';
+}
+
+/**
+ * Classify a getUserMedia error into an actionable MicError.
+ * Android Chrome throws NotAllowedError with "overlay" in the message when a
+ * floating app/accessibility-service window is covering the permission dialog.
+ */
+async function classifyMicError(err: unknown): Promise<MicError> {
+  const domErr = err instanceof DOMException ? err : null;
+  const name = domErr?.name ?? '';
+  const msg = domErr?.message?.toLowerCase() ?? '';
+
+  // Android overlay: permission dialog is obscured by a floating widget.
+  if (name === 'NotAllowedError' && (msg.includes('overlay') || msg.includes('bubble'))) {
+    return {
+      type: 'overlay',
+      message: 'Close any floating apps or chat bubbles on your screen, then tap Talk to chef again.',
+      retryable: true,
+    };
+  }
+
+  // NotAllowedError — use Permissions API to distinguish overlay vs hard deny.
+  if (name === 'NotAllowedError') {
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      if (status.state === 'denied') {
+        return {
+          type: 'denied',
+          message: 'Microphone access was blocked. Open your browser settings, allow the microphone for this site, then reload.',
+          retryable: false,
+        };
+      }
+      // state === 'prompt' after a NotAllowedError → an overlay blocked the dialog.
+      return {
+        type: 'overlay',
+        message: 'A floating app or overlay blocked the mic permission. Close any bubbles or floating windows, then try again.',
+        retryable: true,
+      };
+    } catch {
+      // Permissions API unavailable — fall back to overlay guidance since that's
+      // the most common cause of NotAllowedError when the user tapped Allow.
+      return {
+        type: 'overlay',
+        message: 'The mic permission was blocked by an overlay. Close any floating apps on your screen and try again.',
+        retryable: true,
+      };
+    }
+  }
+
+  // No mic hardware found.
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return {
+      type: 'notfound',
+      message: 'No microphone found on this device. Use the chat box below to type your question.',
+      retryable: false,
+    };
+  }
+
+  return {
+    type: 'generic',
+    message: 'Could not access the microphone. Use the chat box below.',
+    retryable: false,
+  };
 }
 
 export function VoiceChatPanel({
@@ -72,7 +143,7 @@ export function VoiceChatPanel({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
-  const [micUnavailable, setMicUnavailable] = useState(false);
+  const [micError, setMicError] = useState<MicError | null>(null);
   const [chatActive, setChatActive] = useState(false);
   const [chatFocusKey, setChatFocusKey] = useState(0);
 
@@ -103,6 +174,7 @@ export function VoiceChatPanel({
     greetedRef.current = false;
     setMessages([]);
     setError(null);
+    setMicError(null);
   }, [stepIndex]);
 
   const playAudio = useCallback((base64: string, mime: string) => {
@@ -246,10 +318,18 @@ export function VoiceChatPanel({
   );
 
   const startRecording = useCallback(async () => {
-    if (typeof window === 'undefined' || !navigator.mediaDevices) {
-      setMicUnavailable(true);
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setMicError({
+        type: 'notfound',
+        message: 'Microphone is not available in this browser. Use the chat box below.',
+        retryable: false,
+      });
       return;
     }
+
+    // Clear any previous mic error so the user sees the request is being retried.
+    setMicError(null);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioStreamRef.current = stream;
@@ -277,10 +357,11 @@ export function VoiceChatPanel({
 
       recorder.start();
       setRecording(true);
-    } catch {
-      setMicUnavailable(true);
+    } catch (err) {
       audioStreamRef.current?.getTracks().forEach((track) => track.stop());
       audioStreamRef.current = null;
+      const classified = await classifyMicError(err);
+      setMicError(classified);
     }
   }, [sendAudioBlob]);
 
@@ -296,6 +377,10 @@ export function VoiceChatPanel({
     const id = window.setTimeout(() => chatInputRef.current?.focus(), 50);
     return () => window.clearTimeout(id);
   }, [chatFocusKey]);
+
+  const micErrorIcon = micError?.type === 'denied'
+    ? <ShieldOff className="h-3.5 w-3.5 shrink-0" />
+    : <MicOff className="h-3.5 w-3.5 shrink-0" />;
 
   return (
     <div className="mt-3 rounded-[22px] border border-border/60 bg-background px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
@@ -348,10 +433,23 @@ export function VoiceChatPanel({
         </div>
       </div>
 
-      {micUnavailable ? (
-        <div className="mt-3 flex items-center gap-2 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2 text-xs text-primary-dark">
-          <MicOff className="h-3.5 w-3.5" />
-          Microphone unavailable. Use the chat box below.
+      {/* Mic error — contextual guidance with optional retry */}
+      {micError ? (
+        <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5">
+          <div className="flex items-start gap-2 text-xs text-primary-dark">
+            {micErrorIcon}
+            <span>{micError.message}</span>
+          </div>
+          {micError.retryable ? (
+            <button
+              type="button"
+              onClick={() => void startRecording()}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1 text-xs font-semibold text-primary"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Try again
+            </button>
+          ) : null}
         </div>
       ) : null}
 

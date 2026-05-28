@@ -36,12 +36,25 @@ export default function LoginPage() {
 
     async function bootstrapAuth() {
       try {
-        if (window.location.hash.includes('access_token=')) {
+        // Handle both successful auth hash (#access_token=...) and
+        // Supabase error redirects (#error=...&error_code=otp_expired etc.)
+        const hash = window.location.hash;
+        if (hash.includes('access_token=') || hash.includes('error=')) {
           const result = await consumeAuthHashFromUrl();
           if (cancelled) return;
 
           if (!result.ok) {
-            setError(result.error);
+            // Map common Supabase error codes to friendly messages
+            const raw = result.error ?? '';
+            if (raw.toLowerCase().includes('expired') || raw.toLowerCase().includes('invalid')) {
+              setError(
+                'That confirmation link has expired or is no longer valid. Please sign in below, or create a new account.',
+              );
+            } else {
+              setError(raw || 'Something went wrong with the verification link.');
+            }
+            // Clear the hash so the ugly fragment doesn't stay in the URL
+            window.history.replaceState({}, '', window.location.pathname + window.location.search);
           } else {
             setMessage('Email verified — you are signed in.');
             router.replace(safeNext);
@@ -50,10 +63,11 @@ export default function LoginPage() {
           }
         }
 
-        const messageFromSearch = new URLSearchParams(window.location.search).get('message');
-        if (!cancelled && messageFromSearch) {
-          setMessage(messageFromSearch);
-        }
+        const searchParams = new URLSearchParams(window.location.search);
+        const messageFromSearch = searchParams.get('message');
+        const errorFromSearch = searchParams.get('error');
+        if (!cancelled && messageFromSearch) setMessage(messageFromSearch);
+        if (!cancelled && errorFromSearch) setError(errorFromSearch);
       } finally {
         if (!cancelled) {
           setAuthBootstrapping(false);

@@ -201,6 +201,12 @@ export async function signUpWithPassword(
   password: string,
   metadata?: Partial<SignUpMetadata>,
 ) {
+  // Point the confirmation email back to /auth/callback on the same origin so
+  // consumeAuthHashFromUrl() can pick up the session after email verification.
+  const emailRedirectTo = isBrowser()
+    ? `${window.location.origin}/auth/callback`
+    : undefined;
+
   const result = await authRequest<SignUpPayload>('signup', {
     email,
     password,
@@ -208,6 +214,7 @@ export async function signUpWithPassword(
       name: metadata?.name?.trim() || undefined,
       phone: metadata?.phone?.trim() || undefined,
     },
+    ...(emailRedirectTo ? { email_redirect_to: emailRedirectTo } : {}),
   });
 
   if (!result.ok) return result;

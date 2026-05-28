@@ -107,7 +107,7 @@ export default function WelcomePage() {
           </button>
         </Link>
 
-        <Link href={ROUTES.home} className="inline-flex w-full max-w-[320px]">
+        <Link href={ROUTES.dishes} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
             className="inline-flex w-full items-center justify-between rounded-[26px] border border-border/70 bg-card px-6 py-4 text-[16px] font-medium text-foreground shadow-soft transition-transform hover:bg-surface-warm active:scale-95"

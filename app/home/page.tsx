@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, CheckCheck, Share2 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -169,6 +169,58 @@ export default function HomePage() {
 
   const activeFeaturedDish = heroSlides[activeSlide] ?? featured;
 
+  const [shareToast, setShareToast] = useState(false);
+
+  const handleShareDishGuide = useCallback(async () => {
+    const dish = activeFeaturedDish;
+    const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://chefsense.app';
+
+    // Build the top-5 ingredients string
+    const ingredientLines = dish.ingredients
+      .slice(0, 5)
+      .map((ing) => `• ${ing.name}${ing.quantity ? ` — ${ing.quantity}` : ''}`)
+      .join('\n');
+
+    const moreCount = dish.ingredients.length - 5;
+
+    const shareText = [
+      `🍽️ I just cooked ${dish.dishName} with ChefSense AI!`,
+      '',
+      `It guides you exactly like a masterchef — step by step, with real timing cues, sensory checkpoints, and AI rescue tips if anything goes wrong. Not like any other recipe app.`,
+      '',
+      `📋 ${dish.dishName}`,
+      `⏱ ${dish.totalTimeMin} min  •  🔥 ${dish.difficulty}  •  📍 ${dish.region}`,
+      '',
+      `Key ingredients:`,
+      ingredientLines,
+      moreCount > 0 ? `…and ${moreCount} more` : '',
+      '',
+      `✨ ${dish.summary}`,
+      '',
+      `Try it yourself — register on ChefSense AI and cook this dish with the same guided flow:`,
+      appUrl,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${dish.dishName} — ChefSense AI`,
+          text: shareText,
+          url: appUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 3000);
+      }
+      setShareCount((c) => c + 1);
+    } catch {
+      // User cancelled share — silently ignore
+    }
+  }, [activeFeaturedDish]);
+
   return (
     <AppShell>
       <header className="flex items-center justify-between gap-3 pt-2 animate-fade-up">
@@ -300,8 +352,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="pt-7 animate-fade-up">
-        <div className="rounded-[22px] border border-dashed border-border/70 bg-card/40 px-4 py-4">
+      <section className="pt-7 pb-2 animate-fade-up">
+        <button
+          type="button"
+          onClick={() => void handleShareDishGuide()}
+          className="w-full text-left rounded-[22px] border border-dashed border-border/70 bg-card/40 px-4 py-4 transition-colors hover:bg-card/70 active:scale-[0.99]"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] font-semibold uppercase tracking-[0.14em] text-copper/85">
@@ -310,17 +366,26 @@ export default function HomePage() {
               <div className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
                 {copy.shareBody}
               </div>
+              <div className="mt-2 text-[11.5px] font-medium text-primary">
+                Sharing: {activeFeaturedDish.dishName}
+              </div>
             </div>
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft/70 text-primary">
-              <Share2 className="h-4 w-4" />
+            <span
+              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${shareToast ? 'bg-accent-green text-white' : 'bg-primary-soft/70 text-primary'}`}
+            >
+              {shareToast ? <CheckCheck className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
             </span>
           </div>
-          {shareCount > 0 ? (
-            <div className="mt-3 text-[11.5px] text-muted-foreground">
+          {shareToast ? (
+            <div className="mt-2 text-[11.5px] font-medium text-accent-green">
+              Copied to clipboard! Paste anywhere to share.
+            </div>
+          ) : shareCount > 0 ? (
+            <div className="mt-2 text-[11.5px] text-muted-foreground">
               {shareCount} {copy.shareFoot}
             </div>
           ) : null}
-        </div>
+        </button>
       </section>
     </AppShell>
   );

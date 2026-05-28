@@ -76,8 +76,8 @@ export function DishHeroCard({
             ratioClassName="h-full"
             rounded="none"
           />
-          {/* Single bottom-up gradient for legibility — no glass overlay. */}
-          <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/50 to-transparent" />
+          {/* Bottom-up gradient for legibility. Taller + stronger so text is always readable. */}
+          <div className="absolute inset-x-0 bottom-0 h-[78%] bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
 
           {featured && (
             <span className="absolute left-3 top-3 z-20 inline-flex items-center gap-1 rounded-full border border-white/65 bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-copper shadow-soft">
@@ -93,7 +93,10 @@ export function DishHeroCard({
               {name}
             </h3>
 
-            <p className="line-clamp-2 max-w-[88%] text-[12.5px] leading-snug text-white/85 sm:text-[13.5px]">
+            <p
+              className="line-clamp-2 max-w-[88%] text-[12.5px] leading-snug text-white/90 sm:text-[13.5px]"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
+            >
               {summary}
             </p>
 
