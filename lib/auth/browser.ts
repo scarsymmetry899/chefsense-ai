@@ -91,6 +91,25 @@ export function subscribeToAuth(listener: () => void) {
   return () => window.removeEventListener(AUTH_EVENT, listener);
 }
 
+async function getUserFromAccessToken(accessToken: string) {
+  const { url, anonKey } = getConfig();
+
+  const response = await fetch(`${url}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as AuthUser | null;
+  return payload;
+}
+
 async function authRequest<T>(path: string, body?: unknown, accessToken?: string) {
   const { url, anonKey } = getConfig();
 
@@ -147,6 +166,11 @@ type SignUpPayload = {
   session?: SignInPayload | null;
 };
 
+type SignUpMetadata = {
+  name: string;
+  phone: string;
+};
+
 export async function signInWithPassword(email: string, password: string) {
   const result = await authRequest<SignInPayload>(
     'token?grant_type=password',
@@ -172,10 +196,18 @@ export async function signInWithPassword(email: string, password: string) {
   };
 }
 
-export async function signUpWithPassword(email: string, password: string) {
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+  metadata?: Partial<SignUpMetadata>,
+) {
   const result = await authRequest<SignUpPayload>('signup', {
     email,
     password,
+    data: {
+      name: metadata?.name?.trim() || undefined,
+      phone: metadata?.phone?.trim() || undefined,
+    },
   });
 
   if (!result.ok) return result;
@@ -204,4 +236,56 @@ export async function signOutEverywhere() {
   }
 
   clearAuthSession();
+}
+
+export async function consumeAuthHashFromUrl() {
+  if (!isBrowser()) {
+    return { ok: false as const, error: 'Browser session not available.' };
+  }
+
+  const hash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+
+  if (!hash) {
+    return { ok: false as const, error: 'No auth hash found.' };
+  }
+
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token')?.trim();
+  const refreshToken = params.get('refresh_token')?.trim();
+  const expiresAt = params.get('expires_at');
+  const expiresIn = params.get('expires_in');
+  const tokenType = params.get('token_type')?.trim() || 'bearer';
+  const errorDescription = params.get('error_description')?.trim();
+
+  if (errorDescription) {
+    return { ok: false as const, error: errorDescription };
+  }
+
+  if (!accessToken) {
+    return { ok: false as const, error: 'No access token found in verification link.' };
+  }
+
+  const user = await getUserFromAccessToken(accessToken);
+  if (!user?.id) {
+    return { ok: false as const, error: 'Could not load the verified user session.' };
+  }
+
+  persistAuthSession({
+    access_token: accessToken,
+    refresh_token: refreshToken || undefined,
+    expires_at: expiresAt ? Number(expiresAt) : undefined,
+    expires_in: expiresIn ? Number(expiresIn) : undefined,
+    token_type: tokenType,
+    user,
+  });
+
+  window.history.replaceState(
+    {},
+    document.title,
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return { ok: true as const, user };
 }
