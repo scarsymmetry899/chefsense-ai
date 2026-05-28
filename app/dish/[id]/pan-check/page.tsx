@@ -14,13 +14,31 @@ import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
-import { ROUTES } from '@/lib/constants/routes';
+import { API_ROUTES, ROUTES } from '@/lib/constants/routes';
 import { getStepAwareRescueCopy, getStepFallbackGlyph } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
+import type { RescueIssue } from '@/lib/types';
 
 type ValidationState = {
   status: 'idle' | 'ready' | 'rejected';
   message?: string;
+};
+
+type PanAnalysisState = {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  message?: string;
+  warning?: string;
+};
+
+type PanAnalysisPayload = {
+  title: string;
+  note: string;
+  caution: string;
+  suggestion: string;
+  stage: string;
+  burnRisk: 'Low' | 'Medium' | 'High';
+  confidence: number;
+  likelyIssueIds: string[];
 };
 
 export default function DishPanCheckPage() {
@@ -33,8 +51,12 @@ export default function DishPanCheckPage() {
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationState>({ status: 'idle' });
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
+  const [analysisState, setAnalysisState] = useState<PanAnalysisState>({ status: 'idle' });
+  const [analysisResult, setAnalysisResult] = useState<PanAnalysisPayload | null>(null);
+  const [rescueResult, setRescueResult] = useState<RescueIssue | null>(null);
 
   useEffect(() => {
     return () => {
@@ -48,7 +70,7 @@ export default function DishPanCheckPage() {
     () => dish.rescueIssues.filter((issue) => selectedIssues.includes(issue.id)),
     [dish.rescueIssues, selectedIssues],
   );
-  const primaryIssue = chosenIssues[0] ?? dish.rescueIssues[0];
+  const primaryIssue = rescueResult ?? chosenIssues[0] ?? dish.rescueIssues[0];
   const copy = {
     en: {
       title: 'AI Pan Checker',
@@ -79,7 +101,7 @@ export default function DishPanCheckPage() {
     },
   }[lang];
 
-  const analysis = useMemo(() => {
+  const fallbackAnalysis = useMemo(() => {
     const hasTextureCue = step.sensoryCues.find((cue) => cue.type === 'texture');
     const hasVisualCue = step.sensoryCues.find((cue) => cue.type === 'visual');
     return {
@@ -91,6 +113,71 @@ export default function DishPanCheckPage() {
       burnRisk: step.heat === 'High' ? 'Medium' : 'Low',
     };
   }, [dish.cookingSteps.length, step]);
+
+  const analysis = analysisResult ?? fallbackAnalysis;
+
+  useEffect(() => {
+    if (validation.status !== 'ready' || !uploadedDataUrl) {
+      setAnalysisState({ status: 'idle' });
+      setAnalysisResult(null);
+      setRescueResult(null);
+      return;
+    }
+
+    let cancelled = false;
+    setAnalysisState({ status: 'loading' });
+
+    void (async () => {
+      try {
+        const response = await fetch(API_ROUTES.analyzePan, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dishId: dish.dishId,
+            currentStep: step.index,
+            imageUrl: uploadedDataUrl,
+            issueHints: selectedIssues,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('ChefSense could not analyze this pan photo right now.');
+        }
+
+        const payload = (await response.json()) as {
+          ok: boolean;
+          analysis?: PanAnalysisPayload;
+          rescue?: RescueIssue;
+          warning?: string;
+        };
+
+        if (cancelled || !payload.ok || !payload.analysis || !payload.rescue) {
+          return;
+        }
+
+        setAnalysisResult(payload.analysis);
+        setRescueResult(payload.rescue);
+        setAnalysisState({
+          status: 'ready',
+          warning: payload.warning,
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setAnalysisResult(null);
+        setRescueResult(null);
+        setAnalysisState({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'ChefSense could not analyze this image.',
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dish.dishId, selectedIssues, step.index, uploadedDataUrl, validation.status]);
 
   async function handleFile(file: File | null) {
     if (!file) return;
@@ -105,10 +192,12 @@ export default function DishPanCheckPage() {
       return;
     }
 
+    const dataUrl = await fileToDataUrl(file);
     if (uploadedImage?.startsWith('blob:')) {
       URL.revokeObjectURL(uploadedImage);
     }
     setUploadedImage(URL.createObjectURL(file));
+    setUploadedDataUrl(dataUrl);
     setValidation({ status: 'ready' });
   }
 
@@ -149,7 +238,7 @@ export default function DishPanCheckPage() {
                 <div className="text-sm">AI Confidence</div>
                 <div className="mt-2 flex items-center gap-2 font-serif text-[24px]">
                   <span className="inline-block h-10 w-10 rounded-full border-4 border-secondary" />
-                  86%
+                  {analysisResult?.confidence ?? 86}%
                 </div>
               </div>
             ) : null}
@@ -194,6 +283,24 @@ export default function DishPanCheckPage() {
       {validation.status === 'rejected' ? (
         <div className="mt-4 rounded-[22px] border border-primary/30 bg-primary-soft/55 px-4 py-4 text-sm leading-6 text-primary-dark">
           {validation.message}
+        </div>
+      ) : null}
+
+      {analysisState.status === 'loading' ? (
+        <div className="mt-4 rounded-[22px] border border-accent-green/20 bg-accent-green-soft px-4 py-4 text-sm leading-6 text-accent-green">
+          ChefSense is reading your pan photo and matching it to this exact cooking step.
+        </div>
+      ) : null}
+
+      {analysisState.status === 'error' ? (
+        <div className="mt-4 rounded-[22px] border border-primary/30 bg-primary-soft/55 px-4 py-4 text-sm leading-6 text-primary-dark">
+          {analysisState.message}
+        </div>
+      ) : null}
+
+      {analysisState.warning ? (
+        <div className="mt-4 rounded-[22px] border border-secondary/30 bg-secondary/10 px-4 py-4 text-sm leading-6 text-foreground">
+          {analysisState.warning}
         </div>
       ) : null}
 
@@ -272,7 +379,7 @@ export default function DishPanCheckPage() {
             <ScreenCard className="p-4 text-center">
               <Camera className="mx-auto h-6 w-6 text-primary" />
               <div className="mt-3 text-sm text-muted-foreground">Masala Thickness</div>
-              <div className="mt-1 text-[18px] text-primary">Tracked for this step</div>
+              <div className="mt-1 text-[18px] text-primary">{analysis.suggestion}</div>
             </ScreenCard>
             <ScreenCard className="p-4 text-center">
               <RotateCcw className="mx-auto h-6 w-6 text-primary" />
@@ -356,5 +463,14 @@ function readImageSize(url: string) {
     img.onload = () => resolve({ width: img.width, height: img.height });
     img.onerror = reject;
     img.src = url;
+  });
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }

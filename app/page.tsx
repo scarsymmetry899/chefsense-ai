@@ -11,6 +11,7 @@ import { ImageWithFallback } from '@/components/shared/image-with-fallback';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { ROUTES } from '@/lib/constants/routes';
 import { getDishOrThrow, FEATURED_DISH_ID } from '@/lib/data/dishes';
+import { hasAuthSession } from '@/lib/auth/browser';
 import { cn } from '@/lib/utils';
 
 export default function WelcomePage() {
@@ -21,6 +22,9 @@ export default function WelcomePage() {
     | undefined;
   const langMap = trans?.[lang as 'hi' | 'te'];
   const dishName = tx('dish.name', featured.dishName, langMap);
+  const startHref = hasAuthSession()
+    ? ROUTES.dish(featured.dishId)
+    : `${ROUTES.login}?next=${encodeURIComponent(ROUTES.dish(featured.dishId))}`;
 
   return (
     <AppShell showBottomNav={false}>
@@ -72,7 +76,7 @@ export default function WelcomePage() {
       </section>
 
       <section className="mt-7 flex flex-col items-center gap-3 animate-fade-up">
-        <Link href={ROUTES.dish(featured.dishId)} className="inline-flex w-full max-w-[320px]">
+        <Link href={startHref} className="inline-flex w-full max-w-[320px]">
           <button
             type="button"
             className="inline-flex w-full items-center justify-between rounded-[26px] gradient-cta px-6 py-4 text-white shadow-cta transition-transform active:scale-95"

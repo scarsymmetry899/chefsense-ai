@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Mic, Square, Volume2, Waves } from 'lucide-react';
+import { Mic, Send, Square, Volume2, Waves } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { ScreenCard } from '@/components/dish/screen-kit';
 import { getDishOrThrow } from '@/lib/data/dishes';
-import { ROUTES } from '@/lib/constants/routes';
+import { API_ROUTES, ROUTES } from '@/lib/constants/routes';
 import { formatCountdown } from '@/lib/dish-flow';
 import { useCookingSession } from '@/lib/cooking-session';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -50,6 +50,8 @@ export default function DishVoicePage() {
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [replyPending, setReplyPending] = useState(false);
   const [messages, setMessages] = useState<VoiceMessage[]>([
     { role: 'assistant' as const, text: step.instruction, time: nowTime() },
     {
@@ -83,15 +85,12 @@ export default function DishVoicePage() {
     recognition.onresult = (event) => {
       const heard = event.results[0]?.[0]?.transcript?.trim();
       if (!heard) return;
-      setMessages((current) => [
-        ...current,
-        { role: 'user', text: heard, time: nowTime() },
-        { role: 'assistant', text: buildReply(heard, step.title), time: nowTime() },
-      ]);
+      setMessages((current) => [...current, { role: 'user', text: heard, time: nowTime() }]);
+      void sendQuestion(heard);
     };
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-  }, [locale, step.title]);
+  }, [dish.dishId, locale, step.beginnerExplanation, step.index, step.title]);
 
   useEffect(() => {
     if (!speakerOn) return;
@@ -130,6 +129,66 @@ export default function DishVoicePage() {
       ...current,
       { role: 'assistant', text: cueNarration, time: nowTime() },
     ]);
+  }
+
+  async function sendQuestion(question: string) {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+
+    setReplyPending(true);
+
+    try {
+      const response = await fetch(API_ROUTES.voiceCoach, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dishId: dish.dishId,
+          currentStep: step.index,
+          question: trimmed,
+          locale,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; reply?: string; warning?: string }
+        | null;
+
+      const reply =
+        response.ok && payload?.reply?.trim()
+          ? payload.reply.trim()
+          : buildReply(trimmed, step.title);
+
+      setMessages((current) => [...current, { role: 'assistant', text: reply, time: nowTime() }]);
+
+      const warning = typeof payload?.warning === 'string' ? payload.warning.trim() : '';
+      if (warning) {
+        setMessages((current) => [
+          ...current,
+          { role: 'assistant', text: warning, time: nowTime() },
+        ]);
+      }
+    } catch {
+      setMessages((current) => [
+        ...current,
+        {
+          role: 'assistant',
+          text: buildReply(trimmed, step.title),
+          time: nowTime(),
+        },
+      ]);
+    } finally {
+      setReplyPending(false);
+    }
+  }
+
+  function handleSendDraft() {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    setMessages((current) => [...current, { role: 'user', text: trimmed, time: nowTime() }]);
+    setDraft('');
+    void sendQuestion(trimmed);
   }
 
   return (
@@ -190,6 +249,45 @@ export default function DishVoicePage() {
         </div>
       </ScreenCard>
 
+      <ScreenCard className="mt-4">
+        <div className="rounded-[24px] border border-border/70 bg-white/85 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[15px] font-medium text-primary">Quick chef chat</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Type a question if you do not want to use voice right now.
+              </div>
+            </div>
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft/45 text-primary">
+              <Send className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-border/70 bg-background px-3 py-2">
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleSendDraft();
+                }
+              }}
+              placeholder="Ask about texture, smell, heat, or what to do next."
+              className="h-11 flex-1 border-0 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="button"
+              onClick={handleSendDraft}
+              disabled={!draft.trim() || replyPending}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-r from-secondary to-primary px-4 text-sm font-semibold text-white shadow-cta disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Ask
+            </button>
+          </div>
+        </div>
+      </ScreenCard>
+
       <ScreenCard className="mt-4 space-y-4">
         {messages.map((message, index) => (
           <div
@@ -204,6 +302,12 @@ export default function DishVoicePage() {
             <div className="mt-2 text-xs text-muted-foreground">{message.time}</div>
           </div>
         ))}
+        {replyPending ? (
+          <div className="max-w-[88%] rounded-[22px] bg-white/75 px-4 py-4">
+            <div className="text-[17px] leading-8 text-foreground">ChefSense is thinking...</div>
+            <div className="mt-2 text-xs text-muted-foreground">{nowTime()}</div>
+          </div>
+        ) : null}
       </ScreenCard>
 
       <div className="mt-6 flex items-end justify-between gap-3">
