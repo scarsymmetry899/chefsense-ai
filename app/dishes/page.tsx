@@ -55,7 +55,7 @@ const SCREEN_COPY = {
 function DishesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, lang } = useLanguage();
+  const { t, tx, lang } = useLanguage();
   const mood = searchParams.get('mood') as MoodKey | null;
   const dishes = mood && MOOD_MAP[mood]
     ? ALL_DISHES.filter((dish) => dish.mood.includes(MOOD_MAP[mood]))
@@ -125,28 +125,34 @@ function DishesPageContent() {
       </div>
 
       <div className="mt-5 space-y-4">
-        {dishes.map((dish) => (
+        {dishes.map((dish) => {
+          // Use static dish.translations for instant name/summary (no API call).
+          const langMap = (dish.translations as Record<string, Record<string, string>> | undefined)?.[lang as 'hi' | 'te'];
+          const localName = tx('dish.name', dish.dishName, langMap);
+          const localSummary = tx('dish.summary', dish.summary, langMap);
+          const localDifficulty = t(`difficulty.${dish.difficulty}` as DictionaryKey);
+          return (
           <Link
             key={dish.dishId}
             href={ROUTES.dish(dish.dishId)}
             className="block overflow-hidden rounded-[30px] border border-border bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(254,245,236,0.96))] shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
           >
             <div className="grid grid-cols-[132px_1fr] gap-0">
-              <DishVisual src={dish.heroImage} alt={dish.dishName} className="h-full rounded-none border-0" />
+              <DishVisual src={dish.heroImage} alt={localName} className="h-full rounded-none border-0" />
               <div className="flex min-h-[178px] flex-col justify-between px-4 py-4">
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="h-card line-clamp-2"><TT>{dish.dishName}</TT></div>
+                    <div className="h-card line-clamp-2">{localName}</div>
                     <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
                       <ArrowUpRight className="h-4 w-4" />
                     </span>
                   </div>
-                  <div className="mt-2 t-body text-muted-foreground line-clamp-2"><TT>{dish.summary}</TT></div>
+                  <div className="mt-2 t-body text-muted-foreground line-clamp-2">{localSummary}</div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary-dark">
-                    <TT>{dish.difficulty}</TT>
+                    {localDifficulty}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Clock3 className="h-3.5 w-3.5 text-copper" />
@@ -164,7 +170,8 @@ function DishesPageContent() {
               </div>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </AppShell>
   );
