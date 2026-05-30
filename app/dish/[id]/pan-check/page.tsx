@@ -128,14 +128,19 @@ export default function DishPanCheckPage() {
 
   const analysis = analysisResult ?? fallbackAnalysis;
 
-  const dynamicAxisLabel = (() => {
-    const name = dish.dishName.toLowerCase();
-    if (name.includes('biryani')) return 'Rice doneness';
-    if (name.includes('fried rice')) return 'Wok integration';
-    if (name.includes('dal')) return 'Dal consistency';
-    if (name.includes('kejriwal')) return 'Cheese melt';
-    return 'Masala finish';
-  })();
+  // Get the axis with the highest balance value from the dish data
+  const primaryAxis = dish.tasteBalancing.reduce(
+    (best, current) => (current.value > best.value ? current : best),
+    dish.tasteBalancing[0],
+  );
+  const axisLabelMap: Record<string, string> = {
+    salt: 'Salt balance',
+    acid: 'Acid balance',
+    richness: 'Richness',
+    heat: 'Heat level',
+    aroma: 'Aroma depth',
+  };
+  const dynamicAxisLabel = axisLabelMap[primaryAxis?.axis ?? ''] ?? 'Taste balance';
 
   const burnRiskColor =
     analysis.burnRisk === 'High'

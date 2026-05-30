@@ -307,6 +307,17 @@ export const eggsKejriwal: Dish = {
     },
     {
       index: 7,
+      title: 'Preheat the grill',
+      instruction: 'Turn your oven grill or broiler to its highest setting now. It needs at least 4–5 minutes to reach full heat before the cheese toast goes in.',
+      beginnerExplanation: 'A cold grill will melt the cheese slowly instead of giving it that golden, bubbly crust. Starting it now means it is ready exactly when you need it.',
+      heat: 'High' as any,
+      durationSec: 0,
+      sensoryCues: [{ type: 'sound' as any, cue: 'You may hear the grill element click or hum as it heats up.' }],
+      whyThisMatters: 'The grill must be at full temperature before the cheese toast goes in — a cold grill produces pale, rubbery cheese instead of golden and bubbly.',
+      image: '',
+    },
+    {
+      index: 8,
       title: 'Grill until cheese melts and bubbles',
       instruction: 'Slide the tray under a preheated grill (or top of oven) on high. Watch closely. Pull it out as soon as the cheese melts and bubbles — about 2–3 minutes.',
       beginnerExplanation:
@@ -325,7 +336,7 @@ export const eggsKejriwal: Dish = {
       image: STEP_IMG(7),
     },
     {
-      index: 8,
+      index: 9,
       title: 'Heat the pan for the eggs',
       instruction: 'While the cheese is grilling, heat a small non-stick pan on medium-low and add 1 tsp butter.',
       beginnerExplanation:
@@ -341,7 +352,7 @@ export const eggsKejriwal: Dish = {
       image: STEP_IMG(8),
     },
     {
-      index: 9,
+      index: 10,
       title: 'Cook the sunny-side-up egg',
       instruction: 'Crack the eggs gently into the pan. Cook on medium-low until the whites set but the yolks are still bright and runny.',
       beginnerExplanation:
@@ -360,7 +371,7 @@ export const eggsKejriwal: Dish = {
       image: STEP_IMG(9),
     },
     {
-      index: 10,
+      index: 11,
       title: 'Build the toast',
       instruction: 'Slide each egg gently onto a cheese toast. Sprinkle flaky salt, cracked black pepper and a pinch of chopped coriander.',
       beginnerExplanation:
@@ -376,7 +387,7 @@ export const eggsKejriwal: Dish = {
       image: STEP_IMG(10),
     },
     {
-      index: 11,
+      index: 12,
       title: 'Serve immediately with chutney or ketchup',
       instruction: 'Plate at once with a spoonful of green coriander-mint chutney or tomato ketchup on the side.',
       beginnerExplanation:

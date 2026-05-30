@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChefHat, ChevronRight, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { ROUTES } from '@/lib/constants/routes';
@@ -22,12 +22,17 @@ export function ResumeCookBanner() {
   const pathname = usePathname();
   const [dishId, setDishId] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  // Track the last dish we showed the banner for — only reset dismiss when a
+  // different dish becomes the most-recent in-progress one (not on every nav).
+  const prevDishIdRef = useRef<string | null>(null);
 
-  // Re-evaluate on every navigation so it disappears once the user is back
-  // inside the cook flow.
   useEffect(() => {
-    setDismissed(false);
-    setDishId(getMostRecentInProgressDishId());
+    const nextDishId = getMostRecentInProgressDishId();
+    if (nextDishId !== prevDishIdRef.current) {
+      prevDishIdRef.current = nextDishId;
+      setDismissed(false); // new dish in progress → show banner again
+    }
+    setDishId(nextDishId);
   }, [pathname]);
 
   // Hide on screens where we're already in the cook context.

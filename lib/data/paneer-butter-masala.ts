@@ -35,9 +35,9 @@ export const paneerButterMasala: Dish = {
   cuisine: 'Indian',
   region: 'North Indian',
   difficulty: 'Medium',
-  totalTimeMin: 35,
+  totalTimeMin: 50,
   prepTimeMin: 15,
-  cookTimeMin: 20,
+  cookTimeMin: 35,
   serves: '3–4',
   isVegetarian: true,
   heroImage: '/images/dishes/paneer-butter-masala/hero.jpg',
@@ -217,9 +217,9 @@ export const paneerButterMasala: Dish = {
     {
       index: 3,
       title: 'Sauté the onions',
-      instruction: 'In the same kadhai or a fresh heavy pan, saute sliced onions in butter and oil until soft and lightly golden.',
+      instruction: 'In the same kadhai or a fresh heavy pan, add the green cardamom pods first and let them sizzle for 15 seconds before adding the onions. Saute sliced onions in butter and oil until soft and lightly golden.',
       beginnerExplanation:
-        'If you seared paneer in the kadhai, use that same pan now. Otherwise start with a clean heavy pan. Heat 2 tbsp butter and 1 tbsp oil over medium heat. Add the sliced onions. Stir every 30–40 seconds until they look soft, see-through, and lightly golden at the edges.',
+        'If you seared paneer in the kadhai, use that same pan now. Otherwise start with a clean heavy pan. Heat 2 tbsp butter and 1 tbsp oil over medium heat. Drop in the green cardamom pods and let them sizzle for 15 seconds — you will hear a gentle crackle and smell a sweet, floral warmth. Now add the sliced onions. Stir every 30–40 seconds until they look soft, see-through, and lightly golden at the edges.',
       heat: 'Medium',
       durationSec: 360,
       sensoryCues: [

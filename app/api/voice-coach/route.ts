@@ -131,27 +131,39 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   }
 
+  const locale = normalizeLocale(body.locale);
+
+  const localeInstruction: Record<SupportedLocale, string> = {
+    en: 'Respond in English.',
+    hi: 'Respond in Hindi (Devanagari script). Do NOT use Romanised Hindi.',
+    te: 'Respond in Telugu (Telugu script). Do NOT use Romanised Telugu.',
+  };
+
+  const systemPrompt = [
+    'You are ChefSense AI, a voice cooking coach.',
+    `Dish: ${dish.dishName}. Cuisine: ${dish.cuisine ?? 'Indian'}.`,
+    `Current step: "${step.title}" — ${step.instruction}`,
+    `Heat: ${step.heat}.`,
+    step.sensoryCues?.length
+      ? `Sensory cues: ${step.sensoryCues.map((c) => c.cue).join('; ')}.`
+      : '',
+    'Give plain, short, chef-style guidance specific to the heat, texture, smell, and timing of this step.',
+    'Return only JSON with a single reply string. Keep the reply under 90 words.',
+    localeInstruction[locale],
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const aiResult = await callOpenAIJson<VoiceCoachPayload>({
     temperature: 0.35,
     messages: [
       {
         role: 'system',
-        content:
-          'You are ChefSense AI. Reply in plain, short, chef-style guidance for a home cook. Return only JSON with a single reply string. Be specific to the current step, heat, texture, smell, and timing. Keep it under 90 words.',
+        content: systemPrompt,
       },
       {
         role: 'user',
         content: JSON.stringify({
-          locale: body.locale ?? 'en-IN',
-          dish: dish.dishName,
-          currentStep: {
-            index: step.index,
-            title: step.title,
-            instruction: step.instruction,
-            beginnerExplanation: step.beginnerExplanation,
-            heat: step.heat,
-            sensoryCues: step.sensoryCues,
-          },
           question,
           responseShape: {
             reply: 'string',
@@ -161,7 +173,6 @@ export async function POST(request: Request) {
     ],
   });
 
-  const locale = normalizeLocale(body.locale);
   const accessToken =
     request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() || null;
 

@@ -28,7 +28,7 @@ export const chickenBiryani: Dish = {
   difficulty: 'Hard',
   totalTimeMin: 105,
   prepTimeMin: 45,
-  cookTimeMin: 55,
+  cookTimeMin: 60,
   serves: '4–5',
   isVegetarian: false,
   heroImage: '/images/dishes/chicken-biryani/hero.jpg',
@@ -157,9 +157,9 @@ export const chickenBiryani: Dish = {
     {
       index: 1,
       title: 'Marinate the chicken',
-      instruction: 'Mix chicken with yogurt, biryani masala, ginger-garlic, half the fried onions, lemon juice and salt. Rest 30+ minutes.',
+      instruction: 'Mix chicken with yogurt, biryani masala, ginger-garlic, half the fried onions, lemon juice and salt. Rest 30+ minutes. Add the Kashmiri red chilli powder and turmeric — mix well so every piece is coated.',
       beginnerExplanation:
-        'In a large bowl, add chicken, thick yogurt, biryani masala, ginger-garlic paste, slit green chillies, lemon juice and salt. Add half of the fried onions you set aside earlier. Use your hands to coat every piece — get under the skin if there is any. Cover and rest in the fridge for at least 30 minutes. Overnight is even better.',
+        'In a large bowl, add chicken, thick yogurt, biryani masala, ginger-garlic paste, slit green chillies, lemon juice and salt. Add half of the fried onions you set aside earlier. Sprinkle in the Kashmiri red chilli powder and turmeric — these give the chicken its deep colour and warm flavour. Use your hands to coat every piece — get under the skin if there is any. Cover and rest in the fridge for at least 30 minutes. Overnight is even better.',
       heat: 'Off',
       durationSec: 1800,
       sensoryCues: [
@@ -212,9 +212,9 @@ export const chickenBiryani: Dish = {
       title: 'Fry the birista onions',
       instruction: 'Fry the sliced onions in oil on medium heat until deep golden brown. Drain on paper.',
       beginnerExplanation:
-        'Heat 1/2 cup of neutral oil in a frying pan on medium heat. Add the sliced onions in two batches so the pan is not crowded. Stir often. They will go from white to translucent to pale gold to deep golden brown — about 8–10 minutes. Pull them out the moment they turn rich brown — they keep darkening on the paper towel. Reserve half for the marinade and half for layering.',
+        'Heat 1/2 cup of neutral oil in a frying pan on medium heat. Add the sliced onions in two batches so the pan is not crowded. Stir often. They will go from white to translucent to pale gold to deep golden brown — about 18–20 minutes. Pull them out the moment they turn rich brown — they keep darkening on the paper towel. Reserve half for the marinade and half for layering.',
       heat: 'Medium',
-      durationSec: 600,
+      durationSec: 1200,
       sensoryCues: [
         { type: 'visual', cue: 'Onions move from white to pale gold to deep nutty brown' },
         { type: 'sound', cue: 'Steady sizzle that slows as the moisture cooks off' },
@@ -233,7 +233,7 @@ export const chickenBiryani: Dish = {
       beginnerExplanation:
         'Warm the milk gently — it should feel warm to the touch, never boiling. Add a tiny pinch of sugar and the saffron strands. Stir once and let it sit. The milk will slowly turn a beautiful sunset orange. This is the colour you will paint across your biryani.',
       heat: 'Off',
-      durationSec: 180,
+      durationSec: 600,
       sensoryCues: [
         { type: 'visual', cue: 'Milk turns a soft, glowing golden-orange' },
         { type: 'smell', cue: 'A floral, honey-like aroma rises from the bowl' },

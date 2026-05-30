@@ -160,11 +160,11 @@ export const dalTadka: Dish = {
     {
       index: 2,
       title: 'Pressure cook the dal',
-      instruction: 'Drain dal. Add to cooker with 3 cups water, turmeric, salt, half the ginger and a splash of oil.',
+      instruction: 'Drain dal. Add to cooker with 3 cups water, turmeric, salt, half the ginger and a splash of oil. Cook for 4–5 whistles then let the pressure release naturally — this takes another 12–15 minutes. Do not open the lid early.',
       beginnerExplanation:
-        'Drain the soaked dal and tip it into the pressure cooker. Add 3 cups of fresh water, the turmeric, a generous pinch of salt, half the minced ginger and a few drops of oil so the foam stays in check. Lock the lid. Cook on medium heat for 4–5 whistles, then turn off and let the pressure release on its own. No cooker? Simmer covered with 4 cups water for 35–40 minutes.',
+        'Drain the soaked dal and tip it into the pressure cooker. Add 3 cups of fresh water, the turmeric, a generous pinch of salt, half the minced ginger and a few drops of oil so the foam stays in check. Lock the lid. Cook on medium heat for 4–5 whistles, then turn off and let the pressure release on its own — this natural release takes another 12–15 minutes. Do not open the lid early; forcing it open cuts the cook short and leaves the grains gritty. No cooker? Simmer covered with 4 cups water for 35–40 minutes.',
       heat: 'Medium',
-      durationSec: 1200,
+      durationSec: 2100,
       sensoryCues: [
         { type: 'sound', cue: 'Whistles space out evenly, about every 90 seconds' },
         { type: 'smell', cue: 'Warm, earthy turmeric-and-lentil aroma rises from the vent' },

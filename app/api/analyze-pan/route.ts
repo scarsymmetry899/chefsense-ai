@@ -213,8 +213,8 @@ function buildFallbackAnalysis(dishName: string, step: NonNullable<ReturnType<ty
     burnRisk: step.heat === 'High' ? 'High' : step.heat === 'Medium-high' ? 'Medium' : 'Low',
     confidence: 72,
     likelyIssueIds: [rescue.id],
-    suggestedIssueLabels: dish.rescueIssues.map((issue) => issue.label),
-    dishMatchConfidence: 85,
+    suggestedIssueLabels: dish.rescueIssues.map((issue) => issue.label), // Not photo-grounded — fallback only
+    dishMatchConfidence: 0, // No image evidence — fallback path; UI shows warning banner when < 50
   };
 }
 

@@ -49,7 +49,8 @@ const COPY = {
     openFullChat: 'Open full chat',
     openVoiceScreen: 'Open dedicated voice screen →',
     continueNext: '→ Continue to next step',
-    openMic: 'Open mic',
+    openMic: 'Open voice & chat',
+    closePanel: 'Close',
     voiceRunning: 'Voice can keep guiding while the timer continues.',
     voicePaused: 'Start the timer or open voice help whenever you are ready.',
     voiceHelp:
@@ -80,7 +81,8 @@ const COPY = {
     openFullChat: 'पूरा चैट खोलें',
     openVoiceScreen: 'समर्पित वॉइस स्क्रीन खोलें →',
     continueNext: '→ अगले स्टेप पर जाएँ',
-    openMic: 'Open mic',
+    openMic: 'वॉइस & चैट खोलें',
+    closePanel: 'बंद करें',
     voiceRunning: 'टाइमर चलते हुए भी वॉइस गाइड साथ चलता रहेगा।',
     voicePaused: 'जब आप तैयार हों तब टाइमर या वॉइस हेल्प शुरू करें।',
     voiceHelp: 'क्यूज़, टाइमिंग, सही पैन, हीट, या क्या सुधारना है उसके बारे में पूछें।',
@@ -110,7 +112,8 @@ const COPY = {
     openFullChat: 'పూర్తి చాట్ తెరవండి',
     openVoiceScreen: 'ప్రత్యేక వాయిస్ స్క్రీన్ తెరవండి →',
     continueNext: '→ తదుపరి దశకు వెళ్లండి',
-    openMic: 'Open mic',
+    openMic: 'వాయిస్ & చాట్ తెరవండి',
+    closePanel: 'మూసేయండి',
     voiceRunning: 'టైమర్ నడుస్తున్నప్పటికీ వాయిస్ గైడ్ కొనసాగుతుంది.',
     voicePaused: 'మీరు సిద్ధమైనప్పుడు టైమర్ లేదా వాయిస్ సహాయాన్ని ప్రారంభించండి.',
     voiceHelp: 'క్యూ‌లు, టైమింగ్, సరైన పాన్, హీట్, లేదా ఏం సరిచేయాలో అడగండి.',
@@ -136,8 +139,8 @@ const COPY = {
 
 const CUE_LABELS = {
   en: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
-  hi: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
-  te: { visual: 'Visual Cue', smell: 'Smell Cue', sound: 'Sound Cue', texture: 'Texture Cue' },
+  hi: { visual: 'दृश्य संकेत', smell: 'सुगंध संकेत', sound: 'ध्वनि संकेत', texture: 'बनावट संकेत' },
+  te: { visual: 'దృశ్య సూచన', smell: 'వాసన సూచన', sound: 'శబ్ద సూచన', texture: 'ఆకృతి సూచన' },
 } as const;
 
 const CUE_PALETTE = {
@@ -332,12 +335,12 @@ export default function DishCookPage() {
               {isRunning ? (
                 <>
                   <PauseCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span>Pause</span>
+                  <span>{copy.pauseTimer}</span>
                 </>
               ) : (
                 <>
                   <PlayCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span>{elapsedSeconds > 0 ? 'Resume' : 'Start'}</span>
+                  <span>{elapsedSeconds > 0 ? copy.resumeTimer : copy.startTimer}</span>
                 </>
               )}
             </button>
@@ -372,7 +375,7 @@ export default function DishCookPage() {
             }}
             className="rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
           >
-            {voiceOpen ? copy.openFullChat : copy.openMic}
+            {voiceOpen ? copy.closePanel : copy.openMic}
           </button>
         </div>
         <VoiceChatPanel

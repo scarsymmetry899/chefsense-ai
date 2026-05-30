@@ -86,7 +86,6 @@ export function BottomNav() {
               (item.key === 'profile' && pathname === '/profile') ||
               (item.key === 'cook' &&
                 (pathname.includes('/mise-en-place') ||
-                  (urlDishId && pathname === `/dish/${urlDishId}`) ||
                   pathname.includes('/cook') ||
                   pathname.includes('/voice') ||
                   pathname.includes('/finish') ||
