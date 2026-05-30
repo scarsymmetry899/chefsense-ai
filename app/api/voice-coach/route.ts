@@ -5,11 +5,14 @@ import { getDish } from '@/lib/data/dishes';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+type HistoryItem = { role: 'user' | 'assistant'; text: string };
+
 type VoiceCoachRequest = {
   dishId?: string;
   currentStep?: number;
   question?: string;
   locale?: string;
+  history?: HistoryItem[];
 };
 
 type SupportedLocale = 'en' | 'hi' | 'te';
@@ -154,20 +157,26 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join(' ');
 
+  // Include the last few conversational turns as context so the AI can
+  // follow the thread across step changes and navigations.
+  const history = Array.isArray(body.history) ? (body.history as HistoryItem[]) : [];
+  const historyBlock = history.length
+    ? `\nConversation so far:\n${history
+        .filter((h) => h.role && h.text)
+        .map((h) => `${h.role === 'assistant' ? 'Chef' : 'Cook'}: ${h.text}`)
+        .join('\n')}\n`
+    : '';
+
   const aiResult = await callOpenAIJson<VoiceCoachPayload>({
     temperature: 0.35,
     messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
+      { role: 'system', content: systemPrompt },
       {
         role: 'user',
         content: JSON.stringify({
           question,
-          responseShape: {
-            reply: 'string',
-          },
+          context: historyBlock || undefined,
+          responseShape: { reply: 'string' },
         }),
       },
     ],

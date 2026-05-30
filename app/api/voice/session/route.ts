@@ -5,7 +5,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const OPENAI_REALTIME_URL = 'https://api.openai.com/v1/realtime/sessions';
-const DEFAULT_MODEL = 'gpt-4o-realtime-preview-2024-12-17';
+// Use the undated alias — the dated snapshot may not be provisioned on all tiers.
+const DEFAULT_MODEL = 'gpt-4o-realtime-preview';
 
 type SupportedLocale = 'en' | 'hi' | 'te';
 
@@ -163,10 +164,26 @@ export async function POST(request: NextRequest) {
   }
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    console.error('[voice/session] OpenAI error', response.status, text);
+    const errText = await response.text().catch(() => '');
+    console.error('[voice/session] OpenAI error', response.status, errText);
+
+    // Parse OpenAI's error body to give the client an actionable message.
+    let openaiMessage = `OpenAI returned HTTP ${response.status}`;
+    try {
+      const parsed = JSON.parse(errText) as { error?: { message?: string; code?: string } };
+      if (parsed.error?.message) openaiMessage = parsed.error.message;
+    } catch { /* ignore */ }
+
+    // Specific guidance for common access issues
+    let hint = '';
+    if (response.status === 403 || response.status === 401) {
+      hint = 'Your OpenAI account may not have access to the Realtime API. Check platform.openai.com → Settings → Limits.';
+    } else if (response.status === 404) {
+      hint = 'The Realtime model was not found. Ensure your OpenAI org has gpt-4o-realtime-preview access.';
+    }
+
     return NextResponse.json(
-      { error: 'openai_session_failed', status: response.status },
+      { error: 'openai_session_failed', status: response.status, message: openaiMessage, hint },
       { status: 502 },
     );
   }

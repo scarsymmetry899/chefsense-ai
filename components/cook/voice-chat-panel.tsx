@@ -175,8 +175,18 @@ export function VoiceChatPanel({
   const [micError, setMicError] = useState<MicError | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
-  // ── Text chat state ──
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // ── Text chat state — persisted to localStorage per dish ──
+  const chatStorageKey = `chefsense.chat.${dishId}`;
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    // Hydrate from localStorage on first render (client only).
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(`chefsense.chat.${dishId}`);
+      if (raw) return JSON.parse(raw) as ChatMessage[];
+    } catch { /* ignore */ }
+    return [];
+  });
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -201,24 +211,36 @@ export function VoiceChatPanel({
     stepIndexRef.current = stepIndex;
   }, [stepIndex]);
 
-  // ── Seed primer when expanded ──
+  // ── Persist chat messages to localStorage whenever they change ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      // Limit stored history to last 40 messages to avoid localStorage bloat.
+      const toStore = chatMessages.slice(-40);
+      window.localStorage.setItem(chatStorageKey, JSON.stringify(toStore));
+    } catch { /* ignore */ }
+  }, [chatMessages, chatStorageKey]);
+
+  // ── Seed primer when expanded (only if chat is completely empty) ──
   useEffect(() => {
     if (!expanded) return;
     if (greetedRef.current && chatMessages.length > 0) return;
     greetedRef.current = true;
-    setChatMessages([
-      { id: `primer-${stepIndex}`, role: 'assistant', text: primer, source: 'fallback' },
-    ]);
+    // Only add primer if no messages exist at all
+    setChatMessages((current) => {
+      if (current.length > 0) return current;
+      return [{ id: `primer-${stepIndex}`, role: 'assistant', text: primer, source: 'fallback' }];
+    });
   }, [expanded, primer, stepIndex, chatMessages.length]);
 
   useEffect(() => {
-    greetedRef.current = false;
-    setChatMessages([]);
     setChatError(null);
-    // Also push updated step context to an active voice session
+    // Push updated step context to an active voice session when step changes.
     if (voiceMode === 'active' && dataChannelRef.current?.readyState === 'open') {
       pushStepContextUpdate();
     }
+    // NOTE: We do NOT clear chatMessages on step change — conversation history
+    // persists across the entire dish so the AI has full context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIndex]);
 
@@ -408,16 +430,21 @@ export function VoiceChatPanel({
         body: JSON.stringify({ dishId, stepIndex: stepIndexRef.current, locale }),
       });
       if (!resp.ok) {
-        throw new Error(`session_http_${resp.status}`);
+        // Read the body to surface the actual OpenAI error to the user.
+        let detail = `HTTP ${resp.status}`;
+        try {
+          const errBody = (await resp.json()) as { message?: string; hint?: string };
+          if (errBody.message) detail = errBody.hint ? `${errBody.message} ${errBody.hint}` : errBody.message;
+        } catch { /* ignore */ }
+        throw new Error(detail);
       }
       const data = (await resp.json()) as { client_secret?: { value?: string } };
       ephemeralKey = data.client_secret?.value ?? '';
       if (!ephemeralKey) throw new Error('empty_ephemeral_key');
     } catch (err) {
       teardownVoice();
-      setVoiceError(
-        `Could not start voice session: ${err instanceof Error ? err.message : 'network error'}. Try again or use the Chat tab.`,
-      );
+      const msg = err instanceof Error ? err.message : 'network error';
+      setVoiceError(`Voice session failed: ${msg}. Use the Chat tab while this is resolved.`);
       setVoiceMode('error');
       return;
     }
@@ -529,18 +556,35 @@ export function VoiceChatPanel({
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || pending) return;
-      setChatMessages((c) => [...c, { id: newId(), role: 'user', text: trimmed }]);
+
+      const userMsg: ChatMessage = { id: newId(), role: 'user', text: trimmed };
+      setChatMessages((c) => [...c, userMsg]);
       setPending(true);
       setChatError(null);
+
       try {
         const session = getSupabaseSession();
+
+        // Send the last 8 turns (4 exchanges) as history so the AI has
+        // full conversational context across step changes and navigations.
+        const historySnapshot = chatMessages.slice(-8).map((m) => ({
+          role: m.role,
+          text: m.text,
+        }));
+
         const resp = await fetch('/api/voice-coach', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
           },
-          body: JSON.stringify({ dishId, currentStep: stepIndex, question: trimmed, locale }),
+          body: JSON.stringify({
+            dishId,
+            currentStep: stepIndex,
+            question: trimmed,
+            locale,
+            history: historySnapshot,
+          }),
         });
         const payload = (await resp.json()) as VoiceCoachResponse;
         if (!payload.ok || !payload.reply) throw new Error(payload.error ?? 'No response.');
@@ -554,7 +598,7 @@ export function VoiceChatPanel({
         setPending(false);
       }
     },
-    [dishId, locale, pending, stepIndex],
+    [chatMessages, dishId, locale, pending, stepIndex],
   );
 
   const handleSend = () => {

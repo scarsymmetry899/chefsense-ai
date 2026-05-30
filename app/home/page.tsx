@@ -20,7 +20,7 @@ import {
   getDishOrThrow,
 } from '@/lib/data/dishes';
 import type { DictionaryKey } from '@/lib/i18n/dictionary';
-import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
+import { getMostRecentInProgressDishId, getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
 import { formatViewedAgo, getRecentlyViewedDishes, getShareActions } from '@/lib/user-state';
 
 const MOOD_META = [
@@ -82,7 +82,11 @@ const HOME_COPY = {
 export default function HomePage() {
   const { t, lang } = useLanguage();
   const featured = getDishOrThrow(FEATURED_DISH_ID);
-  const heroSlides = useMemo(
+
+  // Track the most-recently-cooked dish so we can surface it first in the carousel.
+  const [inProgressDishId, setInProgressDishId] = useState<string | null>(null);
+
+  const DEFAULT_SLIDES = useMemo(
     () => [
       featured,
       getDishOrThrow('dal-tadka'),
@@ -91,6 +95,17 @@ export default function HomePage() {
     ],
     [featured],
   );
+
+  // Reorder slides: put the active in-progress dish at position 0.
+  const heroSlides = useMemo(() => {
+    if (!inProgressDishId) return DEFAULT_SLIDES;
+    const inProgressDish = getDish(inProgressDishId);
+    if (!inProgressDish) return DEFAULT_SLIDES;
+    // Move it to the front; remove it from wherever it currently sits.
+    const rest = DEFAULT_SLIDES.filter((d) => d.dishId !== inProgressDishId);
+    return [inProgressDish, ...rest];
+  }, [DEFAULT_SLIDES, inProgressDishId]);
+
   const [activeSlide, setActiveSlide] = useState(0);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [resumeMap, setResumeMap] = useState<Record<string, number>>({});
@@ -118,6 +133,11 @@ export default function HomePage() {
         .filter((entry) => getDish(entry.dishId)),
     );
     setShareCount(getShareActions().length);
+    // Surface in-progress dish in carousel
+    const inProgress = getMostRecentInProgressDishId();
+    setInProgressDishId(inProgress);
+    // Jump carousel to slide 0 (the in-progress dish will be there)
+    if (inProgress) setActiveSlide(0);
   }, []);
 
   useEffect(() => {
