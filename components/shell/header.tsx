@@ -1,5 +1,6 @@
 'use client';
 
+import { type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Bell, Bookmark, type LucideIcon } from 'lucide-react';
@@ -26,7 +27,7 @@ interface HeaderProps {
   /** Show the EN/HI/TE language toggle. */
   showLanguageToggle?: boolean;
   /** Optional title centred between back arrow and actions. */
-  title?: string;
+  title?: ReactNode;
   className?: string;
 }
 

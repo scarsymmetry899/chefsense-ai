@@ -111,7 +111,7 @@ export function SectionEyebrow({
   className,
 }: {
   icon?: LucideIcon;
-  label: string;
+  label: ReactNode;
   className?: string;
 }) {
   return (
@@ -130,9 +130,9 @@ export function MetricTile({
   className,
 }: {
   icon: LucideIcon;
-  title: string;
+  title: ReactNode;
   value: string;
-  detail?: string;
+  detail?: ReactNode;
   className?: string;
 }) {
   return (
@@ -297,7 +297,7 @@ export function StatusPill({
   label,
   tone = 'warm',
 }: {
-  label: string;
+  label: ReactNode;
   tone?: 'warm' | 'green' | 'danger';
 }) {
   return (

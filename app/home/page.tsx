@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCheck, Share2 } from 'lucide-react';
+import { TT } from '@/components/shared/translated';
 import { AppShell } from '@/components/shell/app-shell';
 import { BrandLogo } from '@/components/shell/brand-logo';
 import { LanguageToggle } from '@/components/shell/language-toggle';
@@ -387,7 +388,7 @@ export default function HomePage() {
                 {copy.shareBody}
               </div>
               <div className="mt-2 text-[11.5px] font-medium text-primary">
-                Sharing: {activeFeaturedDish.dishName}
+                <TT>Sharing:</TT> {activeFeaturedDish.dishName}
               </div>
             </div>
             <span
@@ -398,7 +399,7 @@ export default function HomePage() {
           </div>
           {shareToast ? (
             <div className="mt-2 text-[11.5px] font-medium text-accent-green">
-              Copied to clipboard! Paste anywhere to share.
+              <TT>Copied to clipboard! Paste anywhere to share.</TT>
             </div>
           ) : shareCount > 0 ? (
             <div className="mt-2 text-[11.5px] text-muted-foreground">

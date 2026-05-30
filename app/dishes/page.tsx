@@ -12,6 +12,7 @@ import { ROUTES } from '@/lib/constants/routes';
 import { useLanguage } from '@/lib/i18n/language-context';
 import type { DictionaryKey } from '@/lib/i18n/dictionary';
 import { cn } from '@/lib/utils';
+import { TT } from '@/components/shared/translated';
 
 const MOOD_MAP = {
   comfort: 'Comfort Food',
@@ -60,7 +61,7 @@ function DishesPageContent() {
     ? ALL_DISHES.filter((dish) => dish.mood.includes(MOOD_MAP[mood]))
     : ALL_DISHES;
   const copy = SCREEN_COPY[lang];
-  const heading = mood ? `${t(`mood.${mood}` as DictionaryKey)} picks` : copy.title;
+  const moodLabel = mood ? t(`mood.${mood}` as DictionaryKey) : null;
 
   function setMood(nextMood: MoodKey | null) {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -75,13 +76,15 @@ function DishesPageContent() {
 
   return (
     <AppShell className="pb-32">
-      <Header backHref={ROUTES.home} title="Browse Dish Guides" />
+      <Header backHref={ROUTES.home} title={<TT>Browse Dish Guides</TT>} />
 
       <div className="rounded-[26px] border border-border bg-card px-5 py-5 shadow-soft">
         <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-copper">
-          Curated chef-style guides
+          <TT>Curated chef-style guides</TT>
         </div>
-        <div className="mt-2 h-section">{heading}</div>
+        <div className="mt-2 h-section">
+          {moodLabel ? <>{moodLabel} <TT>picks</TT></> : copy.title}
+        </div>
         <div className="mt-3 t-body text-muted-foreground">{copy.subtitle}</div>
       </div>
 
@@ -133,17 +136,17 @@ function DishesPageContent() {
               <div className="flex min-h-[178px] flex-col justify-between px-4 py-4">
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="h-card line-clamp-2">{dish.dishName}</div>
+                    <div className="h-card line-clamp-2"><TT>{dish.dishName}</TT></div>
                     <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
                       <ArrowUpRight className="h-4 w-4" />
                     </span>
                   </div>
-                  <div className="mt-2 t-body text-muted-foreground line-clamp-2">{dish.summary}</div>
+                  <div className="mt-2 t-body text-muted-foreground line-clamp-2"><TT>{dish.summary}</TT></div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2.5">
                   <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary-dark">
-                    {dish.difficulty}
+                    <TT>{dish.difficulty}</TT>
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Clock3 className="h-3.5 w-3.5 text-copper" />

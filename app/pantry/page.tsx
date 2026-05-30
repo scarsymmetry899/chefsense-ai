@@ -4,6 +4,7 @@ import { CircleHelp } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { ScreenCard, SectionEyebrow } from '@/components/dish/screen-kit';
+import { TT } from '@/components/shared/translated';
 import { ROUTES } from '@/lib/constants/routes';
 import { ALL_DISHES } from '@/lib/data/dishes';
 import { getToolReference } from '@/lib/dish-flow';
@@ -29,13 +30,13 @@ export default function PantryPage() {
 
   return (
     <AppShell>
-      <Header backHref={ROUTES.home} title="Tools" />
+      <Header backHref={ROUTES.home} title={<TT>Tools</TT>} />
 
       <ScreenCard>
-        <SectionEyebrow label="Kitchen reference" />
-        <div className="h-section">Pans, appliances, and prep tools used in your guided dishes.</div>
+        <SectionEyebrow label={<TT>Kitchen reference</TT>} />
+        <div className="h-section"><TT>Pans, appliances, and prep tools used in your guided dishes.</TT></div>
         <div className="mt-3 t-body text-muted-foreground">
-          Tap any tool to open a quick reference image so you know exactly what to grab from the kitchen.
+          <TT>Tap any tool to open a quick reference image so you know exactly what to grab from the kitchen.</TT>
         </div>
       </ScreenCard>
 
@@ -46,8 +47,8 @@ export default function PantryPage() {
           <ScreenCard key={item} className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="h-card text-[18px]">{item}</div>
-                <div className="mt-1 t-body text-muted-foreground">{ref.description}</div>
+                <div className="h-card text-[18px]"><TT>{item}</TT></div>
+                <div className="mt-1 t-body text-muted-foreground"><TT>{ref.description}</TT></div>
               </div>
               <a
                 href={ref.infoUrl}

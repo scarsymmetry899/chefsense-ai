@@ -27,6 +27,7 @@ import { ROUTES } from '@/lib/constants/routes';
 import { getBaseServings, getToolReference, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { useLocalizedDishView } from '@/lib/i18n/use-localized-dish';
+import { TT } from '@/components/shared/translated';
 import { playSoundEffect } from '@/lib/sound-effects';
 import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
 import { recordRecentlyViewedDish } from '@/lib/user-state';
@@ -121,8 +122,8 @@ export default function DishPage() {
             <h1 className="h-section">{localized.dishName}</h1>
             <p className="mt-3 t-body-lg text-muted-foreground">{setupBody}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
-              <StatusPill label={`${checked.length}/${dish.ingredients.length} ready`} tone="green" />
+              <StatusPill label={<>{servings} {servings === 1 ? <TT>person</TT> : <TT>people</TT>}</>} />
+              <StatusPill label={<>{checked.length}/{dish.ingredients.length} <TT>ready</TT></>} tone="green" />
             </div>
           </div>
         </div>
@@ -130,25 +131,25 @@ export default function DishPage() {
         <div className="border-t border-border/70 px-5 py-5">
           <div className="flex items-center justify-between gap-3 t-body-lg">
             <span className="font-medium text-foreground">{ingredientTitle}</span>
-            <span className="text-muted-foreground">{progress}% ready</span>
+            <span className="text-muted-foreground">{progress}% <TT>ready</TT></span>
           </div>
           <ProgressBar value={progress} className="mt-4" />
         </div>
       </ScreenCard>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <MetricTile icon={Users} title="Servings" value={`${servings}`} detail="Selected for this cook" />
-        <MetricTile icon={ShoppingBasket} title="Ingredients" value={`${dish.ingredients.length}`} detail="Checklist items" />
-        <MetricTile icon={UtensilsCrossed} title="Tools" value={`${dish.tools.length}`} detail="To keep ready" />
+        <MetricTile icon={Users} title={<TT>Servings</TT>} value={`${servings}`} detail={<TT>Selected for this cook</TT>} />
+        <MetricTile icon={ShoppingBasket} title={<TT>Ingredients</TT>} value={`${dish.ingredients.length}`} detail={<TT>Checklist items</TT>} />
+        <MetricTile icon={UtensilsCrossed} title={<TT>Tools</TT>} value={`${dish.tools.length}`} detail={<TT>To keep ready</TT>} />
       </div>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={Scale} label="Serving Size" className="mb-1" />
-            <h2 className="h-card">How many people are you cooking for?</h2>
+            <SectionEyebrow icon={Scale} label={<TT>Serving Size</TT>} className="mb-1" />
+            <h2 className="h-card"><TT>How many people are you cooking for?</TT></h2>
           </div>
-          <StatusPill label={`${servings} ${servings === 1 ? 'person' : 'people'}`} />
+          <StatusPill label={<>{servings} {servings === 1 ? <TT>person</TT> : <TT>people</TT>}</>} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           {SERVING_OPTIONS.map((option) => {
@@ -167,7 +168,7 @@ export default function DishPage() {
                     : 'rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground'
                 }
               >
-                {option} {option === 1 ? 'person' : 'people'}
+                {option} {option === 1 ? <TT>person</TT> : <TT>people</TT>}
               </button>
             );
           })}
@@ -177,11 +178,11 @@ export default function DishPage() {
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={Leaf} label="What you need" className="mb-1" />
+            <SectionEyebrow icon={Leaf} label={<TT>What you need</TT>} className="mb-1" />
             <h2 className="h-card">{ingredientTitle}</h2>
           </div>
           <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
-            Source-backed plan
+            <TT>Source-backed plan</TT>
           </Link>
         </div>
 
@@ -237,8 +238,8 @@ export default function DishPage() {
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={UtensilsCrossed} label="Tools checklist" className="mb-1" />
-            <h2 className="h-card">Pans and equipment for this dish</h2>
+            <SectionEyebrow icon={UtensilsCrossed} label={<TT>Tools checklist</TT>} className="mb-1" />
+            <h2 className="h-card"><TT>Pans and equipment for this dish</TT></h2>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -272,10 +273,18 @@ export default function DishPage() {
             <ShoppingBasket className="h-6 w-6" />
             <span className="flex flex-col leading-tight">
               <span className="font-serif text-[20px]">
-                {hasProgress ? `Resume from Step ${resumeStep}` : allChecked ? 'Start Kitchen Prep' : 'Continue to Kitchen Prep'}
+                {hasProgress
+                  ? <TT>{`Resume from Step ${resumeStep}`}</TT>
+                  : allChecked
+                    ? <TT>Start Kitchen Prep</TT>
+                    : <TT>Continue to Kitchen Prep</TT>}
               </span>
               <span className="text-sm text-white/90">
-                {hasProgress ? 'Your timer and progress are still saved.' : allChecked ? 'Everything is in place for the next step.' : 'You can still update this checklist anytime.'}
+                {hasProgress
+                  ? <TT>Your timer and progress are still saved.</TT>
+                  : allChecked
+                    ? <TT>Everything is in place for the next step.</TT>
+                    : <TT>You can still update this checklist anytime.</TT>}
               </span>
             </span>
           </span>

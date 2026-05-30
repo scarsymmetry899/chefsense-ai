@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Clock, Eye, Flame, Loader2, Pencil, Share2 } from 'lucide-react';
+import { TT } from '@/components/shared/translated';
 import { AppShell } from '@/components/shell/app-shell';
 import { Header } from '@/components/shell/header';
 import { ScreenCard, SectionEyebrow, StatusPill } from '@/components/dish/screen-kit';
@@ -88,7 +89,7 @@ function ScoreGauge({
         </div>
         {label ? (
           <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {label}
+            <TT>{label}</TT>
           </div>
         ) : null}
       </div>
@@ -121,7 +122,7 @@ function StatCard({
         <Icon className="h-4 w-4" />
       </div>
       <div className="mt-3 text-[12px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
+        <TT>{label}</TT>
       </div>
       <div className="mt-1 font-sans text-[30px] font-semibold leading-none tracking-[-0.04em] text-foreground tabular-nums">
         {value}
@@ -297,11 +298,11 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <Header backHref={ROUTES.home} title="Profile" />
+      <Header backHref={ROUTES.home} title={<TT>Profile</TT>} />
 
       {/* IDENTITY CARD — avatar + name/phone (display from auth) + editable tagline. */}
       <ScreenCard>
-        <SectionEyebrow label="Your cooking profile" />
+        <SectionEyebrow label={<TT>Your cooking profile</TT>} />
 
         <div className="flex flex-col items-center gap-4 text-center">
           <button
@@ -327,7 +328,7 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center gap-1 px-2 text-center">
                 <Camera className="h-6 w-6" />
                 <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
-                  Add picture
+                  <TT>Add picture</TT>
                 </span>
               </div>
             )}
@@ -376,25 +377,25 @@ export default function ProfilePage() {
             onClick={handleSaveProfile}
             className="mt-3 w-full rounded-full border border-primary/20 gradient-cta px-5 py-3 text-sm font-semibold text-white shadow-cta"
           >
-            Save profile
+            <TT>Save profile</TT>
           </button>
         ) : null}
         {saved ? (
           <div className="mt-3 flex justify-center">
-            <StatusPill label="Profile synced" tone="green" />
+            <StatusPill label={<TT>Profile synced</TT>} tone="green" />
           </div>
         ) : null}
       </ScreenCard>
 
       {/* CHEFSCORE CARD — centered gauge with summary. */}
       <ScreenCard className="mt-5">
-        <SectionEyebrow label="ChefScore average" />
+        <SectionEyebrow label={<TT>ChefScore average</TT>} />
         <div className="flex flex-col items-center gap-3">
-          <ScoreGauge score={averageScore || 0} label="avg score" />
+          <ScoreGauge score={averageScore || 0} label="Avg score" />
           <div className="text-center text-xs leading-5 text-muted-foreground">
             {completed.length
               ? `${completed.length} completed cooking session${completed.length === 1 ? '' : 's'} tracked`
-              : 'Your completed sessions will appear here once you finish a full guided cook.'}
+              : <TT>Your completed sessions will appear here once you finish a full guided cook.</TT>}
           </div>
         </div>
       </ScreenCard>
@@ -418,7 +419,7 @@ export default function ProfilePage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <SectionEyebrow label="Completed session" />
+                    <SectionEyebrow label={<TT>Completed session</TT>} />
                     <div className="font-serif text-[22px] leading-tight text-foreground">
                       {dish.dishName}
                     </div>
@@ -452,10 +453,9 @@ export default function ProfilePage() {
             ))
           ) : (
             <ScreenCard className="w-[260px] shrink-0">
-              <SectionEyebrow label="Completed session" />
+              <SectionEyebrow label={<TT>Completed session</TT>} />
               <div className="text-sm leading-6 text-muted-foreground">
-                Finish a full cooking session and your breakdown will show up here with score, time,
-                and what to improve next.
+                <TT>Finish a full cooking session and your breakdown will show up here with score, time, and what to improve next.</TT>
               </div>
             </ScreenCard>
           )}
