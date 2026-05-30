@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Bell,
@@ -138,6 +138,7 @@ export default function DishFinishPage() {
   const [selectedTouches, setSelectedTouches] = useState<string[]>([]);
   const [selfRatings, setSelfRatings] = useState<Partial<Record<AxisKey, SelfRating>>>({});
   const [openAxis, setOpenAxis] = useState<AxisKey | null>(null);
+  const recordedRef = useRef(false);
   const [explainCache, setExplainCache] = useState<
     Record<string, { loading: boolean; data?: ExplainResponse }>
   >({});
@@ -234,6 +235,11 @@ export default function DishFinishPage() {
   useEffect(() => {
     const stored = getStoredCookingSession(dish.dishId);
     if (!stored?.finishedAt) return;
+    // Guard: only record once per page load regardless of how many times
+    // overallBalance changes (each taste-axis tap would otherwise create
+    // a duplicate entry in the completed-dish history).
+    if (recordedRef.current) return;
+    recordedRef.current = true;
     recordCompletedDish({
       dishId: dish.dishId,
       finishedAt: stored.finishedAt,

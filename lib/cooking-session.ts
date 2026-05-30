@@ -48,10 +48,12 @@ export function getResumeStepForDish(dishId: string, fallbackStep = 1) {
 
 export function hasInProgressDish(dishId: string) {
   const stored = getStoredCookingSession(dishId);
+  // activeStep >= 1 is always true (it's the default), so we require actual
+  // cooking activity: at least one step completed or time elapsed on any step.
   return Boolean(
     stored &&
       !stored.finishedAt &&
-      (stored.activeStep >= 1 || stored.completedSteps.length > 0 || Object.keys(stored.elapsedByStep).length > 0),
+      (stored.completedSteps.length > 0 || Object.keys(stored.elapsedByStep).length > 0),
   );
 }
 
@@ -105,6 +107,8 @@ export function useCookingSession(dishId: string, initialStep: number) {
   const [now, setNow] = useState(() => Date.now());
   const hasHydratedRef = useRef(false);
   const lastSyncedRef = useRef<string | null>(null);
+  // Always holds the latest state for the unmount flush below.
+  const stateRef = useRef(state);
 
   // Hydrate from localStorage first (instant), then from Supabase (async,
   // last-write-wins). The Supabase hydrate may update localStorage which we
@@ -163,6 +167,11 @@ export function useCookingSession(dishId: string, initialStep: number) {
     };
   }, [storageKey]);
 
+  // Keep stateRef current so the unmount effect can read the latest value.
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   // Persist locally + push to Supabase on every change, but skip the first
   // render before hydration completes (otherwise we'd overwrite remote state
   // with the empty default).
@@ -179,6 +188,32 @@ export function useCookingSession(dishId: string, initialStep: number) {
       // Ignore write failures.
     }
   }, [state, storageKey]);
+
+  // Commit elapsed time when the cook page unmounts (back navigation, tab close).
+  // setState is a no-op on unmounted components, so we write directly to storage.
+  useEffect(() => {
+    return () => {
+      const s = stateRef.current;
+      if (!s.runningStep || !s.startedAt) return;
+      const nowTs = Date.now();
+      const stepIndex = s.runningStep;
+      const elapsed =
+        (s.elapsedByStep[stepIndex] ?? 0) + Math.floor((nowTs - s.startedAt) / 1000);
+      const committed: CookingSessionState = {
+        ...s,
+        runningStep: null,
+        startedAt: null,
+        elapsedByStep: { ...s.elapsedByStep, [stepIndex]: elapsed },
+      };
+      try {
+        writeLocalJson(storageKey, committed);
+        void syncKeyToSupabase(storageKey, committed);
+      } catch {
+        // Best-effort — storage may be unavailable during unload.
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]); // intentionally empty after storageKey — runs only on unmount
 
   useEffect(() => {
     if (!state.runningStep || !state.startedAt) return undefined;

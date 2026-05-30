@@ -78,8 +78,8 @@ export function getShareActions() {
 export function getProfileSettings(): ProfileSettings {
   const stored = readLocalJson<Partial<ProfileSettings>>(PROFILE_KEY, {});
   return {
-    name: stored.name ?? 'Abhit',
-    phone: stored.phone ?? '+91',
+    name: stored.name ?? '',
+    phone: stored.phone ?? '',
     tagline: stored.tagline ?? 'ChefSense home cook • guided Indian cooking enthusiast',
     avatarUrl: stored.avatarUrl ?? null,
   };
