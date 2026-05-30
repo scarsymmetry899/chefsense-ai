@@ -5,15 +5,13 @@ import {
   MessageCircleMore,
   Mic,
   MicOff,
-  PhoneOff,
   RefreshCw,
   Send,
   ShieldOff,
-  Volume2,
+  Square,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { getSupabaseSession } from '@/lib/persistence/supabase-browser';
-import { getDish } from '@/lib/data/dishes';
 import type { LanguageCode } from '@/lib/i18n/dictionary';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -30,22 +28,26 @@ type VoiceChatPanelProps = {
   placeholder: string;
 };
 
-type VoiceMode = 'idle' | 'connecting' | 'active' | 'error';
-
 type MicErrorType = 'overlay' | 'denied' | 'notfound' | 'generic';
 type MicError = { type: MicErrorType; message: string; retryable: boolean };
-
-type VoiceLine = {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-};
 
 type ChatMessage = {
   id: string;
   role: 'assistant' | 'user';
   text: string;
+  source?: 'openai' | 'fallback' | 'voice';
+  audioUrl?: string;
+};
+
+type VoiceTurnResponse = {
+  ok: boolean;
+  transcript?: string;
+  reply?: string;
+  audioBase64?: string;
+  audioMime?: string;
   source?: 'openai' | 'fallback';
+  error?: string;
+  warnings?: string[];
 };
 
 type VoiceCoachResponse = {
@@ -73,8 +75,7 @@ async function classifyMicError(err: unknown): Promise<MicError> {
   if (name === 'NotAllowedError' && (msg.includes('overlay') || msg.includes('bubble'))) {
     return {
       type: 'overlay',
-      message:
-        'Close any floating apps or chat bubbles on your screen, then tap Voice Mode again.',
+      message: 'Close any floating apps or chat bubbles on your screen, then tap Talk to chef again.',
       retryable: true,
     };
   }
@@ -84,15 +85,13 @@ async function classifyMicError(err: unknown): Promise<MicError> {
       if (status.state === 'denied') {
         return {
           type: 'denied',
-          message:
-            'Microphone blocked. Open your browser settings, allow the mic for this site, then reload.',
+          message: 'Microphone blocked. Open browser settings, allow the mic for this site, then reload.',
           retryable: false,
         };
       }
       return {
         type: 'overlay',
-        message:
-          'A floating app blocked the mic permission. Close any overlays or bubbles and try again.',
+        message: 'A floating app blocked the mic permission. Close any overlays and try again.',
         retryable: true,
       };
     } catch {
@@ -117,41 +116,6 @@ async function classifyMicError(err: unknown): Promise<MicError> {
   };
 }
 
-/** Best-effort save of a voice transcript line to Supabase voice_turns. */
-async function persistVoiceLine(opts: {
-  accessToken: string;
-  dishId: string;
-  stepIndex: number;
-  locale: string;
-  role: 'user' | 'assistant';
-  text: string;
-}) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey || !opts.accessToken) return;
-  try {
-    await fetch(`${supabaseUrl.replace(/\/+$/, '')}/rest/v1/voice_turns`, {
-      method: 'POST',
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${opts.accessToken}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({
-        dish_id: opts.dishId,
-        step_index: opts.stepIndex,
-        locale: opts.locale,
-        role: opts.role,
-        transcript: opts.text,
-        source: 'voice',
-      }),
-    });
-  } catch {
-    // best-effort
-  }
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function VoiceChatPanel({
@@ -168,18 +132,10 @@ export function VoiceChatPanel({
   const { lang } = useLanguage();
   const locale = localeFromLang(lang);
 
-  // ── Voice (WebRTC) state ──
-  const [voiceMode, setVoiceMode] = useState<VoiceMode>('idle');
-  const [voiceLines, setVoiceLines] = useState<VoiceLine[]>([]);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [micError, setMicError] = useState<MicError | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
-
-  // ── Text chat state — persisted to localStorage per dish ──
+  // ── Chat state — persisted to localStorage per dish ──
   const chatStorageKey = `chefsense.chat.${dishId}`;
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    // Hydrate from localStorage on first render (client only).
     if (typeof window === 'undefined') return [];
     try {
       const raw = window.localStorage.getItem(`chefsense.chat.${dishId}`);
@@ -187,37 +143,29 @@ export function VoiceChatPanel({
     } catch { /* ignore */ }
     return [];
   });
+
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatActive, setChatActive] = useState(false);
   const [chatFocusKey, setChatFocusKey] = useState(0);
 
-  // ── WebRTC refs ──
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const dataChannelRef = useRef<RTCDataChannel | null>(null);
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
-  const reconnectCountRef = useRef(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepIndexRef = useRef(stepIndex);
+  // ── Voice recording state ──
+  const [recording, setRecording] = useState(false);
+  const [micError, setMicError] = useState<MicError | null>(null);
 
-  // ── Text chat refs ──
+  // ── Refs ──
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<BlobPart[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
   const greetedRef = useRef(false);
   const chatInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Keep stepIndexRef current so data-channel updates can read it ──
-  useEffect(() => {
-    stepIndexRef.current = stepIndex;
-  }, [stepIndex]);
 
   // ── Persist chat messages to localStorage whenever they change ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      // Limit stored history to last 40 messages to avoid localStorage bloat.
-      const toStore = chatMessages.slice(-40);
-      window.localStorage.setItem(chatStorageKey, JSON.stringify(toStore));
+      window.localStorage.setItem(chatStorageKey, JSON.stringify(chatMessages.slice(-40)));
     } catch { /* ignore */ }
   }, [chatMessages, chatStorageKey]);
 
@@ -226,7 +174,6 @@ export function VoiceChatPanel({
     if (!expanded) return;
     if (greetedRef.current && chatMessages.length > 0) return;
     greetedRef.current = true;
-    // Only add primer if no messages exist at all
     setChatMessages((current) => {
       if (current.length > 0) return current;
       return [{ id: `primer-${stepIndex}`, role: 'assistant', text: primer, source: 'fallback' }];
@@ -235,13 +182,7 @@ export function VoiceChatPanel({
 
   useEffect(() => {
     setChatError(null);
-    // Push updated step context to an active voice session when step changes.
-    if (voiceMode === 'active' && dataChannelRef.current?.readyState === 'open') {
-      pushStepContextUpdate();
-    }
-    // NOTE: We do NOT clear chatMessages on step change — conversation history
-    // persists across the entire dish so the AI has full context.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // NOTE: conversation history persists across steps for full dish context.
   }, [stepIndex]);
 
   // ── Auto-focus chat input ──
@@ -251,326 +192,147 @@ export function VoiceChatPanel({
     return () => window.clearTimeout(id);
   }, [chatFocusKey]);
 
-  // ── Cleanup on unmount ──
+  // ── Clean up mic on unmount ──
   useEffect(() => {
     return () => {
-      teardownVoice();
+      audioStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Background tab handling — mute mic when the page is hidden ──
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      const tracks = localStreamRef.current?.getAudioTracks() ?? [];
-      tracks.forEach((t) => {
-        t.enabled = document.visibilityState === 'visible';
-      });
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // WebRTC voice helpers
+  // Audio helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  function teardownVoice() {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
-    localStreamRef.current = null;
-    dataChannelRef.current?.close();
-    dataChannelRef.current = null;
-    pcRef.current?.close();
-    pcRef.current = null;
-    if (audioElRef.current) {
-      audioElRef.current.srcObject = null;
-    }
-  }
-
-  /** Inject the current step's data into an active session via the data channel. */
-  function pushStepContextUpdate() {
-    const dc = dataChannelRef.current;
-    if (!dc || dc.readyState !== 'open') return;
-    const dish = getDish(dishId);
-    const step = dish?.cookingSteps.find((s) => s.index === stepIndexRef.current);
-    if (!step) return;
-
-    const cueFor = (type: string) => step.sensoryCues.find((c) => c.type === type)?.cue;
-    const cues = [
-      cueFor('visual') && `Visual: ${cueFor('visual')}`,
-      cueFor('smell') && `Smell: ${cueFor('smell')}`,
-      cueFor('sound') && `Sound: ${cueFor('sound')}`,
-      cueFor('texture') && `Texture: ${cueFor('texture')}`,
-    ]
-      .filter(Boolean)
-      .join(' | ');
-
-    const contextPayload = {
-      type: 'conversation.item.create',
-      item: {
-        type: 'message',
-        role: 'system',
-        content: [
-          {
-            type: 'input_text',
-            text: [
-              `The user has moved to Step ${step.index}: "${step.title}".`,
-              `Instruction: ${step.instruction}`,
-              `Heat: ${step.heat} | Duration: ~${Math.ceil(step.durationSec / 60)} min`,
-              cues ? `Sensory cues: ${cues}` : '',
-              step.foodScience ? `Food science: ${step.foodScience}` : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
-          },
-        ],
-      },
-    };
-
+  const playAudio = useCallback((base64: string, mime: string) => {
+    if (typeof window === 'undefined') return;
     try {
-      dc.send(JSON.stringify(contextPayload));
-    } catch {
-      // best-effort
-    }
-  }
+      const binary = window.atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.addEventListener('ended', () => URL.revokeObjectURL(url));
+      audio.play().catch(() => URL.revokeObjectURL(url));
+    } catch { /* best-effort */ }
+  }, []);
 
-  const handleDataChannelMessage = useCallback(
-    (event: MessageEvent) => {
-      let parsed: Record<string, unknown>;
+  const sendAudioBlob = useCallback(
+    async (blob: Blob) => {
+      if (pending) return;
+      setPending(true);
+      setChatError(null);
+
       try {
-        parsed = JSON.parse(event.data as string) as Record<string, unknown>;
-      } catch {
-        return;
-      }
+        const session = getSupabaseSession();
+        const form = new FormData();
+        form.append('audio', blob, 'turn.webm');
+        form.append('dishId', dishId);
+        form.append('currentStep', String(stepIndex));
+        form.append('locale', locale);
 
-      const type = parsed.type as string | undefined;
+        const resp = await fetch('/api/voice/turn', {
+          method: 'POST',
+          headers: session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : undefined,
+          body: form,
+        });
+        const payload = (await resp.json()) as VoiceTurnResponse;
 
-      // ── User transcript completed ──
-      if (type === 'conversation.item.input_audio_transcription.completed') {
-        const text = (parsed.transcript as string | undefined)?.trim();
-        if (text) {
-          const line: VoiceLine = { id: newId(), role: 'user', text };
-          setVoiceLines((l) => [...l, line]);
-          const session = getSupabaseSession();
-          if (session?.accessToken) {
-            void persistVoiceLine({
-              accessToken: session.accessToken,
-              dishId,
-              stepIndex: stepIndexRef.current,
-              locale,
-              role: 'user',
-              text,
-            });
+        if (!payload.ok) {
+          const msg = payload.error ?? 'Voice turn failed.';
+          // Friendly message for empty transcription
+          if (msg === 'transcription_failed') {
+            throw new Error("We didn't catch that. Tap 'Talk to chef', speak clearly, then tap 'Stop & send'.");
           }
+          throw new Error(msg);
         }
-      }
 
-      // ── Assistant text transcript done ──
-      if (type === 'response.audio_transcript.done') {
-        const text = (parsed.transcript as string | undefined)?.trim();
-        if (text) {
-          const line: VoiceLine = { id: newId(), role: 'assistant', text };
-          setVoiceLines((l) => [...l, line]);
-          const session = getSupabaseSession();
-          if (session?.accessToken) {
-            void persistVoiceLine({
-              accessToken: session.accessToken,
-              dishId,
-              stepIndex: stepIndexRef.current,
-              locale,
-              role: 'assistant',
-              text,
-            });
-          }
+        if (payload.transcript) {
+          setChatMessages((c) => [
+            ...c,
+            { id: newId(), role: 'user', text: payload.transcript!, source: 'voice' },
+          ]);
         }
-      }
-
-      // ── OpenAI realtime error event ──
-      if (type === 'error') {
-        const errObj = parsed.error as Record<string, unknown> | undefined;
-        const msg = (errObj?.message as string | undefined) ?? 'Unknown voice error.';
-        setVoiceError(msg);
+        if (payload.reply) {
+          setChatMessages((c) => [
+            ...c,
+            { id: newId(), role: 'assistant', text: payload.reply!, source: payload.source },
+          ]);
+        }
+        if (payload.audioBase64 && payload.audioMime) {
+          playAudio(payload.audioBase64, payload.audioMime);
+        }
+      } catch (err) {
+        setChatError(err instanceof Error ? err.message : 'Could not process voice.');
+      } finally {
+        setPending(false);
       }
     },
-    [dishId, locale],
+    [dishId, locale, pending, playAudio, stepIndex],
   );
 
-  const startVoiceMode = useCallback(async () => {
-    if (voiceMode === 'connecting' || voiceMode === 'active') return;
-    setVoiceMode('connecting');
-    setVoiceError(null);
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+    audioStreamRef.current = null;
+    setRecording(false);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setMicError({ type: 'notfound', message: 'Microphone not available in this browser. Use the Chat tab.', retryable: false });
+      return;
+    }
     setMicError(null);
 
-    // 1. Acquire mic before spending the API token
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
-      const classified = await classifyMicError(err);
-      setMicError(classified);
-      setVoiceMode('error');
-      return;
-    }
-    localStreamRef.current = stream;
-
-    // 2. Fetch an ephemeral session token from our backend
-    let ephemeralKey: string;
-    try {
-      const session = getSupabaseSession();
-      const resp = await fetch('/api/voice/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
-        },
-        body: JSON.stringify({ dishId, stepIndex: stepIndexRef.current, locale }),
-      });
-      if (!resp.ok) {
-        // Read the body to surface the actual OpenAI error to the user.
-        let detail = `HTTP ${resp.status}`;
-        try {
-          const errBody = (await resp.json()) as { message?: string; hint?: string };
-          if (errBody.message) detail = errBody.hint ? `${errBody.message} ${errBody.hint}` : errBody.message;
-        } catch { /* ignore */ }
-        throw new Error(detail);
-      }
-      const data = (await resp.json()) as { client_secret?: { value?: string } };
-      ephemeralKey = data.client_secret?.value ?? '';
-      if (!ephemeralKey) throw new Error('empty_ephemeral_key');
-    } catch (err) {
-      teardownVoice();
-      const msg = err instanceof Error ? err.message : 'network error';
-      setVoiceError(`Voice session failed: ${msg}. Use the Chat tab while this is resolved.`);
-      setVoiceMode('error');
+      setMicError(await classifyMicError(err));
       return;
     }
 
-    // 3. Create WebRTC peer connection
-    const pc = new RTCPeerConnection();
-    pcRef.current = pc;
+    audioStreamRef.current = stream;
+    mediaChunksRef.current = [];
 
-    // Remote audio playback element
-    if (!audioElRef.current) {
-      audioElRef.current = document.createElement('audio');
-      audioElRef.current.autoplay = true;
-    }
-    pc.ontrack = (e) => {
-      if (audioElRef.current) audioElRef.current.srcObject = e.streams[0];
-    };
+    const recorder = new MediaRecorder(stream, {
+      mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm',
+    });
+    mediaRecorderRef.current = recorder;
 
-    // Add local mic tracks
-    stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-
-    // 4. Create data channel for events / context injection
-    const dc = pc.createDataChannel('oai-events');
-    dataChannelRef.current = dc;
-
-    dc.addEventListener('open', () => {
-      setVoiceMode('active');
-      reconnectCountRef.current = 0;
+    recorder.addEventListener('dataavailable', (e) => {
+      if (e.data && e.data.size > 0) mediaChunksRef.current.push(e.data);
+    });
+    recorder.addEventListener('stop', () => {
+      const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      mediaChunksRef.current = [];
+      if (blob.size > 0) void sendAudioBlob(blob);
     });
 
-    dc.addEventListener('message', handleDataChannelMessage);
-
-    dc.addEventListener('error', () => {
-      setVoiceError('Data channel error. Tap End and try again.');
-    });
-
-    // 5. ICE failure / disconnect detection
-    pc.oniceconnectionstatechange = () => {
-      const state = pc.iceConnectionState;
-      if (state === 'failed') {
-        handleVoiceFailure('Connection lost — unable to reconnect. Please retry.');
-      } else if (state === 'disconnected') {
-        // Attempt a single silent reconnect
-        if (reconnectCountRef.current < 3) {
-          reconnectCountRef.current += 1;
-          reconnectTimerRef.current = setTimeout(() => {
-            void startVoiceMode();
-          }, 1500 * reconnectCountRef.current);
-        } else {
-          handleVoiceFailure('Connection dropped after several retries. Please retry manually.');
-        }
-      }
-    };
-
-    // 6. SDP offer → OpenAI → answer
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const baseUrl = 'https://api.openai.com/v1/realtime';
-      const model =
-        process.env.NEXT_PUBLIC_OPENAI_REALTIME_MODEL ?? 'gpt-4o-realtime-preview-2024-12-17';
-      const sdpResp = await fetch(`${baseUrl}?model=${model}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${ephemeralKey}`,
-          'Content-Type': 'application/sdp',
-        },
-        body: offer.sdp,
-      });
-      if (!sdpResp.ok) {
-        throw new Error(`sdp_http_${sdpResp.status}`);
-      }
-      const answerSdp = await sdpResp.text();
-      await pc.setRemoteDescription({ type: 'answer' as RTCSdpType, sdp: answerSdp });
-    } catch (err) {
-      teardownVoice();
-      setVoiceError(
-        `Failed to connect to voice AI: ${err instanceof Error ? err.message : 'network error'}. Use the Chat tab below.`,
-      );
-      setVoiceMode('error');
-    }
-  }, [voiceMode, dishId, locale, handleDataChannelMessage]);
-
-  function handleVoiceFailure(message: string) {
-    teardownVoice();
-    setVoiceError(message);
-    setVoiceMode('error');
-  }
-
-  const stopVoiceMode = useCallback(() => {
-    teardownVoice();
-    setVoiceMode('idle');
-    setVoiceError(null);
-  }, []);
-
-  const toggleMute = useCallback(() => {
-    const tracks = localStreamRef.current?.getAudioTracks() ?? [];
-    tracks.forEach((t) => {
-      t.enabled = isMuted;
-    });
-    setIsMuted((m) => !m);
-  }, [isMuted]);
+    recorder.start();
+    setRecording(true);
+  }, [sendAudioBlob]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Text chat helpers (unchanged from previous implementation)
+  // Text chat
   // ─────────────────────────────────────────────────────────────────────────
 
   const sendText = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || pending) return;
-
-      const userMsg: ChatMessage = { id: newId(), role: 'user', text: trimmed };
-      setChatMessages((c) => [...c, userMsg]);
+      setChatMessages((c) => [...c, { id: newId(), role: 'user', text: trimmed }]);
       setPending(true);
       setChatError(null);
 
       try {
         const session = getSupabaseSession();
-
-        // Send the last 8 turns (4 exchanges) as history so the AI has
-        // full conversational context across step changes and navigations.
-        const historySnapshot = chatMessages.slice(-8).map((m) => ({
-          role: m.role,
-          text: m.text,
-        }));
+        const historySnapshot = chatMessages.slice(-8).map((m) => ({ role: m.role, text: m.text }));
 
         const resp = await fetch('/api/voice-coach', {
           method: 'POST',
@@ -578,13 +340,7 @@ export function VoiceChatPanel({
             'Content-Type': 'application/json',
             ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
           },
-          body: JSON.stringify({
-            dishId,
-            currentStep: stepIndex,
-            question: trimmed,
-            locale,
-            history: historySnapshot,
-          }),
+          body: JSON.stringify({ dishId, currentStep: stepIndex, question: trimmed, locale, history: historySnapshot }),
         });
         const payload = (await resp.json()) as VoiceCoachResponse;
         if (!payload.ok || !payload.reply) throw new Error(payload.error ?? 'No response.');
@@ -608,27 +364,7 @@ export function VoiceChatPanel({
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Render helpers
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const voiceStatusLabel =
-    voiceMode === 'connecting'
-      ? 'Connecting…'
-      : voiceMode === 'active'
-        ? isMuted
-          ? 'Muted'
-          : 'Listening…'
-        : '';
-
-  const voiceStatusColor =
-    voiceMode === 'connecting'
-      ? 'text-amber-600'
-      : voiceMode === 'active' && !isMuted
-        ? 'text-accent-green'
-        : 'text-muted-foreground';
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // JSX
+  // Render
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
@@ -641,106 +377,58 @@ export function VoiceChatPanel({
         <div className="text-sm text-muted-foreground">{helperHint}</div>
       </div>
 
-      {/* ── VOICE MODE UI ── */}
-      {voiceMode === 'active' || voiceMode === 'connecting' ? (
-        <div className="mt-4 space-y-3">
-          {/* Status bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-flex h-2 w-2 rounded-full ${voiceMode === 'active' && !isMuted ? 'animate-pulse bg-accent-green' : 'bg-amber-400'}`}
-              />
-              <span className={`text-xs font-medium ${voiceStatusColor}`}>{voiceStatusLabel}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {voiceMode === 'active' ? (
-                <button
-                  type="button"
-                  onClick={toggleMute}
-                  aria-label={isMuted ? 'Unmute' : 'Mute microphone'}
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full border ${isMuted ? 'border-primary bg-primary text-white' : 'border-border bg-card text-muted-foreground'}`}
-                >
-                  {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={stopVoiceMode}
-                aria-label="End voice session"
-                className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1.5 text-xs font-semibold text-white"
-              >
-                <PhoneOff className="h-3.5 w-3.5" />
-                End
-              </button>
-            </div>
-          </div>
-
-          {/* Transcript */}
-          {voiceLines.length === 0 ? (
-            <div className="rounded-[18px] border border-dashed border-border bg-card/60 px-3 py-3 text-sm text-muted-foreground">
-              <Volume2 className="mb-1 h-4 w-4 text-primary" />
-              Start speaking — ChefSense is listening for questions about{' '}
-              <span className="font-medium text-foreground">{stepTitle.toLowerCase()}</span>.
-            </div>
+      {/* Action buttons */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={recording ? stopRecording : () => void startRecording()}
+          disabled={pending}
+          aria-label={recording ? 'Stop recording' : 'Talk to ChefSense'}
+          className={
+            recording
+              ? 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-cta disabled:opacity-50'
+              : 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary-soft px-4 py-2.5 text-sm font-semibold text-primary-dark shadow-soft disabled:opacity-50'
+          }
+        >
+          {recording ? (
+            <>
+              <Square className="h-4 w-4" />
+              <span>Stop &amp; send</span>
+            </>
           ) : (
-            <div className="max-h-52 space-y-2 overflow-y-auto">
-              {voiceLines.map((line) => (
-                <div
-                  key={line.id}
-                  className={
-                    line.role === 'user'
-                      ? 'ml-auto max-w-[88%] rounded-[18px] bg-primary-soft px-3 py-2.5 text-right text-sm text-primary-dark'
-                      : 'mr-auto max-w-[88%] rounded-[18px] bg-card px-3 py-2.5 text-sm text-foreground shadow-soft'
-                  }
-                >
-                  {line.text}
-                </div>
-              ))}
-            </div>
+            <>
+              <Mic className="h-4 w-4" />
+              <span>Talk to chef</span>
+            </>
           )}
-        </div>
-      ) : (
-        /* ── IDLE / ERROR — show action buttons ── */
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => void startVoiceMode()}
-            aria-label="Start real-time voice with chef"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary-soft px-4 py-2.5 text-sm font-semibold text-primary-dark shadow-soft disabled:opacity-50"
-          >
-            <Mic className="h-4 w-4" />
-            <span>Voice Mode</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setChatActive(true);
-              setChatFocusKey((k) => k + 1);
-            }}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-soft"
-            aria-label="Open text chat"
-          >
-            <MessageCircleMore className="h-4 w-4 text-primary" />
-            <span>Chat with chef</span>
-          </button>
-        </div>
-      )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setChatActive(true);
+            setChatFocusKey((k) => k + 1);
+          }}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-soft"
+          aria-label="Open chat input"
+        >
+          <MessageCircleMore className="h-4 w-4 text-primary" />
+          <span>Chat with chef</span>
+        </button>
+      </div>
 
-      {/* ── MIC / VOICE ERROR ── */}
+      {/* Mic error with retry */}
       {micError ? (
         <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5">
           <div className="flex items-start gap-2 text-xs text-primary-dark">
-            {micError.type === 'denied' ? (
-              <ShieldOff className="h-3.5 w-3.5 shrink-0" />
-            ) : (
-              <MicOff className="h-3.5 w-3.5 shrink-0" />
-            )}
+            {micError.type === 'denied'
+              ? <ShieldOff className="h-3.5 w-3.5 shrink-0" />
+              : <MicOff className="h-3.5 w-3.5 shrink-0" />}
             <span>{micError.message}</span>
           </div>
           {micError.retryable ? (
             <button
               type="button"
-              onClick={() => { setMicError(null); void startVoiceMode(); }}
+              onClick={() => { setMicError(null); void startRecording(); }}
               className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1 text-xs font-semibold text-primary"
             >
               <RefreshCw className="h-3 w-3" />
@@ -748,28 +436,16 @@ export function VoiceChatPanel({
             </button>
           ) : null}
         </div>
-      ) : voiceError && voiceMode === 'error' ? (
-        <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5">
-          <p className="text-xs text-primary-dark">{voiceError}</p>
-          <button
-            type="button"
-            onClick={() => { setVoiceError(null); setVoiceMode('idle'); void startVoiceMode(); }}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1 text-xs font-semibold text-primary"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Retry voice
-          </button>
-        </div>
       ) : null}
 
-      {/* ── TEXT CHAT (always available when panel open or chatActive) ── */}
-      {(expanded || chatActive) && voiceMode !== 'active' && voiceMode !== 'connecting' ? (
+      {/* Conversation (voice turns + chat messages share the same thread) */}
+      {(expanded || chatActive) ? (
         <div className="mt-4 space-y-2">
           {chatMessages.length === 0 ? (
             <div className="rounded-[18px] border border-dashed border-border bg-card/60 px-3 py-3 text-sm text-muted-foreground">
               Ask anything about{' '}
-              <span className="font-medium text-foreground">{stepTitle.toLowerCase()}</span> —
-              cues, timing, heat, what to correct.
+              <span className="font-medium text-foreground">{stepTitle.toLowerCase()}</span>
+              {' '}— cues, timing, heat, what to correct.
             </div>
           ) : null}
 
@@ -783,9 +459,7 @@ export function VoiceChatPanel({
               }
             >
               {msg.text}
-              {msg.source === 'fallback' &&
-              msg.role === 'assistant' &&
-              !msg.id.startsWith('primer-') ? (
+              {msg.source === 'fallback' && msg.role === 'assistant' && !msg.id.startsWith('primer-') ? (
                 <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   offline guidance
                 </div>
@@ -812,12 +486,7 @@ export function VoiceChatPanel({
               ref={chatInputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
               placeholder={placeholder}
               disabled={pending}
               className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
