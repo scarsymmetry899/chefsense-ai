@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { callOpenAIJson, hasOpenAIKey } from '@/lib/ai/openai';
 import { getDish } from '@/lib/data/dishes';
+import type { CookingStep, Dish } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
       ? dish.cookingSteps.find((item) => item.index === body.currentStep) ?? dish.cookingSteps[0]
       : dish.cookingSteps[0];
 
-  const fallbackReply = buildFallbackReply(question, step.title, step.beginnerExplanation);
+  const fallbackReply = buildFallbackReply(question, step, dish);
 
   if (!hasOpenAIKey()) {
     const response: VoiceCoachResponse = {
@@ -224,22 +225,53 @@ export async function POST(request: Request) {
   } satisfies VoiceCoachResponse);
 }
 
-function buildFallbackReply(question: string, stepTitle: string, explanation: string) {
+function buildFallbackReply(question: string, step: CookingStep, dish: Dish) {
   const lower = question.toLowerCase();
 
-  if (lower.includes('stick') || lower.includes('burn')) {
-    return 'Lower the heat a little, add a spoon of hot water if needed, and stir gently so the pan does not catch while this step finishes.';
+  // Pan check intent
+  if (lower.includes('pan') || lower.includes('how does it look') || lower.includes('check my') || lower.includes('analyse')) {
+    return 'Tap the AI Pan Checker button below to upload a photo of your pan — it will analyse exactly what\'s happening at this step and give you specific guidance.';
   }
 
-  if (lower.includes('look') || lower.includes('ready')) {
-    return `For ${stepTitle.toLowerCase()}, look for the visual and texture cues on screen before you move on. ${explanation}`;
+  // Timer intent
+  if (lower.includes('how much time') || lower.includes('time left') || (lower.includes('how long') && lower.includes('left'))) {
+    return `Check the timer on your screen. Step ${step.index} "${step.title}" has a target of ${Math.ceil(step.durationSec / 60)} minutes.`;
   }
 
+  // Previous/back intent
+  if (lower.includes('go back') || lower.includes('previous step') || lower.includes('last step') || lower.includes('back to')) {
+    return 'Tap the Prev button above to go back to the previous step.';
+  }
+
+  // Next step / done intent
+  if (lower.includes('done') || lower.includes('next step') || lower.includes('go to next') || lower.includes('move on') || lower.includes('what next') || lower.includes('what do i do next')) {
+    return `When you're ready, tap "Mark step done" below to unlock the next step.`;
+  }
+
+  // Visual cues / what to look for
+  if (lower.includes('visual') || lower.includes('look for') || lower.includes('how to know') || lower.includes('how do i know')) {
+    const cues = step.sensoryCues.map(c => `${c.type}: ${c.cue}`).join('; ');
+    return cues ? `For this step, watch for: ${cues}` : `Check the sensory cue cards on your screen — they show exactly what to look, smell, and listen for.`;
+  }
+
+  // Burning / sticking
+  if (lower.includes('stick') || lower.includes('burn') || lower.includes('smoke')) {
+    return 'Lower the heat immediately. Add a splash of hot water if needed and stir gently to lift anything from the base without scraping.';
+  }
+
+  // Smell / aroma
   if (lower.includes('smell') || lower.includes('aroma')) {
-    return 'Use the aroma cue first. If the raw smell is still sharp, stay on this step a bit longer before marking it done.';
+    return 'Use the aroma cue first. If the raw smell is still sharp, stay on this step a little longer before marking it done.';
   }
 
-  return `Stay with ${stepTitle.toLowerCase()} for now. ${explanation}`;
+  // What steps are left
+  if (lower.includes('steps left') || lower.includes('remaining steps') || lower.includes('how many steps') || lower.includes('steps are left')) {
+    const remaining = dish.cookingSteps.length - step.index;
+    return `You are on Step ${step.index} of ${dish.cookingSteps.length}. There are ${remaining} step${remaining === 1 ? '' : 's'} remaining after this one.`;
+  }
+
+  // Generic — return the step instruction
+  return `For ${step.title.toLowerCase()}: ${step.instruction}`;
 }
 
 async function safeJson(request: Request) {

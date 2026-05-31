@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowRight,
   MessageCircleMore,
   Mic,
   MicOff,
@@ -32,6 +31,12 @@ type VoiceChatPanelProps = {
   onNextStep?: () => void;
   /** Whether there is a next step to navigate to. */
   hasNextStep?: boolean;
+  hasPrevStep?: boolean;
+  onPrevStep?: () => void;
+  remainingSeconds?: number;
+  isTimerRunning?: boolean;
+  onStartTimer?: () => void;
+  onPauseTimer?: () => void;
 };
 
 type MicErrorType = 'overlay' | 'denied' | 'notfound' | 'generic';
@@ -60,25 +65,34 @@ type VoiceCoachResponse = {
   error?: string;
 };
 
-// ─── Step-navigation intent detection ────────────────────────────────────────
+// ─── Command detection ────────────────────────────────────────────────────────
 
-const NEXT_STEP_USER_TRIGGERS = [
-  'next step', 'go to next', 'move on', 'move to next', "i'm done",
-  "i am done", 'what do i do next', 'what should i do next',
-  'proceed', 'what next', "done with this",
+// Tighter next-step detection — avoid false positives from questions about next step
+const NEXT_STEP_TRIGGERS = [
+  'go to next step', 'take me to next step', 'move to next step',
+  'skip to next step', "i'm done, next", 'next step please', 'proceed to next step',
 ];
-
-const NEXT_STEP_AI_CONFIRMS = [
-  'move on to step', 'proceed to step', 'next step is', 'go to step',
-  'let\'s go to step', "you're ready for step", 'ready for the next step',
+// Previous step detection
+const PREV_STEP_TRIGGERS = [
+  'go back', 'previous step', 'go to previous', 'take me back',
+  'last step', 'back to step',
 ];
+// Timer commands
+const START_TIMER_TRIGGERS = ['start the timer', 'start timer', 'begin timer', 'start the clock'];
+const PAUSE_TIMER_TRIGGERS = ['pause the timer', 'pause timer', 'stop the timer', 'stop timer'];
+const TIME_REMAINING_TRIGGERS = ['how much time', 'time left', 'how long left', 'how long remaining'];
+// Pan check commands
+const PAN_CHECK_TRIGGERS = ['check my pan', 'check pan', 'analyse my pan', 'analyze my pan', 'how does my pan', 'how is my pan', 'pan looking', 'look at my pan'];
 
-function shouldNavigateNext(userText: string, aiReply: string): boolean {
-  const u = userText.toLowerCase();
-  const a = aiReply.toLowerCase();
-  const userWants = NEXT_STEP_USER_TRIGGERS.some((p) => u.includes(p));
-  const aiConfirms = NEXT_STEP_AI_CONFIRMS.some((p) => a.includes(p));
-  return userWants || aiConfirms;
+function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
+  const lower = text.toLowerCase();
+  if (NEXT_STEP_TRIGGERS.some(p => lower.includes(p))) return 'next';
+  if (PREV_STEP_TRIGGERS.some(p => lower.includes(p))) return 'prev';
+  if (START_TIMER_TRIGGERS.some(p => lower.includes(p))) return 'start_timer';
+  if (PAUSE_TIMER_TRIGGERS.some(p => lower.includes(p))) return 'pause_timer';
+  if (TIME_REMAINING_TRIGGERS.some(p => lower.includes(p))) return 'time_remaining';
+  if (PAN_CHECK_TRIGGERS.some(p => lower.includes(p))) return 'pan_check';
+  return null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -146,6 +160,12 @@ export function VoiceChatPanel({
   placeholder,
   onNextStep,
   hasNextStep,
+  hasPrevStep,
+  onPrevStep,
+  remainingSeconds,
+  isTimerRunning,
+  onStartTimer,
+  onPauseTimer,
 }: VoiceChatPanelProps) {
   const { lang } = useLanguage();
   const locale = localeFromLang(lang);
@@ -174,6 +194,10 @@ export function VoiceChatPanel({
 
   // ── Next-step navigation prompt ──
   const [showNextStep, setShowNextStep] = useState(false);
+
+  // ── Pan check and fallback tracking ──
+  const [showPanCheckOption, setShowPanCheckOption] = useState(false);
+  const [consecutiveFallbacks, setConsecutiveFallbacks] = useState(0);
 
   // ── Refs ──
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -211,7 +235,7 @@ export function VoiceChatPanel({
   }, [expanded]);
 
   // ── Clear error on step change ──
-  useEffect(() => { setChatError(null); setShowNextStep(false); }, [stepIndex]);
+  useEffect(() => { setChatError(null); setShowNextStep(false); setShowPanCheckOption(false); setConsecutiveFallbacks(0); }, [stepIndex]);
 
   // ── Auto-focus ──
   useEffect(() => {
@@ -303,19 +327,67 @@ export function VoiceChatPanel({
       }
     } catch (err) {
       setChatError(err instanceof Error ? err.message : 'Could not process voice. Try again.');
-    } finally {
       setPending(false);
+      return;
     }
+    setPending(false);
 
-    // Detect step-navigation intent after state has settled
-    if (userSaid && aiSaid && hasNextStep && onNextStep) {
-      if (shouldNavigateNext(userSaid, aiSaid)) {
-        setShowNextStep(true);
-        // Auto-navigate after 2.5 s so user can hear/read the reply first
-        window.setTimeout(() => { setShowNextStep(false); onNextStep(); }, 2500);
+    // Check for app-level commands from voice transcript
+    if (userSaid) {
+      const cmd = detectCommand(userSaid);
+      if (cmd === 'next' && hasNextStep && onNextStep) {
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Moving to the next step now! 🍳", source: 'openai' }]);
+        void speakText("Moving to the next step now!");
+        window.setTimeout(() => onNextStep!(), 800);
+        return;
+      }
+      if (cmd === 'prev' && hasPrevStep && onPrevStep) {
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Going back to the previous step.", source: 'openai' }]);
+        void speakText("Going back to the previous step.");
+        window.setTimeout(() => onPrevStep!(), 800);
+        return;
+      }
+      if (cmd === 'start_timer' && onStartTimer) {
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Timer started! I'll keep track of time for you.", source: 'openai' }]);
+        void speakText("Timer started!");
+        onStartTimer();
+        return;
+      }
+      if (cmd === 'pause_timer' && onPauseTimer) {
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Timer paused.", source: 'openai' }]);
+        void speakText("Timer paused.");
+        onPauseTimer();
+        return;
+      }
+      if (cmd === 'time_remaining') {
+        const mins = Math.floor((remainingSeconds ?? 0) / 60);
+        const secs = (remainingSeconds ?? 0) % 60;
+        const timeStr = mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} and ${secs} second${secs !== 1 ? 's' : ''}` : `${secs} second${secs !== 1 ? 's' : ''}`;
+        const reply = remainingSeconds && remainingSeconds > 0
+          ? `You have ${timeStr} remaining on this step.`
+          : isTimerRunning ? "The timer is running — check the countdown on your screen." : "The timer hasn't started yet. Say 'start timer' or tap the Start button.";
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: reply, source: 'openai' }]);
+        void speakText(reply);
+        return;
+      }
+      if (cmd === 'pan_check') {
+        const panReply = "I can help check your pan! Tap the AI Pan Checker button below, or upload a photo right here and I'll analyse it for this step.";
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: panReply, source: 'openai' }]);
+        void speakText("I can help check your pan! Tap the AI Pan Checker button below to upload a photo.");
+        setShowPanCheckOption(true);
+        return;
       }
     }
-  }, [chatMessages, dishId, hasNextStep, locale, onNextStep, pending, speakText, stepIndex]);
+
+    // Track consecutive fallbacks
+    if (aiSaid) {
+      if (aiSaid.includes("I'm focused on your")) {
+        setConsecutiveFallbacks(f => f + 1);
+      } else {
+        setConsecutiveFallbacks(0);
+      }
+    }
+  }, [chatMessages, dishId, hasPrevStep, hasNextStep, isTimerRunning, locale, onNextStep, onPauseTimer, onPrevStep, onStartTimer, pending, remainingSeconds, speakText, stepIndex]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
@@ -356,6 +428,59 @@ export function VoiceChatPanel({
   const sendText = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || pending) return;
+
+    // Check for app-level commands first
+    const cmd = detectCommand(trimmed);
+
+    if (cmd === 'next' && hasNextStep && onNextStep) {
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Moving to the next step now! 🍳", source: 'openai' }]);
+      void speakText("Moving to the next step now!");
+      window.setTimeout(() => onNextStep!(), 800);
+      return;
+    }
+    if (cmd === 'prev' && hasPrevStep && onPrevStep) {
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Going back to the previous step.", source: 'openai' }]);
+      void speakText("Going back to the previous step.");
+      window.setTimeout(() => onPrevStep!(), 800);
+      return;
+    }
+    if (cmd === 'start_timer' && onStartTimer) {
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Timer started! I'll keep track of time for you.", source: 'openai' }]);
+      void speakText("Timer started!");
+      onStartTimer();
+      return;
+    }
+    if (cmd === 'pause_timer' && onPauseTimer) {
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Timer paused.", source: 'openai' }]);
+      void speakText("Timer paused.");
+      onPauseTimer();
+      return;
+    }
+    if (cmd === 'time_remaining') {
+      const mins = Math.floor((remainingSeconds ?? 0) / 60);
+      const secs = (remainingSeconds ?? 0) % 60;
+      const timeStr = mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} and ${secs} second${secs !== 1 ? 's' : ''}` : `${secs} second${secs !== 1 ? 's' : ''}`;
+      const reply = remainingSeconds && remainingSeconds > 0
+        ? `You have ${timeStr} remaining on this step.`
+        : isTimerRunning ? "The timer is running — check the countdown on your screen." : "The timer hasn't started yet. Tap 'Talk to chef' then say 'start timer' or tap the Start button.";
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: reply, source: 'openai' }]);
+      void speakText(reply);
+      return;
+    }
+    if (cmd === 'pan_check') {
+      setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+      const panReply = "I can help check your pan! Tap the AI Pan Checker button below, or upload a photo right here and I'll analyse it for this step.";
+      setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: panReply, source: 'openai' }]);
+      void speakText("I can help check your pan! Tap the AI Pan Checker button below to upload a photo.");
+      setShowPanCheckOption(true);
+      return;
+    }
+
     const userMsg: ChatMessage = { id: newId(), role: 'user', text: trimmed };
     setChatMessages((c) => [...c, userMsg]);
     setPending(true);
@@ -376,18 +501,18 @@ export function VoiceChatPanel({
       setChatMessages((c) => [...c, { id: newId(), role: 'assistant', text: aiSaid, source: payload.source }]);
       // Speak the reply so the cook stays hands-free
       void speakText(aiSaid);
+      // Track consecutive fallbacks
+      if (aiSaid.includes("I'm focused on your")) {
+        setConsecutiveFallbacks(f => f + 1);
+      } else {
+        setConsecutiveFallbacks(0);
+      }
     } catch (err) {
       setChatError(err instanceof Error ? err.message : 'Could not reach ChefSense.');
     } finally {
       setPending(false);
     }
-
-    // Step navigation intent
-    if (aiSaid && hasNextStep && onNextStep && shouldNavigateNext(trimmed, aiSaid)) {
-      setShowNextStep(true);
-      window.setTimeout(() => { setShowNextStep(false); onNextStep(); }, 2500);
-    }
-  }, [chatMessages, dishId, hasNextStep, locale, onNextStep, pending, speakText, stepIndex]);
+  }, [chatMessages, dishId, hasPrevStep, hasNextStep, isTimerRunning, locale, onNextStep, onPauseTimer, onPrevStep, onStartTimer, pending, remainingSeconds, speakText, stepIndex]);
 
   const handleSend = () => { const t = draft; setDraft(''); void sendText(t); };
 
@@ -462,11 +587,17 @@ export function VoiceChatPanel({
         </div>
       ) : null}
 
-      {/* Next-step auto-navigation prompt */}
-      {showNextStep && hasNextStep ? (
-        <div className="mt-3 flex items-center gap-2 rounded-[16px] border border-accent-green/40 bg-accent-green-soft px-3 py-2.5 text-sm font-medium text-accent-green">
-          <ArrowRight className="h-4 w-4 shrink-0" />
-          Moving to next step…
+      {/* Pan check helper */}
+      {showPanCheckOption ? (
+        <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5 text-xs text-primary-dark">
+          📷 Tap <strong>AI Pan Checker</strong> below the cook steps to upload a photo and get step-specific analysis right now.
+        </div>
+      ) : null}
+
+      {/* Consecutive fallback banner */}
+      {consecutiveFallbacks >= 2 ? (
+        <div className="mt-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Voice seems to be having trouble. Try typing your question in the chat box below for a better response.
         </div>
       ) : null}
 

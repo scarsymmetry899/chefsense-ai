@@ -397,15 +397,13 @@ export default function DishCookPage() {
                 }
               : undefined
           }
+          hasPrevStep={Boolean(prevStep)}
+          onPrevStep={prevStep ? () => router.push(ROUTES.dishCook(dish.dishId, prevStep.index)) : undefined}
+          remainingSeconds={remainingSeconds}
+          isTimerRunning={isRunning}
+          onStartTimer={() => { playSoundEffect('start'); startStep(step.index); }}
+          onPauseTimer={() => { playSoundEffect('stop'); pauseStep(); }}
         />
-        {voiceOpen ? (
-          <Link
-            href={ROUTES.dishVoice(dish.dishId, step.index)}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"
-          >
-            {copy.openVoiceScreen}
-          </Link>
-        ) : null}
       </ScreenCard>
 
       <div className="mt-5">

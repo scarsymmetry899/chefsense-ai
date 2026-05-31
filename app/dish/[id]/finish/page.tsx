@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Bell,
+  ChevronRight,
   Citrus,
   Flame,
   Info,
@@ -293,8 +294,11 @@ export default function DishFinishPage() {
       />
 
       <section className="text-center">
-        <h1 className="text-[40px] leading-none">{t('finish.title')}</h1>
-        <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
+        <div className="text-[48px] leading-none">🎉</div>
+        <h1 className="mt-2 font-serif text-[30px] leading-tight text-foreground">
+          Your {dish.dishName} is cooked and ready!
+        </h1>
+        <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
           {t('finish.subtitle')}
         </p>
       </section>
@@ -521,6 +525,38 @@ export default function DishFinishPage() {
           <span className="text-lg text-primary">→</span>
         </Link>
       </div>
+
+      <ScreenCard className="mt-6 space-y-3">
+        <SectionEyebrow label="What would you like to do?" />
+        <Link
+          href={ROUTES.dishShare(dish.dishId)}
+          className="flex w-full items-center justify-between rounded-[18px] border border-primary/20 gradient-cta px-4 py-3.5 text-left text-sm font-semibold text-white shadow-cta"
+        >
+          <span>📸  Share my plate</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+        <Link
+          href={ROUTES.dishes}
+          className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
+        >
+          <span>🍽️  Cook another dish</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+        <Link
+          href={ROUTES.home}
+          className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
+        >
+          <span>🏠  Go home</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+        <Link
+          href={ROUTES.profile}
+          className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
+        >
+          <span>👤  View my profile &amp; score</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+      </ScreenCard>
     </AppShell>
   );
 }
