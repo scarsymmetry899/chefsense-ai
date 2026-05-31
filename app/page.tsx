@@ -67,12 +67,16 @@ export default function WelcomePage() {
             em={t('app.headline.line1Em')}
             post={t('app.headline.line1Post')}
           />
-          <br />
-          <HeadlineLine
-            pre={t('app.headline.line2Pre')}
-            em={t('app.headline.line2Em')}
-            post={t('app.headline.line2Post')}
-          />
+          {(t('app.headline.line2Pre') || t('app.headline.line2Em') || t('app.headline.line2Post')) ? (
+            <>
+              <br />
+              <HeadlineLine
+                pre={t('app.headline.line2Pre')}
+                em={t('app.headline.line2Em')}
+                post={t('app.headline.line2Post')}
+              />
+            </>
+          ) : null}
         </h1>
 
         <p className="t-body-lg mx-auto mt-5 max-w-[340px] text-muted-foreground text-pretty">

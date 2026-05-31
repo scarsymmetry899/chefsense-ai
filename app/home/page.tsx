@@ -35,11 +35,12 @@ const MOOD_META = [
 const HOME_COPY = {
   en: {
     eyebrow: 'Chef-guided Indian cooking',
-    headline: 'Cook exactly like a chef, one clear step at a time.',
+    headline: 'Cook smarter with master chef intelligence.',
     subhead:
       'We compare trusted source styles, choose the strongest method, and guide you through every cue until the dish feels restaurant-ready.',
-    chipOne: 'Source-backed recipe intelligence',
-    chipTwo: 'Guided cues for every major stage',
+    chipOne: 'Source-backed recipes',
+    chipTwo: 'Guided cues for every step',
+    chipThree: 'Voice mode for hands-free cooking',
     guidance: 'chef-guided detail inside',
     ingredients: 'Ingredients',
     recentEmpty: 'Your recently viewed dishes will appear here after you start exploring.',
@@ -53,8 +54,9 @@ const HOME_COPY = {
     headline: 'हर डिश शेफ़ जैसी, एकदम साफ़ स्टेप्स के साथ।',
     subhead:
       'हम भरोसेमंद स्रोतों की तुलना करके सबसे सही तरीका चुनते हैं और हर क्यू के साथ आपको रेस्टोरेंट-स्टाइल रिज़ल्ट तक ले जाते हैं।',
-    chipOne: 'सोर्स-बैक्ड रेसिपी इंटेलिजेंस',
-    chipTwo: 'हर स्टेज के लिए गाइडेड क्यूज़',
+    chipOne: 'सोर्स-बैक्ड रेसिपी',
+    chipTwo: 'हर स्टेप के लिए गाइडेड क्यूज़',
+    chipThree: 'हैंड्स-फ्री कुकिंग के लिए वॉइस मोड',
     guidance: 'अंदर पूरी गाइडेड डिटेल',
     ingredients: 'इंग्रेडिएंट्स',
     recentEmpty: 'जैसे ही आप डिशेज़ देखना शुरू करेंगे, हाल ही में देखी गई डिशेज़ यहाँ दिखेंगी।',
@@ -68,8 +70,9 @@ const HOME_COPY = {
     headline: 'ప్రతి డిష్ చెఫ్‌లా, స్పష్టమైన స్టెప్‌లతో.',
     subhead:
       'మేము విశ్వసనీయ సోర్సులను పోల్చి సరైన విధానాన్ని ఎంచుకుని, ప్రతి క్యూతో రెస్టారెంట్-స్టైల్ ఫలితం వచ్చే వరకు మీకు మార్గం చూపిస్తాము.',
-    chipOne: 'సోర్స్-బ్యాక్డ్ రెసిపీ ఇంటెలిజెన్స్',
-    chipTwo: 'ప్రతి దశకు గైడెడ్ క్యూస్',
+    chipOne: 'సోర్స్-బ్యాక్డ్ రెసిపీలు',
+    chipTwo: 'ప్రతి స్టెప్‌కు గైడెడ్ క్యూస్',
+    chipThree: 'హ్యాండ్స్-ఫ్రీ కుకింగ్ కోసం వాయిస్ మోడ్',
     guidance: 'లోపల పూర్తి గైడెడ్ వివరాలు',
     ingredients: 'పదార్థాలు',
     recentEmpty: 'మీరు డిష్‌లను చూడటం మొదలుపెట్టిన తర్వాత, ఇటీవలి డిష్‌లు ఇక్కడ కనిపిస్తాయి.',
@@ -270,6 +273,7 @@ export default function HomePage() {
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full bg-primary-soft px-3 py-1.5 text-primary-dark">{copy.chipOne}</span>
           <span className="rounded-full bg-accent-green-soft px-3 py-1.5 text-accent-green">{copy.chipTwo}</span>
+          <span className="rounded-full bg-secondary-soft px-3 py-1.5 text-copper">{copy.chipThree}</span>
         </div>
       </div>
 
