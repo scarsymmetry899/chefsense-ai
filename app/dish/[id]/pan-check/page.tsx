@@ -488,19 +488,24 @@ async function validateFoodLikePhoto(file: File) {
     return { ok: false, reason: 'Please upload an image file of your pan or plated dish.' };
   }
 
+  // Only block obvious non-image documents by extension — never reject based on
+  // filename keywords like "portrait" or "screenshot" since phones name camera
+  // photos unpredictably (iOS Portrait Mode, Android screenshots-as-test, etc.)
   const lowerName = file.name.toLowerCase();
-  if (/(selfie|portrait|person|screenshot|document|resume|pdf)/i.test(lowerName)) {
-    return { ok: false, reason: 'That upload does not look like a cooking photo. Please add a close-up of the pan or dish instead.' };
+  if (lowerName.endsWith('.pdf') || lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+    return { ok: false, reason: 'Please upload a photo of your pan or dish, not a document.' };
   }
 
   const url = URL.createObjectURL(file);
   try {
     const dims = await readImageSize(url);
-    if (dims.width < 320 || dims.height < 320) {
+    // Only block images that are genuinely too small to analyse (< 150px on either side)
+    if (dims.width < 150 || dims.height < 150) {
       return { ok: false, reason: 'The photo is too small to assess. Please upload a clearer close-up of the dish or pan.' };
     }
-    if (dims.height > dims.width * 2.3) {
-      return { ok: false, reason: 'Please retake the photo with the pan or dish centered in frame. This image looks too narrow for a pan check.' };
+    // Reject only extreme slivers (e.g. a 50px-wide banner) — allow tall portrait shots
+    if (dims.height > dims.width * 4 || dims.width > dims.height * 4) {
+      return { ok: false, reason: 'Please retake the photo with the pan or dish centered in frame.' };
     }
     return { ok: true };
   } finally {
