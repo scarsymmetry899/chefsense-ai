@@ -110,8 +110,11 @@ function aiConfirmsNextStep(userText: string, aiReply: string, currentStepIndex:
     'i am done', "i'm done", 'yes', 'sure', 'please',
   ];
   if (!USER_FORWARD.some(h => u.includes(h))) return false;
+  // Match "step N" followed by ANY non-digit (colon, period, comma, space, exclamation)
+  // The AI writes "step 2." / "step 2," / "step 2:" / "step 2 " — all must match.
   const nextStep = currentStepIndex + 1;
-  return a.includes('step ' + nextStep + ':') || a.includes('step ' + nextStep + ' ');
+  const pattern = new RegExp(`step\\s*${nextStep}[^0-9]`);
+  return pattern.test(a);
 }
 
 function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
@@ -237,6 +240,9 @@ export function VoiceChatPanel({
   const greetedRef = useRef(false);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  // Guard: prevents double-navigation if both voice and text paths fire for same message.
+  // Also reset when stepIndex changes so next step's navigation can fire correctly.
+  const navigationFiredRef = useRef(false);
 
   // ── Persist messages ──
   useEffect(() => {
@@ -265,7 +271,13 @@ export function VoiceChatPanel({
   }, [expanded]);
 
   // ── Clear error on step change ──
-  useEffect(() => { setChatError(null); setShowNextStep(false); setShowPanCheckOption(false); setConsecutiveFallbacks(0); }, [stepIndex]);
+  useEffect(() => {
+    setChatError(null);
+    setShowNextStep(false);
+    setShowPanCheckOption(false);
+    setConsecutiveFallbacks(0);
+    navigationFiredRef.current = false; // allow navigation on each new step
+  }, [stepIndex]);
 
   // ── Auto-focus ──
   useEffect(() => {
@@ -412,12 +424,14 @@ export function VoiceChatPanel({
       }
     }
 
-    // Secondary navigation check: user phrased it naturally and AI confirmed the next step
-    if (userSaid && aiSaid && hasNextStep && onNextStep && !detectCommand(userSaid)) {
+    // Secondary navigation check: user phrased it naturally and AI confirmed the next step.
+    // Guard prevents this from firing twice (voice + text, or two rapid messages).
+    if (userSaid && aiSaid && hasNextStep && onNextStep && !navigationFiredRef.current && !detectCommand(userSaid)) {
       if (aiConfirmsNextStep(userSaid, aiSaid, stepIndex)) {
+        navigationFiredRef.current = true;
         setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
         void speakText('Moving to the next step now!');
-        window.setTimeout(() => onNextStep!(), 1000);
+        window.setTimeout(() => { onNextStep!(); }, 1200);
         return;
       }
     }
@@ -551,11 +565,12 @@ export function VoiceChatPanel({
         setConsecutiveFallbacks(0);
       }
       // Secondary navigation check: phrase not in trigger list but AI confirmed next step
-      if (hasNextStep && onNextStep && !detectCommand(trimmed)) {
+      if (hasNextStep && onNextStep && !navigationFiredRef.current && !detectCommand(trimmed)) {
         if (aiConfirmsNextStep(trimmed, aiSaid, stepIndex)) {
+          navigationFiredRef.current = true;
           setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
           void speakText('Moving to the next step now!');
-          window.setTimeout(() => onNextStep!(), 1000);
+          window.setTimeout(() => { onNextStep!(); }, 1200);
         }
       }
     } catch (err) {
