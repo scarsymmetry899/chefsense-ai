@@ -69,20 +69,31 @@ type VoiceCoachResponse = {
 
 // Tighter next-step detection — avoid false positives from questions about next step
 const NEXT_STEP_TRIGGERS = [
+  // Direct navigation requests
   'go to next step', 'take me to next step', 'move to next step',
-  'skip to next step', "i'm done, next", 'next step please', 'proceed to next step',
+  'skip to next step', 'proceed to next step', 'continue to next step',
+  'go ahead to the next', 'go ahead to next', 'please go ahead',
+  'go on to the next', 'let\'s move to next', 'let\'s go to next',
+  'ready for next step', 'next step please',
+  // "done" phrasing — only with explicit action request
+  "i'm done, go", "i am done, go", 'done, please proceed', 'done, go to next',
 ];
 // Previous step detection
 const PREV_STEP_TRIGGERS = [
-  'go back', 'previous step', 'go to previous', 'take me back',
-  'last step', 'back to step',
+  'go back to', 'go to previous', 'take me back to', 'previous step please',
+  'back to the previous', 'go back a step', 'back one step',
 ];
 // Timer commands
-const START_TIMER_TRIGGERS = ['start the timer', 'start timer', 'begin timer', 'start the clock'];
+const START_TIMER_TRIGGERS = ['start the timer', 'start timer', 'begin timer', 'start the clock', 'start counting'];
 const PAUSE_TIMER_TRIGGERS = ['pause the timer', 'pause timer', 'stop the timer', 'stop timer'];
-const TIME_REMAINING_TRIGGERS = ['how much time', 'time left', 'how long left', 'how long remaining'];
-// Pan check commands
-const PAN_CHECK_TRIGGERS = ['check my pan', 'check pan', 'analyse my pan', 'analyze my pan', 'how does my pan', 'how is my pan', 'pan looking', 'look at my pan'];
+const TIME_REMAINING_TRIGGERS = ['how much time', 'time left', 'how long left', 'how long remaining', 'how many minutes left', 'how many seconds'];
+// Pan check commands — broad enough to catch natural phrasings
+const PAN_CHECK_TRIGGERS = [
+  'check my pan', 'check pan', 'check the pan', 'pan checker',
+  'analyse my pan', 'analyze my pan', 'analyse the pan', 'analyze the pan',
+  'how does my pan', 'how is my pan', 'pan looking', 'look at my pan',
+  'use the pan checker', 'open pan checker', 'pan analysis',
+];
 
 function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
   const lower = text.toLowerCase();
@@ -331,6 +342,9 @@ export function VoiceChatPanel({
       return;
     }
     setPending(false);
+    // Auto-open the chat thread so the user sees the result immediately
+    // without having to tap "Open voice & chat" manually.
+    setChatActive(true);
 
     // Check for app-level commands from voice transcript
     if (userSaid) {
