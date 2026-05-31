@@ -391,13 +391,11 @@ export function VoiceChatPanel({
       const cmd = detectCommand(userSaid);
       if (cmd === 'next' && hasNextStep && onNextStep) {
         setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Moving to the next step now! 🍳", source: 'openai' }]);
-        void speakText("Moving to the next step now!");
         window.setTimeout(() => onNextStep!(), 800);
         return;
       }
       if (cmd === 'prev' && hasPrevStep && onPrevStep) {
         setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Going back to the previous step.", source: 'openai' }]);
-        void speakText("Going back to the previous step.");
         window.setTimeout(() => onPrevStep!(), 800);
         return;
       }
@@ -499,7 +497,6 @@ export function VoiceChatPanel({
         setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
         setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Going to the next step now! 🍳', source: 'openai' }]);
         setPendingNextStep(false);
-        void speakText('Going to the next step now!');
         window.setTimeout(() => onNextStep!(), 800);
         return;
       }
@@ -519,14 +516,12 @@ export function VoiceChatPanel({
     if (cmd === 'next' && hasNextStep && onNextStep) {
       setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
       setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Moving to the next step now! 🍳", source: 'openai' }]);
-      void speakText("Moving to the next step now!");
       window.setTimeout(() => onNextStep!(), 800);
       return;
     }
     if (cmd === 'prev' && hasPrevStep && onPrevStep) {
       setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
       setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "Going back to the previous step.", source: 'openai' }]);
-      void speakText("Going back to the previous step.");
       window.setTimeout(() => onPrevStep!(), 800);
       return;
     }
@@ -687,7 +682,7 @@ export function VoiceChatPanel({
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => { setPendingNextStep(false); void speakText('Going to the next step!'); window.setTimeout(() => onNextStep!(), 600); }}
+              onClick={() => { setPendingNextStep(false); window.setTimeout(() => onNextStep!(), 600); }}
               className="flex-1 rounded-full gradient-cta py-2.5 text-sm font-semibold text-white shadow-cta"
             >
               → Yes, next step

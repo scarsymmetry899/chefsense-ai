@@ -64,6 +64,7 @@ import { ROUTES } from '@/lib/constants/routes';
 import { ALL_DISHES, getDish } from '@/lib/data/dishes';
 import {
   getCompletedDishEntries,
+  hydrateAllUserState,
   getProfileSettings,
   getShareActions,
   getRecentlyViewedDishes,
@@ -195,14 +196,28 @@ function readString(meta: Record<string, unknown> | undefined, key: string): str
 export default function ProfilePage() {
   const { lang } = useLanguage();
   const copy = PROFILE_COPY[lang];
-  const recent = getRecentlyViewedDishes();
-  const shares = getShareActions();
-  const completed = getCompletedDishEntries();
-  const totalMinutes = ALL_DISHES.reduce(
-    (sum, dish) => sum + getTotalCookingMinutes(dish.dishId),
-    0,
+
+  // Reactive state so Supabase hydration triggers a re-render.
+  const [completed, setCompleted] = useState(() => getCompletedDishEntries());
+  const [recent, setRecent] = useState(() => getRecentlyViewedDishes());
+  const [shares, setShares] = useState(() => getShareActions());
+  const [totalMinutes, setTotalMinutes] = useState(() =>
+    ALL_DISHES.reduce((sum, dish) => sum + getTotalCookingMinutes(dish.dishId), 0),
   );
-  const inProgress = ALL_DISHES.filter((dish) => hasInProgressDish(dish.dishId)).length;
+  const [inProgress, setInProgress] = useState(() =>
+    ALL_DISHES.filter((dish) => hasInProgressDish(dish.dishId)).length,
+  );
+
+  // Hydrate from Supabase on mount so we always show the latest session history.
+  useEffect(() => {
+    void hydrateAllUserState().then(() => {
+      setCompleted(getCompletedDishEntries());
+      setRecent(getRecentlyViewedDishes());
+      setShares(getShareActions());
+      setTotalMinutes(ALL_DISHES.reduce((sum, dish) => sum + getTotalCookingMinutes(dish.dishId), 0));
+      setInProgress(ALL_DISHES.filter((dish) => hasInProgressDish(dish.dishId)).length);
+    });
+  }, []);
 
   // Auth-derived identity. These are display-only and don't get edited from this screen.
   const [authName, setAuthName] = useState('');

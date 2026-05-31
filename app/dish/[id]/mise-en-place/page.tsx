@@ -14,6 +14,7 @@ import {
   SectionEyebrow,
   StatusPill,
 } from '@/components/dish/screen-kit';
+import { VoiceChatPanel } from '@/components/cook/voice-chat-panel';
 import { getDishOrThrow } from '@/lib/data/dishes';
 import { ROUTES } from '@/lib/constants/routes';
 import { formatCountdown } from '@/lib/dish-flow';
@@ -41,6 +42,7 @@ export default function DishMiseEnPlacePage() {
   const [running, setRunning] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [tipIndex, setTipIndex] = useState(0);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -279,6 +281,40 @@ export default function DishMiseEnPlacePage() {
           </span>
           <ChevronRight className="h-5 w-5" />
         </Link>
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between rounded-[22px] border border-border/60 bg-card px-4 py-3 shadow-soft">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <span>🎤</span>
+            <span>Voice & Chat — Prep Mode</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setVoiceOpen((v) => !v)}
+            className="rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
+          >
+            {voiceOpen ? 'Close' : 'Open'}
+          </button>
+        </div>
+        <VoiceChatPanel
+          dishId={dish.dishId}
+          stepIndex={1}
+          stepTitle="Mise-en-place preparation"
+          primer={[
+            `You're preparing to cook ${dish.dishName}. Here's what to get ready before you start cooking.`,
+            `Ingredients to prep: ${dish.ingredients.slice(0, 8).map((i) => `${i.name} (${i.quantity})`).join(', ')}.`,
+            `Tools needed: ${dish.tools.slice(0, 5).map((t) => t.name).join(', ')}.`,
+            dish.miseEnPlace?.length
+              ? `Prep checklist: ${dish.miseEnPlace.map((m) => m.label).join(' · ')}.`
+              : '',
+          ].filter(Boolean).join('\n\n')}
+          expanded={voiceOpen}
+          collapsedHint="Ask about ingredients, quantities, tools, or prep tips."
+          expandedHint="Ask me anything about the ingredients, equipment, or how to prep."
+          helperHint="Ask about ingredient substitutions, prep techniques, tool alternatives, or what 'mise-en-place' means."
+          placeholder="Ask about ingredients or prep..."
+        />
       </div>
     </AppShell>
   );

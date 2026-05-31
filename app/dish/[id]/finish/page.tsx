@@ -505,32 +505,18 @@ export default function DishFinishPage() {
         </div>
       </ScreenCard>
 
-      <div className="mt-6 space-y-3">
-        <GradientButton
-          href={ROUTES.dishPlate(dish.dishId)}
-          label={copy.plate}
-          subline={copy.plateSub}
-        />
-        <Link
-          href={ROUTES.dishShare(dish.dishId)}
-          className="flex w-full items-center justify-between rounded-[26px] border border-border bg-card px-6 py-4 text-foreground shadow-soft transition-transform active:scale-[0.985]"
-        >
-          <span className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <span className="flex flex-col leading-tight text-left">
-              <span className="font-serif text-[20px]">{copy.share}</span>
-              <span className="text-sm text-muted-foreground">{copy.shareSub}</span>
-            </span>
-          </span>
-          <span className="text-lg text-primary">→</span>
-        </Link>
-      </div>
-
       <ScreenCard className="mt-6 space-y-3">
         <SectionEyebrow label="What would you like to do?" />
         <Link
-          href={ROUTES.dishShare(dish.dishId)}
+          href={ROUTES.dishPlate(dish.dishId)}
           className="flex w-full items-center justify-between rounded-[18px] border border-primary/20 gradient-cta px-4 py-3.5 text-left text-sm font-semibold text-white shadow-cta"
+        >
+          <span>🍽️  Plate like a chef</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+        <Link
+          href={ROUTES.dishShare(dish.dishId)}
+          className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
           <span>📸  Share my plate</span>
           <ChevronRight className="h-4 w-4" />
@@ -539,7 +525,7 @@ export default function DishFinishPage() {
           href={ROUTES.dishes}
           className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
-          <span>🍽️  Cook another dish</span>
+          <span>🍳  Cook another dish</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
         <Link
