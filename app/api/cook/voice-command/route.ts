@@ -51,6 +51,34 @@ function buildSystemPrompt(
     ].join(' ');
   }
 
+  // stepIndex 0 = "prep mode" (ingredients/kitchen prep/mise-en-place screens).
+  // Build a dish-level context instead of step-level context.
+  if (stepIndex === 0) {
+    const ingredientList = dish.ingredients
+      .map((i) => `${i.name}: ${i.quantity}${i.note ? ` (${i.note})` : ''}`)
+      .join('; ');
+    const toolList = dish.tools.map((t) => t.name).join(', ');
+    const mepList = dish.miseEnPlace?.map((m) => m.label).join(', ') ?? '';
+
+    return [
+      `You are ChefSense AI, helping someone prepare to cook ${dish.dishName}. ${LOCALE_INSTRUCTION[locale]}`,
+      ``,
+      `DISH: ${dish.dishName} (${dish.region} | ${dish.difficulty} | ${dish.totalTimeMin} min)`,
+      `SUMMARY: ${dish.summary}`,
+      ``,
+      `ALL INGREDIENTS: ${ingredientList}`,
+      `TOOLS REQUIRED: ${toolList}`,
+      mepList ? `PREP CHECKLIST: ${mepList}` : '',
+      ``,
+      `RULES:`,
+      `1. Answer ONLY from the ingredient, tool, and prep data above.`,
+      `2. If asked for the ingredient list, give the full list with quantities.`,
+      `3. If asked about substitutions, give practical Indian kitchen alternatives.`,
+      `4. Keep replies under ${MAX_REPLY_WORDS} words.`,
+      `5. Do NOT discuss unrelated topics.`,
+    ].filter(Boolean).join('\n');
+  }
+
   const step = dish.cookingSteps.find((s) => s.index === stepIndex) ?? dish.cookingSteps[0];
 
   const cues = step.sensoryCues

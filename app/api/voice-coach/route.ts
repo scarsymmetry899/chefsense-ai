@@ -118,12 +118,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: `Unknown dish: ${dishId}` }, { status: 404 });
   }
 
+  // currentStep=0 means prep/ingredients mode — no specific cooking step yet.
+  const isPrepMode = typeof body.currentStep === 'number' && body.currentStep === 0;
+
   const step =
-    typeof body.currentStep === 'number'
+    typeof body.currentStep === 'number' && body.currentStep > 0
       ? dish.cookingSteps.find((item) => item.index === body.currentStep) ?? dish.cookingSteps[0]
       : dish.cookingSteps[0];
 
-  const fallbackReply = buildFallbackReply(question, step, dish);
+  // Prep-mode fallback: return the ingredient list when in prep/ingredients context
+  const fallbackReply = isPrepMode
+    ? `For ${dish.dishName} you need: ${dish.ingredients.slice(0, 6).map((i) => `${i.name} (${i.quantity})`).join(', ')}${dish.ingredients.length > 6 ? `, and ${dish.ingredients.length - 6} more` : ''}.`
+    : buildFallbackReply(question, step, dish);
 
   if (!hasOpenAIKey()) {
     const response: VoiceCoachResponse = {
@@ -143,20 +149,34 @@ export async function POST(request: Request) {
     te: 'Respond in Telugu (Telugu script). Do NOT use Romanised Telugu.',
   };
 
-  const systemPrompt = [
-    'You are ChefSense AI, a voice cooking coach.',
-    `Dish: ${dish.dishName}. Cuisine: ${dish.cuisine ?? 'Indian'}.`,
-    `Current step: "${step.title}" — ${step.instruction}`,
-    `Heat: ${step.heat}.`,
-    step.sensoryCues?.length
-      ? `Sensory cues: ${step.sensoryCues.map((c) => c.cue).join('; ')}.`
-      : '',
-    `You are helping with THIS STEP ONLY — do NOT mention other step numbers. If the user is done, say "Great job! You can move to the next step when you're ready." Do NOT name specific other steps.`,
-    'Return only JSON with a single reply string. Keep the reply under 90 words.',
-    localeInstruction[locale],
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const ingredientSummary = dish.ingredients
+    .map((i) => `${i.name}: ${i.quantity}`)
+    .join('; ');
+
+  const systemPrompt = isPrepMode
+    ? [
+        `You are ChefSense AI, helping someone prepare to cook ${dish.dishName}.`,
+        `INGREDIENTS: ${ingredientSummary}.`,
+        `TOOLS: ${dish.tools.map((t) => t.name).join(', ')}.`,
+        dish.miseEnPlace?.length
+          ? `PREP CHECKLIST: ${dish.miseEnPlace.map((m) => m.label).join(', ')}.`
+          : '',
+        'Answer questions about ingredients, quantities, substitutions, tools, and prep. If asked for the full ingredient list, give every item with its quantity.',
+        'Return only JSON with a single reply string. Keep the reply under 100 words.',
+        localeInstruction[locale],
+      ].filter(Boolean).join(' ')
+    : [
+        'You are ChefSense AI, a voice cooking coach.',
+        `Dish: ${dish.dishName}. Cuisine: ${dish.cuisine ?? 'Indian'}.`,
+        `Current step: "${step.title}" — ${step.instruction}`,
+        `Heat: ${step.heat}.`,
+        step.sensoryCues?.length
+          ? `Sensory cues: ${step.sensoryCues.map((c) => c.cue).join('; ')}.`
+          : '',
+        `You are helping with THIS STEP ONLY — do NOT mention other step numbers. If the user is done, say "Great job! You can move to the next step when you're ready." Do NOT name specific other steps.`,
+        'Return only JSON with a single reply string. Keep the reply under 90 words.',
+        localeInstruction[locale],
+      ].filter(Boolean).join(' ');
 
   // Include the last few conversational turns as context so the AI can
   // follow the thread across step changes and navigations.
