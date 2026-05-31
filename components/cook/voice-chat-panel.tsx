@@ -36,18 +36,16 @@ type ChatMessage = {
   role: 'assistant' | 'user';
   text: string;
   source?: 'openai' | 'fallback' | 'voice';
-  audioUrl?: string;
 };
 
-type VoiceTurnResponse = {
+// JSON fallback response shape (when ElevenLabs is unavailable)
+type VoiceFallbackResponse = {
   ok: boolean;
+  source?: string;
   transcript?: string;
   reply?: string;
-  audioBase64?: string;
-  audioMime?: string;
-  source?: 'openai' | 'fallback';
   error?: string;
-  warnings?: string[];
+  message?: string;
 };
 
 type VoiceCoachResponse = {
@@ -116,6 +114,29 @@ async function classifyMicError(err: unknown): Promise<MicError> {
   };
 }
 
+/**
+ * Play an ArrayBuffer through the Web Audio API.
+ * Lower latency than creating a blob URL + <Audio> element — no object lifecycle,
+ * no GC pressure, hardware-accelerated decode.
+ */
+async function playAudioBuffer(
+  buffer: ArrayBuffer,
+  audioCtxRef: React.MutableRefObject<AudioContext | null>,
+) {
+  if (typeof window === 'undefined') return;
+  if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+    audioCtxRef.current = new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+  }
+  const ctx = audioCtxRef.current;
+  if (ctx.state === 'suspended') await ctx.resume();
+  const decoded = await ctx.decodeAudioData(buffer);
+  const source = ctx.createBufferSource();
+  source.buffer = decoded;
+  source.connect(ctx.destination);
+  source.start(0);
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function VoiceChatPanel({
@@ -158,10 +179,11 @@ export function VoiceChatPanel({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaChunksRef = useRef<BlobPart[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const greetedRef = useRef(false);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Persist chat messages to localStorage whenever they change ──
+  // ── Persist chat messages ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -169,7 +191,7 @@ export function VoiceChatPanel({
     } catch { /* ignore */ }
   }, [chatMessages, chatStorageKey]);
 
-  // ── Seed primer when expanded (only if chat is completely empty) ──
+  // ── Seed primer once per dish ──
   useEffect(() => {
     if (!expanded) return;
     if (greetedRef.current && chatMessages.length > 0) return;
@@ -182,7 +204,7 @@ export function VoiceChatPanel({
 
   useEffect(() => {
     setChatError(null);
-    // NOTE: conversation history persists across steps for full dish context.
+    // History persists across steps for full dish context.
   }, [stepIndex]);
 
   // ── Auto-focus chat input ──
@@ -192,32 +214,19 @@ export function VoiceChatPanel({
     return () => window.clearTimeout(id);
   }, [chatFocusKey]);
 
-  // ── Clean up mic on unmount ──
+  // ── Clean up mic + AudioContext on unmount ──
   useEffect(() => {
     return () => {
       audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+      audioCtxRef.current?.close().catch(() => {});
     };
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Audio helpers
+  // Voice pipeline: MediaRecorder → /api/cook/voice-command → AudioContext
   // ─────────────────────────────────────────────────────────────────────────
 
-  const playAudio = useCallback((base64: string, mime: string) => {
-    if (typeof window === 'undefined') return;
-    try {
-      const binary = window.atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.addEventListener('ended', () => URL.revokeObjectURL(url));
-      audio.play().catch(() => URL.revokeObjectURL(url));
-    } catch { /* best-effort */ }
-  }, []);
-
-  const sendAudioBlob = useCallback(
+  const processVoicePipeline = useCallback(
     async (blob: Blob) => {
       if (pending) return;
       setPending(true);
@@ -225,50 +234,68 @@ export function VoiceChatPanel({
 
       try {
         const session = getSupabaseSession();
-        const form = new FormData();
-        form.append('audio', blob, 'turn.webm');
-        form.append('dishId', dishId);
-        form.append('currentStep', String(stepIndex));
-        form.append('locale', locale);
+        const historySnapshot = chatMessages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
 
-        const resp = await fetch('/api/voice/turn', {
+        const form = new FormData();
+        form.append('audio', blob, 'cooking-command.webm');
+        form.append('dishId', dishId);
+        form.append('stepIndex', String(stepIndex));
+        form.append('locale', locale);
+        form.append('history', JSON.stringify(historySnapshot));
+
+        const resp = await fetch('/api/cook/voice-command', {
           method: 'POST',
-          headers: session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : undefined,
+          headers: session?.accessToken
+            ? { Authorization: `Bearer ${session.accessToken}` }
+            : undefined,
           body: form,
         });
-        const payload = (await resp.json()) as VoiceTurnResponse;
 
-        if (!payload.ok) {
-          const msg = payload.error ?? 'Voice turn failed.';
-          // Friendly message for empty transcription
-          if (msg === 'transcription_failed') {
-            throw new Error("We didn't catch that. Tap 'Talk to chef', speak clearly, then tap 'Stop & send'.");
+        if (!resp.ok) {
+          const errBody = (await resp.json().catch(() => ({}))) as { message?: string; error?: string };
+          const msg = errBody.message ?? errBody.error ?? `HTTP ${resp.status}`;
+          if (msg.includes('transcription_empty') || msg.includes("didn't catch")) {
+            throw new Error("We didn't catch that. Speak clearly and try again.");
           }
           throw new Error(msg);
         }
 
-        if (payload.transcript) {
-          setChatMessages((c) => [
-            ...c,
-            { id: newId(), role: 'user', text: payload.transcript!, source: 'voice' },
-          ]);
-        }
-        if (payload.reply) {
-          setChatMessages((c) => [
-            ...c,
-            { id: newId(), role: 'assistant', text: payload.reply!, source: payload.source },
-          ]);
-        }
-        if (payload.audioBase64 && payload.audioMime) {
-          playAudio(payload.audioBase64, payload.audioMime);
+        const contentType = resp.headers.get('Content-Type') ?? '';
+
+        if (contentType.includes('audio/')) {
+          // ── Streaming audio path: extract headers then decode + play ──
+          const transcript = decodeURIComponent(resp.headers.get('X-Chef-Transcript') ?? '');
+          const chefReply = decodeURIComponent(resp.headers.get('X-Chef-Reply') ?? '');
+
+          if (transcript) {
+            setChatMessages((c) => [...c, { id: newId(), role: 'user', text: transcript, source: 'voice' }]);
+          }
+          if (chefReply) {
+            setChatMessages((c) => [...c, { id: newId(), role: 'assistant', text: chefReply, source: 'openai' }]);
+          }
+
+          // Play through Web Audio API — lower latency than blob URL + <Audio>
+          const arrayBuffer = await resp.arrayBuffer();
+          if (arrayBuffer.byteLength > 0) {
+            await playAudioBuffer(arrayBuffer, audioCtxRef);
+          }
+        } else {
+          // ── JSON fallback path (ElevenLabs unavailable) ──
+          const payload = (await resp.json()) as VoiceFallbackResponse;
+          if (payload.transcript) {
+            setChatMessages((c) => [...c, { id: newId(), role: 'user', text: payload.transcript!, source: 'voice' }]);
+          }
+          if (payload.reply) {
+            setChatMessages((c) => [...c, { id: newId(), role: 'assistant', text: payload.reply!, source: 'fallback' }]);
+          }
         }
       } catch (err) {
-        setChatError(err instanceof Error ? err.message : 'Could not process voice.');
+        setChatError(err instanceof Error ? err.message : 'Could not process voice. Try again.');
       } finally {
         setPending(false);
       }
     },
-    [dishId, locale, pending, playAudio, stepIndex],
+    [chatMessages, dishId, locale, pending, stepIndex],
   );
 
   const stopRecording = useCallback(() => {
@@ -298,11 +325,11 @@ export function VoiceChatPanel({
     audioStreamRef.current = stream;
     mediaChunksRef.current = [];
 
-    const recorder = new MediaRecorder(stream, {
-      mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm',
-    });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    const recorder = new MediaRecorder(stream, { mimeType });
     mediaRecorderRef.current = recorder;
 
     recorder.addEventListener('dataavailable', (e) => {
@@ -311,15 +338,15 @@ export function VoiceChatPanel({
     recorder.addEventListener('stop', () => {
       const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
       mediaChunksRef.current = [];
-      if (blob.size > 0) void sendAudioBlob(blob);
+      if (blob.size > 0) void processVoicePipeline(blob);
     });
 
     recorder.start();
     setRecording(true);
-  }, [sendAudioBlob]);
+  }, [processVoicePipeline]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Text chat
+  // Text chat (GPT-4o via /api/voice-coach with conversation history)
   // ─────────────────────────────────────────────────────────────────────────
 
   const sendText = useCallback(
@@ -340,7 +367,13 @@ export function VoiceChatPanel({
             'Content-Type': 'application/json',
             ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
           },
-          body: JSON.stringify({ dishId, currentStep: stepIndex, question: trimmed, locale, history: historySnapshot }),
+          body: JSON.stringify({
+            dishId,
+            currentStep: stepIndex,
+            question: trimmed,
+            locale,
+            history: historySnapshot,
+          }),
         });
         const payload = (await resp.json()) as VoiceCoachResponse;
         if (!payload.ok || !payload.reply) throw new Error(payload.error ?? 'No response.');
@@ -386,7 +419,7 @@ export function VoiceChatPanel({
           aria-label={recording ? 'Stop recording' : 'Talk to ChefSense'}
           className={
             recording
-              ? 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-cta disabled:opacity-50'
+              ? 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-cta animate-pulse disabled:opacity-50'
               : 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary-soft px-4 py-2.5 text-sm font-semibold text-primary-dark shadow-soft disabled:opacity-50'
           }
         >
@@ -416,7 +449,7 @@ export function VoiceChatPanel({
         </button>
       </div>
 
-      {/* Mic error with retry */}
+      {/* Mic error */}
       {micError ? (
         <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5">
           <div className="flex items-start gap-2 text-xs text-primary-dark">
@@ -438,7 +471,7 @@ export function VoiceChatPanel({
         </div>
       ) : null}
 
-      {/* Conversation (voice turns + chat messages share the same thread) */}
+      {/* Conversation thread — voice + text messages share one history */}
       {(expanded || chatActive) ? (
         <div className="mt-4 space-y-2">
           {chatMessages.length === 0 ? (
