@@ -382,7 +382,18 @@ export default function DishCookPage() {
           dishId={dish.dishId}
           stepIndex={step.index}
           stepTitle={localizedStep.title}
-          primer={localizedStep.beginnerExplanation}
+          primer={[
+            localizedStep.beginnerExplanation,
+            step.heat !== 'Off'
+              ? `🔥 Heat: ${step.heat} (${heatMeta.tempC.replace('C', '°C')})`
+              : null,
+            step.durationSec > 0
+              ? `⏱ Target time: ~${Math.ceil(step.durationSec / 60)} min`
+              : null,
+            step.sensoryCues.length
+              ? `👁 Watch for: ${step.sensoryCues.map((c) => c.cue).join(' · ')}`
+              : null,
+          ].filter(Boolean).join('\n\n')}
           expanded={voiceOpen}
           collapsedHint={isRunning ? copy.voiceRunning : copy.voicePaused}
           expandedHint={isRunning ? copy.voiceRunning : copy.voicePaused}

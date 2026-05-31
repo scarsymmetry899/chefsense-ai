@@ -69,16 +69,14 @@ type VoiceCoachResponse = {
 
 // ─── Command detection ────────────────────────────────────────────────────────
 
-// Tighter next-step detection — avoid false positives from questions about next step
+// Explicit navigation requests — all natural phrasings of "go to next step"
 const NEXT_STEP_TRIGGERS = [
-  // Direct navigation requests
-  'go to next step', 'take me to next step', 'move to next step',
-  'skip to next step', 'proceed to next step', 'continue to next step',
-  'go ahead to the next', 'go ahead to next', 'please go ahead',
-  'go on to the next', 'let\'s move to next', 'let\'s go to next',
-  'ready for next step', 'next step please',
-  // "done" phrasing — only with explicit action request
-  "i'm done, go", "i am done, go", 'done, please proceed', 'done, go to next',
+  'go to next step', 'go to the next step', 'take me to next step', 'take me to the next step',
+  'move to next step', 'move to the next step', 'skip to next step', 'proceed to next step',
+  'continue to next step', 'continue to the next step', 'go ahead to the next', 'go ahead to next',
+  'please go ahead', 'go on to the next', "let's move to next", "let's go to next",
+  'ready for next step', 'next step please', 'can you go to next', 'can you go to the next',
+  'sure, can you go', 'please go to next', 'go to next please',
 ];
 // Previous step detection
 const PREV_STEP_TRIGGERS = [
@@ -108,17 +106,23 @@ function aiConfirmsNextStep(userText: string, aiReply: string, currentStepIndex:
   const u = userText.toLowerCase();
   const a = aiReply.toLowerCase();
   const USER_FORWARD = [
-    'go to step', 'can we go', 'step 2', 'step 3', 'step 4', 'step 5',
-    'step 6', 'step 7', 'step 8', 'step 9', 'step 10', 'step 11', 'step 12',
-    'next', 'move on', 'done', 'proceed', 'continue', 'finished', 'ready',
-    'i am done', "i'm done", 'yes', 'sure', 'please',
+    'go to step', 'can we go', 'next', 'move on', 'done', 'proceed',
+    'continue', 'finished', 'ready', 'i am done', "i'm done", 'yes', 'sure',
+    'please', 'go ahead', 'let\'s go',
   ];
   if (!USER_FORWARD.some(h => u.includes(h))) return false;
-  // Match "step N" followed by ANY non-digit (colon, period, comma, space, exclamation)
-  // The AI writes "step 2." / "step 2," / "step 2:" / "step 2 " — all must match.
+
+  // AI confirms by step number ("step 2.") OR by forward phrases like
+  // "move to the next step when ready" (which our new system prompt produces).
   const nextStep = currentStepIndex + 1;
-  const pattern = new RegExp(`step\\s*${nextStep}[^0-9]`);
-  return pattern.test(a);
+  const stepPattern = new RegExp(`step\\s*${nextStep}[^0-9]`);
+  const AI_NEXT_PHRASES = [
+    'move to the next step', 'move on to the next', 'next step when you',
+    'can move to the next', 'proceed to the next', 'ready for the next step',
+    'go to the next step', 'you can move', 'step when you\'re ready',
+    'ready to move on',
+  ];
+  return stepPattern.test(a) || AI_NEXT_PHRASES.some(p => a.includes(p));
 }
 
 function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
