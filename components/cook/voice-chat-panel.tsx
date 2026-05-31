@@ -226,7 +226,7 @@ export function VoiceChatPanel({
   const [micError, setMicError] = useState<MicError | null>(null);
 
   // ── Next-step navigation prompt ──
-  const [showNextStep, setShowNextStep] = useState(false);
+  const [pendingNextStep, setPendingNextStep] = useState(false);
 
   // ── Pan check and fallback tracking ──
   const [showPanCheckOption, setShowPanCheckOption] = useState(false);
@@ -273,7 +273,7 @@ export function VoiceChatPanel({
   // ── Clear error on step change ──
   useEffect(() => {
     setChatError(null);
-    setShowNextStep(false);
+    setPendingNextStep(false);
     setShowPanCheckOption(false);
     setConsecutiveFallbacks(0);
     navigationFiredRef.current = false; // allow navigation on each new step
@@ -424,15 +424,11 @@ export function VoiceChatPanel({
       }
     }
 
-    // Secondary navigation check: user phrased it naturally and AI confirmed the next step.
-    // Guard prevents this from firing twice (voice + text, or two rapid messages).
-    if (userSaid && aiSaid && hasNextStep && onNextStep && !navigationFiredRef.current && !detectCommand(userSaid)) {
+    // Show confirmation card instead of auto-navigating — avoids audio overlap and false fires.
+    if (userSaid && aiSaid && hasNextStep && !pendingNextStep && !detectCommand(userSaid)) {
       if (aiConfirmsNextStep(userSaid, aiSaid, stepIndex)) {
-        navigationFiredRef.current = true;
-        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
-        void speakText('Moving to the next step now!');
-        window.setTimeout(() => { onNextStep!(); }, 1200);
-        return;
+        setPendingNextStep(true);
+        void speakText('Ready for the next step? Just say yes or tap the button.');
       }
     }
 
@@ -485,6 +481,28 @@ export function VoiceChatPanel({
   const sendText = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || pending) return;
+
+    // If a "ready to proceed?" card is showing, handle yes/no before anything else.
+    if (pendingNextStep && hasNextStep && onNextStep) {
+      const lower = trimmed.toLowerCase();
+      const YES = ['yes', 'sure', 'go ahead', 'yep', 'yup', 'ready', "let's go", 'proceed', 'ok', 'okay', 'do it'];
+      if (YES.some(w => lower.includes(w))) {
+        setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Going to the next step now! 🍳', source: 'openai' }]);
+        setPendingNextStep(false);
+        void speakText('Going to the next step now!');
+        window.setTimeout(() => onNextStep!(), 800);
+        return;
+      }
+      // "no/not yet" → dismiss the card
+      const NO = ['no', 'not yet', 'wait', 'hold on', 'cancel'];
+      if (NO.some(w => lower.includes(w))) {
+        setChatMessages(c => [...c, { id: newId(), role: 'user', text: trimmed }]);
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: "No problem — take your time. Let me know when you're ready.", source: 'openai' }]);
+        setPendingNextStep(false);
+        return;
+      }
+    }
 
     // Check for app-level commands first
     const cmd = detectCommand(trimmed);
@@ -564,13 +582,11 @@ export function VoiceChatPanel({
       } else {
         setConsecutiveFallbacks(0);
       }
-      // Secondary navigation check: phrase not in trigger list but AI confirmed next step
-      if (hasNextStep && onNextStep && !navigationFiredRef.current && !detectCommand(trimmed)) {
+      // Show confirmation card instead of auto-navigating — avoids audio overlap
+      if (hasNextStep && !pendingNextStep && !detectCommand(trimmed)) {
         if (aiConfirmsNextStep(trimmed, aiSaid, stepIndex)) {
-          navigationFiredRef.current = true;
-          setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
-          void speakText('Moving to the next step now!');
-          window.setTimeout(() => { onNextStep!(); }, 1200);
+          setPendingNextStep(true);
+          void speakText('Ready for the next step? Just say yes or tap the button.');
         }
       }
     } catch (err) {
@@ -650,6 +666,30 @@ export function VoiceChatPanel({
               <RefreshCw className="h-3 w-3" /> Try again
             </button>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* ── Next-step confirmation card — no auto-navigation, explicit user consent ── */}
+      {pendingNextStep && hasNextStep ? (
+        <div className="mt-3 rounded-[18px] border-2 border-accent-green/50 bg-accent-green-soft px-4 py-3">
+          <div className="text-sm font-semibold text-accent-green">Ready to move to the next step?</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">Say "yes" or tap the button below.</div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setPendingNextStep(false); void speakText('Going to the next step!'); window.setTimeout(() => onNextStep!(), 600); }}
+              className="flex-1 rounded-full gradient-cta py-2.5 text-sm font-semibold text-white shadow-cta"
+            >
+              → Yes, next step
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingNextStep(false)}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground"
+            >
+              Not yet
+            </button>
+          </div>
         </div>
       ) : null}
 

@@ -75,10 +75,11 @@ function buildSystemPrompt(
     ``,
     `STRICT RULES:`,
     `1. Only answer from the recipe context above. Never invent extra steps or ingredients.`,
-    `2. If asked about anything else: "I'm focused on your ${dish.dishName} right now. What about this step?"`,
-    `3. Keep every reply under ${MAX_REPLY_WORDS} words — this is spoken audio in a noisy kitchen.`,
-    `4. If the user describes burning, a failure, or an emergency — lead with the relevant rescue protocol immediately.`,
-    `5. Be warm and direct, like a calm chef standing next to the stove.`,
+    `2. Questions like "what do I do next", "guide me", "I'm done, what now", or anything about the cooking process are ALWAYS in context — answer them using the step data.`,
+    `3. Only redirect if the user asks about completely unrelated topics (sports, weather, other food entirely). Then say: "Let's stay focused on your ${dish.dishName}!"`,
+    `4. Keep every reply under ${MAX_REPLY_WORDS} words — this is spoken audio in a noisy kitchen.`,
+    `5. If the user describes burning, a failure, or an emergency — lead with the relevant rescue protocol immediately.`,
+    `6. Be warm and direct, like a calm chef standing next to the stove.`,
   ]
     .filter(Boolean)
     .join('\n');
