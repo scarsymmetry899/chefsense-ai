@@ -95,6 +95,25 @@ const PAN_CHECK_TRIGGERS = [
   'use the pan checker', 'open pan checker', 'pan analysis',
 ];
 
+/**
+ * Secondary check: if the user expressed forward intent AND the AI reply
+ * explicitly references the next step number, treat it as navigation.
+ * Catches phrases like 'Can we go to step 2?' that don't hit keyword triggers.
+ */
+function aiConfirmsNextStep(userText: string, aiReply: string, currentStepIndex: number): boolean {
+  const u = userText.toLowerCase();
+  const a = aiReply.toLowerCase();
+  const USER_FORWARD = [
+    'go to step', 'can we go', 'step 2', 'step 3', 'step 4', 'step 5',
+    'step 6', 'step 7', 'step 8', 'step 9', 'step 10', 'step 11', 'step 12',
+    'next', 'move on', 'done', 'proceed', 'continue', 'finished', 'ready',
+    'i am done', "i'm done", 'yes', 'sure', 'please',
+  ];
+  if (!USER_FORWARD.some(h => u.includes(h))) return false;
+  const nextStep = currentStepIndex + 1;
+  return a.includes('step ' + nextStep + ':') || a.includes('step ' + nextStep + ' ');
+}
+
 function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
   const lower = text.toLowerCase();
   if (NEXT_STEP_TRIGGERS.some(p => lower.includes(p))) return 'next';
@@ -393,6 +412,16 @@ export function VoiceChatPanel({
       }
     }
 
+    // Secondary navigation check: user phrased it naturally and AI confirmed the next step
+    if (userSaid && aiSaid && hasNextStep && onNextStep && !detectCommand(userSaid)) {
+      if (aiConfirmsNextStep(userSaid, aiSaid, stepIndex)) {
+        setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
+        void speakText('Moving to the next step now!');
+        window.setTimeout(() => onNextStep!(), 1000);
+        return;
+      }
+    }
+
     // Track consecutive fallbacks
     if (aiSaid) {
       if (aiSaid.includes("I'm focused on your")) {
@@ -520,6 +549,14 @@ export function VoiceChatPanel({
         setConsecutiveFallbacks(f => f + 1);
       } else {
         setConsecutiveFallbacks(0);
+      }
+      // Secondary navigation check: phrase not in trigger list but AI confirmed next step
+      if (hasNextStep && onNextStep && !detectCommand(trimmed)) {
+        if (aiConfirmsNextStep(trimmed, aiSaid, stepIndex)) {
+          setChatMessages(c => [...c, { id: newId(), role: 'assistant', text: 'Moving to the next step now! 🍳', source: 'openai' }]);
+          void speakText('Moving to the next step now!');
+          window.setTimeout(() => onNextStep!(), 1000);
+        }
       }
     } catch (err) {
       setChatError(err instanceof Error ? err.message : 'Could not reach ChefSense.');
