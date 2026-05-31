@@ -13,7 +13,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 import { AppShell } from '@/components/shell/app-shell';
-import { VoiceChatPanel } from '@/components/cook/voice-chat-panel';
+// import { VoiceChatPanel } from '@/components/cook/voice-chat-panel'; // Phase 2
 import { Header } from '@/components/shell/header';
 import {
   DishVisual,
@@ -106,7 +106,7 @@ export default function DishPage() {
   });
   const resumeStep = getResumeStepForDish(dish.dishId, 1);
   const hasProgress = hasInProgressDish(dish.dishId);
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  // const [voiceOpen, setVoiceOpen] = useState(false); // Phase 2 — voice panel
 
   return (
     <AppShell className="pb-32">
@@ -294,39 +294,12 @@ export default function DishPage() {
         </Link>
       </div>
 
-      {/* Voice & Chat — Ingredients & Prep Mode */}
-      <div className="mt-6 pb-4">
-        <div className="flex items-center justify-between rounded-[22px] border border-border/60 bg-card px-4 py-3 shadow-soft">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <span>🎤</span>
-            <span>Voice & Chat — Ingredients & Prep</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setVoiceOpen((v) => !v)}
-            className="rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary"
-          >
-            {voiceOpen ? 'Close' : 'Open'}
-          </button>
-        </div>
-        <VoiceChatPanel
-          dishId={dish.dishId}
-          stepIndex={0}
-          stepTitle="Ingredients & Kitchen Prep"
-          primer={[
-            `You're preparing to cook ${dish.dishName} (${dish.region}, ${dish.difficulty}). ${dish.summary}`,
-            `\nIngredients needed (${dish.ingredients.length} total):\n${dish.ingredients.map(i => `• ${i.name}: ${i.quantity}${i.note ? ` — ${i.note}` : ''}`).join('\n')}`,
-            dish.tools.length ? `\nKitchen tools required:\n${dish.tools.map(t => `• ${t.name}${t.note ? ` — ${t.note}` : ''}`).join('\n')}` : '',
-            dish.miseEnPlace?.length ? `\nPrep checklist:\n${dish.miseEnPlace.map(m => `• ${m.label}`).join('\n')}` : '',
-            `\nTotal time: ${dish.totalTimeMin} min | Serves: ${dish.plating.serves}`,
-          ].filter(Boolean).join('\n')}
-          expanded={voiceOpen}
-          collapsedHint="Ask about ingredients, quantities, tools, or prep tips."
-          expandedHint="Ask me anything about the ingredients, tools, or prep for this dish."
-          helperHint="Ask about substitutions, quantities, equipment alternatives, or how to prepare ingredients."
-          placeholder="Ask about ingredients or kitchen prep..."
-        />
-      </div>
+      {/* PHASE 2 — Voice & Chat for Ingredients & Kitchen Prep
+          Will sit below the Servings / Ingredients / Tools metric tiles,
+          styled identically to the cook-page voice panel.
+          Awaiting: serving-size-aware quantity scaling so the AI mirrors
+          exactly what the checklist shows (e.g., 2-person portions).
+      */}
     </AppShell>
   );
 }
