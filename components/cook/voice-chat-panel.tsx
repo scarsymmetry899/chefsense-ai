@@ -127,6 +127,12 @@ function aiConfirmsNextStep(userText: string, aiReply: string, currentStepIndex:
 
 function detectCommand(text: string): 'next' | 'prev' | 'start_timer' | 'pause_timer' | 'time_remaining' | 'pan_check' | null {
   const lower = text.toLowerCase();
+  // If the user is asking HOW to do something, don't trigger navigation — let the AI explain the UI.
+  const HOW_TO_PATTERNS = ['how to', 'tell me how', 'how do i', 'how can i', 'how should i', 'how do you'];
+  const isHowToQuery = HOW_TO_PATTERNS.some(p => lower.includes(p));
+  if (isHowToQuery && (lower.includes('next step') || lower.includes('previous step') || lower.includes('mark') || lower.includes('complete'))) {
+    return null;
+  }
   if (NEXT_STEP_TRIGGERS.some(p => lower.includes(p))) return 'next';
   if (PREV_STEP_TRIGGERS.some(p => lower.includes(p))) return 'prev';
   if (START_TIMER_TRIGGERS.some(p => lower.includes(p))) return 'start_timer';
@@ -187,6 +193,62 @@ async function playAudioBuffer(
   source.start(0);
 }
 
+// ─── Copy ─────────────────────────────────────────────────────────────────────
+
+const PANEL_COPY = {
+  en: {
+    stopSend: 'Stop & send',
+    talkToChef: 'Talk to chef',
+    chatWithChef: 'Chat with chef',
+    chefSpeaking: 'Chef is speaking…',
+    thinking: 'ChefSense is thinking…',
+    readyToMove: 'Ready to move to the next step?',
+    sayYes: 'Say "yes" or tap the button below.',
+    yesNext: '→ Yes, next step',
+    notYet: 'Not yet',
+    panUpload: '📷 Upload a photo of your pan for step-specific AI analysis.',
+    openPanChecker: 'Open AI Pan Checker →',
+    voiceTrouble: 'Voice seems to be having trouble. Try typing your question in the chat box below for a better response.',
+    askAnything: 'Ask anything about',
+    cuesTimingHeat: '— cues, timing, heat, what to correct.',
+    tryAgain: 'Try again',
+  },
+  hi: {
+    stopSend: 'रोकें और भेजें',
+    talkToChef: 'शेफ से बात करें',
+    chatWithChef: 'शेफ से चैट करें',
+    chefSpeaking: 'शेफ बोल रहे हैं…',
+    thinking: 'ChefSense सोच रहा है…',
+    readyToMove: 'क्या आप अगले कदम पर जाने के लिए तैयार हैं?',
+    sayYes: '"हाँ" कहें या नीचे बटन दबाएँ।',
+    yesNext: '→ हाँ, अगला कदम',
+    notYet: 'अभी नहीं',
+    panUpload: '📷 इस स्टेप के लिए AI विश्लेषण हेतु अपने पैन की फोटो अपलोड करें।',
+    openPanChecker: 'AI Pan Checker खोलें →',
+    voiceTrouble: 'वॉइस में समस्या आ रही है। बेहतर जवाब के लिए नीचे चैट बॉक्स में टाइप करें।',
+    askAnything: 'इसके बारे में कुछ भी पूछें:',
+    cuesTimingHeat: '— क्यूज़, टाइमिंग, हीट, क्या सुधारना है।',
+    tryAgain: 'फिर से कोशिश करें',
+  },
+  te: {
+    stopSend: 'ఆపి పంపండి',
+    talkToChef: 'చెఫ్‌తో మాట్లాడండి',
+    chatWithChef: 'చెఫ్‌తో చాట్ చేయండి',
+    chefSpeaking: 'చెఫ్ మాట్లాడుతున్నారు…',
+    thinking: 'ChefSense ఆలోచిస్తోంది…',
+    readyToMove: 'తదుపరి దశకు వెళ్లడానికి సిద్ధంగా ఉన్నారా?',
+    sayYes: '"అవును" చెప్పండి లేదా కింద బటన్ నొక్కండి.',
+    yesNext: '→ అవును, తదుపరి దశ',
+    notYet: 'ఇంకా కాదు',
+    panUpload: '📷 ఈ దశకు AI విశ్లేషణ కోసం మీ పాన్ ఫోటో అప్‌లోడ్ చేయండి.',
+    openPanChecker: 'AI Pan Checker తెరవండి →',
+    voiceTrouble: 'వాయిస్‌కి సమస్య వస్తోంది. మెరుగైన సమాధానానికి కింది చాట్ బాక్స్‌లో టైప్ చేయండి.',
+    askAnything: 'దీని గురించి ఏదైనా అడగండి:',
+    cuesTimingHeat: '— క్యూ‌లు, టైమింగ్, హీట్, ఏం సరిచేయాలో.',
+    tryAgain: 'మళ్ళీ ప్రయత్నించండి',
+  },
+} as const;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function VoiceChatPanel({
@@ -210,6 +272,7 @@ export function VoiceChatPanel({
 }: VoiceChatPanelProps) {
   const { lang } = useLanguage();
   const locale = localeFromLang(lang);
+  const pc = PANEL_COPY[lang];
 
   // ── Chat state — persisted per dish ──
   const chatStorageKey = `chefsense.chat.${dishId}`;
@@ -634,7 +697,7 @@ export function VoiceChatPanel({
         >
           {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           <span className="text-[12px] font-semibold leading-none">
-            {recording ? 'Stop & send' : 'Talk to chef'}
+            {recording ? pc.stopSend : pc.talkToChef}
           </span>
         </button>
 
@@ -646,7 +709,7 @@ export function VoiceChatPanel({
           aria-label="Open chat input"
         >
           <MessageCircleMore className="h-5 w-5 text-primary" />
-          <span className="text-[12px] font-semibold leading-none text-foreground">Chat with chef</span>
+          <span className="text-[12px] font-semibold leading-none text-foreground">{pc.chatWithChef}</span>
         </button>
       </div>
 
@@ -654,7 +717,7 @@ export function VoiceChatPanel({
       {speaking ? (
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary-dark">
           <Volume2 className="h-3.5 w-3.5 animate-pulse" />
-          Chef is speaking…
+          {pc.chefSpeaking}
         </div>
       ) : null}
 
@@ -668,7 +731,7 @@ export function VoiceChatPanel({
           {micError.retryable ? (
             <button type="button" onClick={() => { setMicError(null); void startRecording(); }}
               className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background px-3 py-1 text-xs font-semibold text-primary">
-              <RefreshCw className="h-3 w-3" /> Try again
+              <RefreshCw className="h-3 w-3" /> {pc.tryAgain}
             </button>
           ) : null}
         </div>
@@ -677,22 +740,22 @@ export function VoiceChatPanel({
       {/* ── Next-step confirmation card — no auto-navigation, explicit user consent ── */}
       {pendingNextStep && hasNextStep ? (
         <div className="mt-3 rounded-[18px] border-2 border-accent-green/50 bg-accent-green-soft px-4 py-3">
-          <div className="text-sm font-semibold text-accent-green">Ready to move to the next step?</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">Say "yes" or tap the button below.</div>
+          <div className="text-sm font-semibold text-accent-green">{pc.readyToMove}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{pc.sayYes}</div>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={() => { setPendingNextStep(false); window.setTimeout(() => onNextStep!(), 600); }}
               className="flex-1 rounded-full gradient-cta py-2.5 text-sm font-semibold text-white shadow-cta"
             >
-              → Yes, next step
+              {pc.yesNext}
             </button>
             <button
               type="button"
               onClick={() => setPendingNextStep(false)}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground"
             >
-              Not yet
+              {pc.notYet}
             </button>
           </div>
         </div>
@@ -701,13 +764,13 @@ export function VoiceChatPanel({
       {/* Pan check helper — with direct button link */}
       {showPanCheckOption ? (
         <div className="mt-3 rounded-[18px] border border-primary/25 bg-primary-soft/40 px-3 py-3">
-          <div className="text-xs text-primary-dark">📷 Upload a photo of your pan for step-specific AI analysis.</div>
+          <div className="text-xs text-primary-dark">{pc.panUpload}</div>
           <Link
             href={ROUTES.dishPanCheck(dishId, stepIndex)}
             className="mt-2 flex items-center justify-center gap-2 rounded-full border border-primary/30 bg-background px-4 py-2.5 text-sm font-semibold text-primary"
             onClick={() => setShowPanCheckOption(false)}
           >
-            Open AI Pan Checker →
+            {pc.openPanChecker}
           </Link>
         </div>
       ) : null}
@@ -715,7 +778,7 @@ export function VoiceChatPanel({
       {/* Consecutive fallback banner */}
       {consecutiveFallbacks >= 2 ? (
         <div className="mt-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Voice seems to be having trouble. Try typing your question in the chat box below for a better response.
+          {pc.voiceTrouble}
         </div>
       ) : null}
 
@@ -729,9 +792,9 @@ export function VoiceChatPanel({
           >
             {chatMessages.length === 0 ? (
               <div className="rounded-[18px] border border-dashed border-border bg-card/60 px-3 py-3 text-sm text-muted-foreground">
-                Ask anything about{' '}
+                {pc.askAnything}{' '}
                 <span className="font-medium text-foreground">{stepTitle.toLowerCase()}</span>
-                {' '}— cues, timing, heat, what to correct.
+                {' '}{pc.cuesTimingHeat}
               </div>
             ) : null}
 
@@ -752,7 +815,7 @@ export function VoiceChatPanel({
           {pending ? (
             <div className="mr-auto inline-flex items-center gap-2 rounded-[18px] bg-card px-3 py-2.5 text-sm text-muted-foreground shadow-soft">
               <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-primary" />
-              ChefSense is thinking…
+              {pc.thinking}
             </div>
           ) : null}
 

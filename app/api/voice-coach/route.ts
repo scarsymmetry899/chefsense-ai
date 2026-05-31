@@ -248,6 +248,12 @@ export async function POST(request: Request) {
 function buildFallbackReply(question: string, step: CookingStep, dish: Dish) {
   const lower = question.toLowerCase();
 
+  // "How to" navigate / mark as done
+  if ((lower.includes('how to') || lower.includes('tell me how') || lower.includes('how do i')) &&
+      (lower.includes('next step') || lower.includes('mark') || lower.includes('complete') || lower.includes('done'))) {
+    return 'Scroll down and tap "Mark step done" — that completes the current step and unlocks the Next button at the top. Then tap Next to move forward.';
+  }
+
   // Pan check intent
   if (lower.includes('pan') || lower.includes('how does it look') || lower.includes('check my') || lower.includes('analyse')) {
     return 'Tap the AI Pan Checker button below to upload a photo of your pan — it will analyse exactly what\'s happening at this step and give you specific guidance.';

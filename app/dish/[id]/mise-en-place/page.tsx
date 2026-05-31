@@ -30,10 +30,74 @@ type PrepState = {
   running: boolean;
 };
 
+const MEP_COPY = {
+  en: {
+    prepLabel: 'Kitchen Prep Planner',
+    prepChecklist: 'Kitchen Prep Checklist',
+    prepTimer: 'Prep Timer', tools: 'Tools Needed', ingredientsLabel: 'Ingredients',
+    running: 'Running now', ready: 'Ready to start', nearby: 'Keep nearby', checked: 'Already checked',
+    prepTimerTitle: 'Start your kitchen prep clock',
+    startPrepTimer: 'Start prep timer', pausePrepTimer: 'Pause prep timer',
+    prepProgress: 'Prep Progress', tasksOf: (done: number, total: number) => `${done} of ${total} tasks done`,
+    timerRunning: 'Timer running', timerPaused: 'Timer paused',
+    doneOf: (done: number, total: number) => `${done}/${total} done`,
+    startCooking: 'Start Cooking Session',
+    startCookingSub: 'Your prep progress will stay saved while you cook.',
+    chefTip: (n: number) => `Chef Tip ${n}`,
+    tips: [
+      'Good prep makes the cook smoother. Keep chopped ingredients, blender jars, and hot water within reach before you begin.',
+      'Set your spices in cooking order so you do not overheat the pan while searching for the next one.',
+      'Keep one clean spoon and one tasting spoon ready from the start for a calmer cooking flow.',
+    ],
+    sliceAndPrep: 'Slice, soak, marinate, and keep your tools ready before the stove work begins.',
+  },
+  hi: {
+    prepLabel: 'किचन तैयारी प्लानर',
+    prepChecklist: 'किचन तैयारी चेकलिस्ट',
+    prepTimer: 'प्रेप टाइमर', tools: 'ज़रूरी उपकरण', ingredientsLabel: 'सामग्री',
+    running: 'अभी चल रहा है', ready: 'शुरू करने के लिए तैयार', nearby: 'पास रखें', checked: 'पहले से जाँचा',
+    prepTimerTitle: 'अपना किचन प्रेप क्लॉक शुरू करें',
+    startPrepTimer: 'प्रेप टाइमर शुरू करें', pausePrepTimer: 'प्रेप टाइमर रोकें',
+    prepProgress: 'तैयारी की प्रगति', tasksOf: (done: number, total: number) => `${done} में से ${total} काम पूरे`,
+    timerRunning: 'टाइमर चल रहा है', timerPaused: 'टाइमर रुका है',
+    doneOf: (done: number, total: number) => `${done}/${total} पूरे`,
+    startCooking: 'कुकिंग सेशन शुरू करें',
+    startCookingSub: 'पकाते समय आपकी तैयारी की प्रगति सेव रहेगी।',
+    chefTip: (n: number) => `शेफ टिप ${n}`,
+    tips: [
+      'अच्छी तैयारी से पकाना आसान हो जाता है। कटी हुई सामग्री, ब्लेंडर जार और गर्म पानी पहले से पास रखें।',
+      'मसालों को पकाने के क्रम में सजाएँ ताकि अगले मसाले को ढूंढते समय पैन ज़्यादा न जले।',
+      'शुरू से ही एक साफ़ चम्मच और एक चखने का चम्मच तैयार रखें, इससे पकाना आरामदायक रहेगा।',
+    ],
+    sliceAndPrep: 'चूल्हे पर काम शुरू करने से पहले काटें, भिगोएँ, मैरिनेट करें और अपने उपकरण तैयार रखें।',
+  },
+  te: {
+    prepLabel: 'కిచెన్ తయారీ ప్లానర్',
+    prepChecklist: 'కిచెన్ తయారీ చెక్‌లిస్ట్',
+    prepTimer: 'ప్రెప్ టైమర్', tools: 'అవసరమైన పరికరాలు', ingredientsLabel: 'సామగ్రి',
+    running: 'ఇప్పుడు నడుస్తోంది', ready: 'ప్రారంభించడానికి సిద్ధం', nearby: 'దగ్గర ఉంచండి', checked: 'ఇప్పటికే చెక్ చేశారు',
+    prepTimerTitle: 'మీ కిచెన్ ప్రెప్ క్లాక్ ప్రారంభించండి',
+    startPrepTimer: 'ప్రెప్ టైమర్ ప్రారంభించండి', pausePrepTimer: 'ప్రెప్ టైమర్ ఆపండి',
+    prepProgress: 'తయారీ ప్రగతి', tasksOf: (done: number, total: number) => `${total} లో ${done} పనులు పూర్తి`,
+    timerRunning: 'టైమర్ నడుస్తోంది', timerPaused: 'టైమర్ ఆగింది',
+    doneOf: (done: number, total: number) => `${done}/${total} పూర్తి`,
+    startCooking: 'వంట సెషన్ ప్రారంభించండి',
+    startCookingSub: 'వంట చేస్తున్నప్పుడు మీ తయారీ ప్రగతి సేవ్ అవుతూ ఉంటుంది.',
+    chefTip: (n: number) => `చెఫ్ టిప్ ${n}`,
+    tips: [
+      'మంచి తయారీ వంటను సులభం చేస్తుంది. కోసిన సామగ్రి, బ్లెండర్ జార్‌లు, వేడి నీరు ముందే దగ్గర ఉంచుకోండి.',
+      'మసాలాలను వంట క్రమంలో అమర్చండి, తద్వారా తర్వాతి మసాల వెతికేటప్పుడు పాన్ అతిగా వేడి కాదు.',
+      'మొదటి నుండే ఒక శుభ్రమైన గరిటె మరియు ఒక రుచి చూసే గరిటె సిద్ధంగా ఉంచుకోండి.',
+    ],
+    sliceAndPrep: 'పొయ్యిపై పని ప్రారంభించే ముందు కోయండి, నానబెట్టండి, మారినేట్ చేయండి, పరికరాలు సిద్ధం చేసుకోండి.',
+  },
+} as const;
+
 export default function DishMiseEnPlacePage() {
   const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const { lang } = useLanguage();
+  const mc = MEP_COPY[lang];
   const storageKey = `${STORAGE_PREFIX}${dish.dishId}`;
 
   const [checked, setChecked] = useState<string[]>([]);
@@ -89,25 +153,6 @@ export default function DishMiseEnPlacePage() {
   const checkedSet = useMemo(() => new Set(checked), [checked]);
   const completed = checked.length;
   const progress = Math.round((completed / dish.miseEnPlace.length) * 100);
-  const prepLabel = copyForLang(lang, {
-    en: 'Kitchen Prep Planner',
-    hi: 'Kitchen Tayyari Planner',
-    te: 'Kitchen Tayyari Planner',
-  });
-  const prepChecklist = copyForLang(lang, {
-    en: 'Kitchen Prep Checklist',
-    hi: 'Kitchen Tayyari Checklist',
-    te: 'Kitchen Tayyari Checklist',
-  });
-  const metricCopy = {
-    prepTimer: copyForLang(lang, { en: 'Prep Timer', hi: 'Prep Timer', te: 'Prep Timer' }),
-    tools: copyForLang(lang, { en: 'Tools Needed', hi: 'Tools Needed', te: 'Tools Needed' }),
-    ingredients: copyForLang(lang, { en: 'Ingredients', hi: 'Ingredients', te: 'Ingredients' }),
-    running: copyForLang(lang, { en: 'Running now', hi: 'Running now', te: 'Running now' }),
-    ready: copyForLang(lang, { en: 'Ready to start', hi: 'Ready to start', te: 'Ready to start' }),
-    nearby: copyForLang(lang, { en: 'Keep nearby', hi: 'Keep nearby', te: 'Keep nearby' }),
-    checked: copyForLang(lang, { en: 'Already checked', hi: 'Already checked', te: 'Already checked' }),
-  };
 
   function toggleTask(taskId: string) {
     const nextChecked = !checkedSet.has(taskId);
@@ -140,12 +185,8 @@ export default function DishMiseEnPlacePage() {
     setRunning(true);
   }
 
-  const chefTips = [
-    'Good prep makes the cook smoother. Keep chopped ingredients, blender jars, and hot water within reach before you begin.',
-    'Set your spices in cooking order so you do not overheat the pan while searching for the next one.',
-    'Keep one clean spoon and one tasting spoon ready from the start for a calmer cooking flow.',
-  ];
-  const activeTip = chefTips[tipIndex] ?? chefTips[0];
+  const chefTips = mc.tips;
+  const activeTip = mc.tips[tipIndex] ?? mc.tips[0];
 
   return (
     <AppShell className="pb-32">
@@ -159,38 +200,38 @@ export default function DishMiseEnPlacePage() {
             className="h-[220px] rounded-none border-0 md:h-full"
           />
           <div className="p-5">
-            <SectionEyebrow label={prepLabel} />
+            <SectionEyebrow label={mc.prepLabel} />
             <h1 className="text-[34px] leading-[0.95]">{dish.dishName}</h1>
             <p className="mt-3 text-[16px] leading-7 text-muted-foreground">
-              Slice, soak, marinate, and keep your tools ready before the stove work begins.
+              {mc.sliceAndPrep}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <StatusPill label={`${completed}/${dish.miseEnPlace.length} done`} tone="green" />
-              <StatusPill label={running ? 'Timer running' : 'Timer paused'} />
+              <StatusPill label={mc.doneOf(completed, dish.miseEnPlace.length)} tone="green" />
+              <StatusPill label={running ? mc.timerRunning : mc.timerPaused} />
             </div>
           </div>
         </div>
 
         <div className="border-t border-border/70 px-5 py-5">
           <div className="flex items-center justify-between gap-3 text-[16px]">
-            <span className="font-medium text-foreground">Prep Progress</span>
-            <span className="text-muted-foreground">{completed} of {dish.miseEnPlace.length} tasks done</span>
+            <span className="font-medium text-foreground">{mc.prepProgress}</span>
+            <span className="text-muted-foreground">{mc.tasksOf(completed, dish.miseEnPlace.length)}</span>
           </div>
           <ProgressBar value={progress} className="mt-4" />
         </div>
       </ScreenCard>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <MetricTile icon={Clock3} title={metricCopy.prepTimer} value={formatCountdown(remainingSeconds)} detail={running ? metricCopy.running : metricCopy.ready} />
-        <MetricTile icon={UtensilsCrossed} title={metricCopy.tools} value={`${dish.tools.length}`} detail={metricCopy.nearby} />
-        <MetricTile icon={Soup} title={metricCopy.ingredients} value={`${dish.ingredients.length}`} detail={metricCopy.checked} />
+        <MetricTile icon={Clock3} title={mc.prepTimer} value={formatCountdown(remainingSeconds)} detail={running ? mc.running : mc.ready} />
+        <MetricTile icon={UtensilsCrossed} title={mc.tools} value={`${dish.tools.length}`} detail={mc.nearby} />
+        <MetricTile icon={Soup} title={mc.ingredientsLabel} value={`${dish.ingredients.length}`} detail={mc.checked} />
       </div>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={PlugZap} label="Prep Timer" className="mb-1" />
-            <h2 className="text-[22px]">Start your kitchen prep clock</h2>
+            <SectionEyebrow icon={PlugZap} label={mc.prepTimer} className="mb-1" />
+            <h2 className="text-[22px]">{mc.prepTimerTitle}</h2>
           </div>
           <button
             type="button"
@@ -201,14 +242,14 @@ export default function DishMiseEnPlacePage() {
                 : 'rounded-full border border-primary/20 gradient-cta px-5 py-2.5 text-sm font-semibold text-white shadow-cta'
             }
           >
-            {running ? 'Pause prep timer' : 'Start prep timer'}
+            {running ? mc.pausePrepTimer : mc.startPrepTimer}
           </button>
         </div>
       </ScreenCard>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[22px]">{prepChecklist}</h2>
+          <h2 className="text-[22px]">{mc.prepChecklist}</h2>
           <span className="text-sm font-semibold text-accent-green">{completed} / {dish.miseEnPlace.length}</span>
         </div>
 
@@ -243,7 +284,7 @@ export default function DishMiseEnPlacePage() {
 
       <div className="mt-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <SectionEyebrow label={`Chef Tip ${tipIndex + 1}`} className="mb-0" />
+          <SectionEyebrow label={mc.chefTip(tipIndex + 1)} className="mb-0" />
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -274,8 +315,8 @@ export default function DishMiseEnPlacePage() {
           <span className="flex items-center gap-3">
             <Soup className="h-6 w-6" />
             <span className="flex flex-col leading-tight">
-              <span className="font-serif text-[20px]">Start Cooking Session</span>
-              <span className="text-sm text-white/90">Your prep progress will stay saved while you cook.</span>
+              <span className="font-serif text-[20px]">{mc.startCooking}</span>
+              <span className="text-sm text-white/90">{mc.startCookingSub}</span>
             </span>
           </span>
           <ChevronRight className="h-5 w-5" />
@@ -292,9 +333,3 @@ export default function DishMiseEnPlacePage() {
   );
 }
 
-function copyForLang(
-  lang: 'en' | 'hi' | 'te',
-  copy: Record<'en' | 'hi' | 'te', string>,
-) {
-  return copy[lang] ?? copy.en;
-}

@@ -163,13 +163,20 @@ export default function DishFinishPage() {
       howTaste: 'How to taste',
       justRightLabel: 'Just right',
       quickFix: 'Quick fix',
+      whatToDo: 'What would you like to do?',
+      plateLike: '🍽️  Plate like a chef',
+      shareMyPlate: '📸  Share my plate',
+      cookAnother: '🍳  Cook another dish',
+      goHome: '🏠  Go home',
+      viewProfile: '👤  View my profile & score',
+      heroTitle: (name: string) => `Your ${name} is cooked and ready!`,
     },
     hi: {
-      almostReady: 'Almost ready',
-      added: 'Added',
-      plate: 'Plate Like a Chef',
+      almostReady: 'लगभग तैयार',
+      added: 'जोड़ा',
+      plate: 'शेफ़ की तरह प्लेट करें',
       plateSub: 'अपनी डिश को रेस्टोरेंट-स्टाइल प्रेज़ेंटेशन दें।',
-      share: 'Share My Plate',
+      share: 'मेरी प्लेट शेयर करें',
       shareSub: 'फाइनल प्लेट अपलोड करें, रेट करें और एक प्रीमियम कैप्शन लें।',
       overall: 'कुल संतुलन',
       chefScore: 'ChefSense',
@@ -182,13 +189,20 @@ export default function DishFinishPage() {
       howTaste: 'कैसे चखें',
       justRightLabel: 'सही स्वाद',
       quickFix: 'झटपट सुधार',
+      whatToDo: 'आप क्या करना चाहेंगे?',
+      plateLike: '🍽️  शेफ़ की तरह प्लेट करें',
+      shareMyPlate: '📸  मेरी प्लेट शेयर करें',
+      cookAnother: '🍳  कोई और डिश पकाएँ',
+      goHome: '🏠  होम पर जाएँ',
+      viewProfile: '👤  मेरी प्रोफ़ाइल और स्कोर देखें',
+      heroTitle: (name: string) => `आपका ${name} बनकर तैयार है!`,
     },
     te: {
-      almostReady: 'Almost ready',
-      added: 'Added',
-      plate: 'Plate Like a Chef',
+      almostReady: 'దాదాపు సిద్ధం',
+      added: 'జోడించారు',
+      plate: 'చెఫ్‌లా ప్లేట్ చేయండి',
       plateSub: 'మీ డిష్‌ను రెస్టారెంట్-స్టైల్ ప్రెజెంటేషన్‌గా మార్చండి.',
-      share: 'Share My Plate',
+      share: 'నా ప్లేట్ షేర్ చేయండి',
       shareSub: 'ఫైనల్ ప్లేట్‌ను అప్‌లోడ్ చేసి, రేట్ చేసి, ప్రీమియం క్యాప్షన్ పొందండి.',
       overall: 'మొత్తం సమతుల్యత',
       chefScore: 'ChefSense',
@@ -201,6 +215,13 @@ export default function DishFinishPage() {
       howTaste: 'ఎలా రుచి చూడాలి',
       justRightLabel: 'సరైన రుచి',
       quickFix: 'తక్షణ పరిష్కారం',
+      whatToDo: 'మీరు ఏమి చేయాలనుకుంటున్నారు?',
+      plateLike: '🍽️  చెఫ్‌లా ప్లేట్ చేయండి',
+      shareMyPlate: '📸  నా ప్లేట్ షేర్ చేయండి',
+      cookAnother: '🍳  మరో డిష్ వండండి',
+      goHome: '🏠  హోమ్‌కు వెళ్లండి',
+      viewProfile: '👤  నా ప్రొఫైల్ & స్కోర్ చూడండి',
+      heroTitle: (name: string) => `మీ ${name} వండి సిద్ధమైంది!`,
     },
   }[lang];
 
@@ -296,7 +317,7 @@ export default function DishFinishPage() {
       <section className="text-center">
         <div className="text-[48px] leading-none">🎉</div>
         <h1 className="mt-2 font-serif text-[30px] leading-tight text-foreground">
-          Your {dish.dishName} is cooked and ready!
+          {copy.heroTitle(dish.dishName)}
         </h1>
         <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
           {t('finish.subtitle')}
@@ -506,40 +527,40 @@ export default function DishFinishPage() {
       </ScreenCard>
 
       <ScreenCard className="mt-6 space-y-3">
-        <SectionEyebrow label="What would you like to do?" />
+        <SectionEyebrow label={copy.whatToDo} />
         <Link
           href={ROUTES.dishPlate(dish.dishId)}
           className="flex w-full items-center justify-between rounded-[18px] border border-primary/20 gradient-cta px-4 py-3.5 text-left text-sm font-semibold text-white shadow-cta"
         >
-          <span>🍽️  Plate like a chef</span>
+          <span>{copy.plateLike}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
         <Link
           href={ROUTES.dishShare(dish.dishId)}
           className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
-          <span>📸  Share my plate</span>
+          <span>{copy.shareMyPlate}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
         <Link
           href={ROUTES.dishes}
           className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
-          <span>🍳  Cook another dish</span>
+          <span>{copy.cookAnother}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
         <Link
           href={ROUTES.home}
           className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
-          <span>🏠  Go home</span>
+          <span>{copy.goHome}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
         <Link
           href={ROUTES.profile}
           className="flex w-full items-center justify-between rounded-[18px] border border-border bg-card px-4 py-3.5 text-left text-sm font-semibold text-foreground shadow-soft"
         >
-          <span>👤  View my profile &amp; score</span>
+          <span>{copy.viewProfile}</span>
           <ChevronRight className="h-4 w-4" />
         </Link>
       </ScreenCard>

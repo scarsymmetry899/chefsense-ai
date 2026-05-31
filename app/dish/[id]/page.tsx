@@ -28,7 +28,6 @@ import { ROUTES } from '@/lib/constants/routes';
 import { getBaseServings, getToolReference, scaleQuantity } from '@/lib/dish-flow';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { useLocalizedDishView } from '@/lib/i18n/use-localized-dish';
-import { TT } from '@/components/shared/translated';
 import { playSoundEffect } from '@/lib/sound-effects';
 import { getResumeStepForDish, hasInProgressDish } from '@/lib/cooking-session';
 import { recordRecentlyViewedDish } from '@/lib/user-state';
@@ -41,10 +40,77 @@ type IngredientState = {
   checked: string[];
 };
 
+const DISH_COPY = {
+  en: {
+    person: 'person', people: 'people', ready: 'ready',
+    servings: 'Servings', selectedFor: 'Selected for this cook',
+    ingredients: 'Ingredients', checklistItems: 'Checklist items',
+    tools: 'Tools', keepReady: 'To keep ready',
+    servingSize: 'Serving Size',
+    howMany: 'How many people are you cooking for?',
+    sourceBacked: 'Source-backed plan',
+    whatYouNeed: 'What you need',
+    toolsChecklist: 'Tools checklist',
+    pansEquipment: 'Pans and equipment for this dish',
+    startKitchenPrep: 'Start Kitchen Prep',
+    continueToPrep: 'Continue to Kitchen Prep',
+    resumeFrom: (n: number) => `Resume from Step ${n}`,
+    timerSaved: 'Your timer and progress are still saved.',
+    everythingReady: 'Everything is in place for the next step.',
+    canUpdate: 'You can still update this checklist anytime.',
+    ingredientChecklist: 'Ingredient Checklist',
+    beforeStart: 'Before you start cooking',
+    setupBody: 'Check off what you have, then set how many people you are cooking for. We will tune the visible ingredient quantities for that serving size.',
+  },
+  hi: {
+    person: 'व्यक्ति', people: 'लोग', ready: 'तैयार',
+    servings: 'सर्विंग', selectedFor: 'इस बार के लिए चुना गया',
+    ingredients: 'सामग्री', checklistItems: 'चेकलिस्ट आइटम',
+    tools: 'उपकरण', keepReady: 'तैयार रखें',
+    servingSize: 'परोसने का आकार',
+    howMany: 'आप कितने लोगों के लिए बना रहे हैं?',
+    sourceBacked: 'स्रोत-समर्थित प्लान',
+    whatYouNeed: 'आपको क्या चाहिए',
+    toolsChecklist: 'उपकरण चेकलिस्ट',
+    pansEquipment: 'इस डिश के लिए पैन और उपकरण',
+    startKitchenPrep: 'किचन तैयारी शुरू करें',
+    continueToPrep: 'किचन तैयारी जारी रखें',
+    resumeFrom: (n: number) => `चरण ${n} से जारी रखें`,
+    timerSaved: 'आपका टाइमर और प्रगति अभी भी सेव है।',
+    everythingReady: 'अगले कदम के लिए सब कुछ तैयार है।',
+    canUpdate: 'आप इस चेकलिस्ट को कभी भी अपडेट कर सकते हैं।',
+    ingredientChecklist: 'सामग्री चेकलिस्ट',
+    beforeStart: 'पकाना शुरू करने से पहले',
+    setupBody: 'जो सामग्री आपके पास है उसे टिक करें, फिर बताइए आप कितने लोगों के लिए बना रहे हैं। हम उसी हिसाब से मात्रा दिखाएँगे।',
+  },
+  te: {
+    person: 'వ్యక్తి', people: 'మంది', ready: 'సిద్ధం',
+    servings: 'సర్వింగ్', selectedFor: 'ఈ వంటకు ఎంచుకున్నారు',
+    ingredients: 'సామగ్రి', checklistItems: 'చెక్‌లిస్ట్ అంశాలు',
+    tools: 'పరికరాలు', keepReady: 'సిద్ధంగా ఉంచండి',
+    servingSize: 'వడ్డించే పరిమాణం',
+    howMany: 'మీరు ఎన్ని మందికి వండుతున్నారు?',
+    sourceBacked: 'మూల-ఆధారిత ప్లాన్',
+    whatYouNeed: 'మీకు ఏమి కావాలి',
+    toolsChecklist: 'పరికరాల చెక్‌లిస్ట్',
+    pansEquipment: 'ఈ డిష్‌కు పాన్‌లు మరియు పరికరాలు',
+    startKitchenPrep: 'కిచెన్ తయారీ ప్రారంభించండి',
+    continueToPrep: 'కిచెన్ తయారీ కొనసాగించండి',
+    resumeFrom: (n: number) => `దశ ${n} నుండి కొనసాగించండి`,
+    timerSaved: 'మీ టైమర్ మరియు ప్రగతి ఇంకా సేవ్ అయ్యాయి.',
+    everythingReady: 'తదుపరి దశకు అన్నీ సిద్ధంగా ఉన్నాయి.',
+    canUpdate: 'మీరు ఈ చెక్‌లిస్ట్‌ను ఎప్పుడైనా అప్‌డేట్ చేయవచ్చు.',
+    ingredientChecklist: 'పదార్థాల చెక్‌లిస్ట్',
+    beforeStart: 'వంట మొదలుపెట్టే ముందు',
+    setupBody: 'మీ దగ్గర ఉన్న పదార్థాలను టిక్ చేయండి. తర్వాత ఎన్ని మందికి వండుతున్నారో ఎంచుకోండి. దానికి అనుగుణంగా పరిమాణాలు చూపిస్తాము.',
+  },
+} as const;
+
 export default function DishPage() {
   const params = useParams<{ id: string }>();
   const dish = getDishOrThrow(params.id);
   const { lang } = useLanguage();
+  const dc = DISH_COPY[lang];
   const localized = useLocalizedDishView(dish);
   const localizedIngredientById = useMemo(() => {
     return new Map(localized.ingredients.map((item) => [item.id, item]));
@@ -89,21 +155,9 @@ export default function DishPage() {
   const checkedSet = useMemo(() => new Set(checked), [checked]);
   const progress = Math.round((checked.length / dish.ingredients.length) * 100);
   const allChecked = checked.length === dish.ingredients.length;
-  const ingredientTitle = copyForLang(lang, {
-    en: 'Ingredient Checklist',
-    hi: 'सामग्री चेकलिस्ट',
-    te: 'పదార్థాల చెక్‌లిస్ట్',
-  });
-  const setupLabel = copyForLang(lang, {
-    en: 'Before you start cooking',
-    hi: 'पकाना शुरू करने से पहले',
-    te: 'వంట మొదలుపెట్టే ముందు',
-  });
-  const setupBody = copyForLang(lang, {
-    en: 'Check off what you have, then set how many people you are cooking for. We will tune the visible ingredient quantities for that serving size.',
-    hi: 'जो सामग्री आपके पास है उसे टिक करें, फिर बताइए आप कितने लोगों के लिए बना रहे हैं। हम उसी हिसाब से मात्रा दिखाएँगे।',
-    te: 'మీ దగ్గర ఉన్న పదార్థాలను టిక్ చేయండి. తర్వాత ఎన్ని మందికి వండుతున్నారో ఎంచుకోండి. దానికి అనుగుణంగా పరిమాణాలు చూపిస్తాము.',
-  });
+  const ingredientTitle = dc.ingredientChecklist;
+  const setupLabel = dc.beforeStart;
+  const setupBody = dc.setupBody;
   const resumeStep = getResumeStepForDish(dish.dishId, 1);
   const hasProgress = hasInProgressDish(dish.dishId);
   // const [voiceOpen, setVoiceOpen] = useState(false); // Phase 2 — voice panel
@@ -124,8 +178,8 @@ export default function DishPage() {
             <h1 className="h-section">{localized.dishName}</h1>
             <p className="mt-3 t-body-lg text-muted-foreground">{setupBody}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <StatusPill label={<>{servings} {servings === 1 ? <TT>person</TT> : <TT>people</TT>}</>} />
-              <StatusPill label={<>{checked.length}/{dish.ingredients.length} <TT>ready</TT></>} tone="green" />
+              <StatusPill label={<>{servings} {servings === 1 ? dc.person : dc.people}</>} />
+              <StatusPill label={<>{checked.length}/{dish.ingredients.length} {dc.ready}</>} tone="green" />
             </div>
           </div>
         </div>
@@ -133,25 +187,25 @@ export default function DishPage() {
         <div className="border-t border-border/70 px-5 py-5">
           <div className="flex items-center justify-between gap-3 t-body-lg">
             <span className="font-medium text-foreground">{ingredientTitle}</span>
-            <span className="text-muted-foreground">{progress}% <TT>ready</TT></span>
+            <span className="text-muted-foreground">{progress}% {dc.ready}</span>
           </div>
           <ProgressBar value={progress} className="mt-4" />
         </div>
       </ScreenCard>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <MetricTile icon={Users} title={<TT>Servings</TT>} value={`${servings}`} detail={<TT>Selected for this cook</TT>} />
-        <MetricTile icon={ShoppingBasket} title={<TT>Ingredients</TT>} value={`${dish.ingredients.length}`} detail={<TT>Checklist items</TT>} />
-        <MetricTile icon={UtensilsCrossed} title={<TT>Tools</TT>} value={`${dish.tools.length}`} detail={<TT>To keep ready</TT>} />
+        <MetricTile icon={Users} title={dc.servings} value={`${servings}`} detail={dc.selectedFor} />
+        <MetricTile icon={ShoppingBasket} title={dc.ingredients} value={`${dish.ingredients.length}`} detail={dc.checklistItems} />
+        <MetricTile icon={UtensilsCrossed} title={dc.tools} value={`${dish.tools.length}`} detail={dc.keepReady} />
       </div>
 
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={Scale} label={<TT>Serving Size</TT>} className="mb-1" />
-            <h2 className="h-card"><TT>How many people are you cooking for?</TT></h2>
+            <SectionEyebrow icon={Scale} label={dc.servingSize} className="mb-1" />
+            <h2 className="h-card">{dc.howMany}</h2>
           </div>
-          <StatusPill label={<>{servings} {servings === 1 ? <TT>person</TT> : <TT>people</TT>}</>} />
+          <StatusPill label={<>{servings} {servings === 1 ? dc.person : dc.people}</>} />
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
           {SERVING_OPTIONS.map((option) => {
@@ -170,7 +224,7 @@ export default function DishPage() {
                     : 'rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground'
                 }
               >
-                {option} {option === 1 ? <TT>person</TT> : <TT>people</TT>}
+                {option} {option === 1 ? dc.person : dc.people}
               </button>
             );
           })}
@@ -180,11 +234,11 @@ export default function DishPage() {
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={Leaf} label={<TT>What you need</TT>} className="mb-1" />
+            <SectionEyebrow icon={Leaf} label={dc.whatYouNeed} className="mb-1" />
             <h2 className="h-card">{ingredientTitle}</h2>
           </div>
           <Link href={ROUTES.dishSources(dish.dishId)} className="text-sm font-semibold text-accent-green">
-            <TT>Source-backed plan</TT>
+            {dc.sourceBacked}
           </Link>
         </div>
 
@@ -240,8 +294,8 @@ export default function DishPage() {
       <ScreenCard className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <SectionEyebrow icon={UtensilsCrossed} label={<TT>Tools checklist</TT>} className="mb-1" />
-            <h2 className="h-card"><TT>Pans and equipment for this dish</TT></h2>
+            <SectionEyebrow icon={UtensilsCrossed} label={dc.toolsChecklist} className="mb-1" />
+            <h2 className="h-card">{dc.pansEquipment}</h2>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -275,18 +329,10 @@ export default function DishPage() {
             <ShoppingBasket className="h-6 w-6" />
             <span className="flex flex-col leading-tight">
               <span className="font-serif text-[20px]">
-                {hasProgress
-                  ? <TT>{`Resume from Step ${resumeStep}`}</TT>
-                  : allChecked
-                    ? <TT>Start Kitchen Prep</TT>
-                    : <TT>Continue to Kitchen Prep</TT>}
+                {hasProgress ? dc.resumeFrom(resumeStep) : allChecked ? dc.startKitchenPrep : dc.continueToPrep}
               </span>
               <span className="text-sm text-white/90">
-                {hasProgress
-                  ? <TT>Your timer and progress are still saved.</TT>
-                  : allChecked
-                    ? <TT>Everything is in place for the next step.</TT>
-                    : <TT>You can still update this checklist anytime.</TT>}
+                {hasProgress ? dc.timerSaved : allChecked ? dc.everythingReady : dc.canUpdate}
               </span>
             </span>
           </span>
@@ -304,9 +350,3 @@ export default function DishPage() {
   );
 }
 
-function copyForLang(
-  lang: 'en' | 'hi' | 'te',
-  copy: Record<'en' | 'hi' | 'te', string>,
-) {
-  return copy[lang] ?? copy.en;
-}
