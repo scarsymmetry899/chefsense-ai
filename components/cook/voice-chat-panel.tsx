@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   MessageCircleMore,
   Mic,
@@ -11,6 +12,7 @@ import {
   Square,
   Volume2,
 } from 'lucide-react';
+import { ROUTES } from '@/lib/constants/routes';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { getSupabaseSession } from '@/lib/persistence/supabase-browser';
 import type { LanguageCode } from '@/lib/i18n/dictionary';
@@ -80,8 +82,10 @@ const NEXT_STEP_TRIGGERS = [
 ];
 // Previous step detection
 const PREV_STEP_TRIGGERS = [
-  'go back to', 'go to previous', 'take me back to', 'previous step please',
-  'back to the previous', 'go back a step', 'back one step',
+  'go back to', 'go to previous', 'go to the previous', 'take me back to',
+  'previous step please', 'back to the previous', 'go back a step', 'back one step',
+  'can we go back', 'can i go back', 'i want to go back', 'want to go to previous',
+  'take me to the previous', 'previous step', 'go to last step', 'step before',
 ];
 // Timer commands
 const START_TIMER_TRIGGERS = ['start the timer', 'start timer', 'begin timer', 'start the clock', 'start counting'];
@@ -328,13 +332,14 @@ export function VoiceChatPanel({
 
     try {
       const session = getSupabaseSession();
-      const history = chatMessages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
       const form = new FormData();
       form.append('audio', blob, 'cooking-command.webm');
       form.append('dishId', dishId);
       form.append('stepIndex', String(stepIndex));
       form.append('locale', locale);
-      form.append('history', JSON.stringify(history));
+      // Do NOT send conversation history to voice-command — the system prompt
+      // already has the full current-step context. History causes the AI to
+      // reference wrong step numbers from earlier in the conversation.
 
       const resp = await fetch('/api/cook/voice-command', {
         method: 'POST',
@@ -424,11 +429,11 @@ export function VoiceChatPanel({
       }
     }
 
-    // Show confirmation card instead of auto-navigating — avoids audio overlap and false fires.
+    // Show confirmation card — do NOT speak here (audio from voice reply still playing).
+    // The card is visually clear enough; no extra TTS needed and it causes overlap.
     if (userSaid && aiSaid && hasNextStep && !pendingNextStep && !detectCommand(userSaid)) {
       if (aiConfirmsNextStep(userSaid, aiSaid, stepIndex)) {
         setPendingNextStep(true);
-        void speakText('Ready for the next step? Just say yes or tap the button.');
       }
     }
 
@@ -564,7 +569,9 @@ export function VoiceChatPanel({
 
     try {
       const session = getSupabaseSession();
-      const history = chatMessages.slice(-8).map((m) => ({ role: m.role, text: m.text }));
+      // Only send the last 2 exchanges (4 messages) — sending more causes the AI
+      // to track step numbers from earlier in the conversation and go off-script.
+      const history = chatMessages.slice(-4).map((m) => ({ role: m.role, text: m.text }));
       const resp = await fetch('/api/voice-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}) },
@@ -582,11 +589,10 @@ export function VoiceChatPanel({
       } else {
         setConsecutiveFallbacks(0);
       }
-      // Show confirmation card instead of auto-navigating — avoids audio overlap
+      // Show confirmation card — the text reply already answers the user.
       if (hasNextStep && !pendingNextStep && !detectCommand(trimmed)) {
         if (aiConfirmsNextStep(trimmed, aiSaid, stepIndex)) {
           setPendingNextStep(true);
-          void speakText('Ready for the next step? Just say yes or tap the button.');
         }
       }
     } catch (err) {
@@ -693,10 +699,17 @@ export function VoiceChatPanel({
         </div>
       ) : null}
 
-      {/* Pan check helper */}
+      {/* Pan check helper — with direct button link */}
       {showPanCheckOption ? (
-        <div className="mt-3 rounded-[16px] border border-primary/25 bg-primary-soft/40 px-3 py-2.5 text-xs text-primary-dark">
-          📷 Tap <strong>AI Pan Checker</strong> below the cook steps to upload a photo and get step-specific analysis right now.
+        <div className="mt-3 rounded-[18px] border border-primary/25 bg-primary-soft/40 px-3 py-3">
+          <div className="text-xs text-primary-dark">📷 Upload a photo of your pan for step-specific AI analysis.</div>
+          <Link
+            href={ROUTES.dishPanCheck(dishId, stepIndex)}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full border border-primary/30 bg-background px-4 py-2.5 text-sm font-semibold text-primary"
+            onClick={() => setShowPanCheckOption(false)}
+          >
+            Open AI Pan Checker →
+          </Link>
         </div>
       ) : null}
 

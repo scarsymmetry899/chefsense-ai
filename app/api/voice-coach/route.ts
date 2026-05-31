@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     step.sensoryCues?.length
       ? `Sensory cues: ${step.sensoryCues.map((c) => c.cue).join('; ')}.`
       : '',
-    'Give plain, short, chef-style guidance. When the user says they are done or asks what to do next, confirm they completed the step well and tell them what the next step is.',
+    `You are helping with THIS STEP ONLY — do NOT mention other step numbers. If the user is done, say "Great job! You can move to the next step when you're ready." Do NOT name specific other steps.`,
     'Return only JSON with a single reply string. Keep the reply under 90 words.',
     localeInstruction[locale],
   ]
