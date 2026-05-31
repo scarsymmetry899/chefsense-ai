@@ -388,6 +388,15 @@ export default function DishCookPage() {
           expandedHint={isRunning ? copy.voiceRunning : copy.voicePaused}
           helperHint={copy.voiceHelp}
           placeholder={copy.chatPlaceholder}
+          hasNextStep={Boolean(nextStep)}
+          onNextStep={
+            nextStep
+              ? () => {
+                  markStepComplete(step.index, nextStep.index);
+                  router.push(ROUTES.dishCook(dish.dishId, nextStep.index));
+                }
+              : undefined
+          }
         />
         {voiceOpen ? (
           <Link

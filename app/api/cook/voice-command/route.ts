@@ -137,8 +137,9 @@ async function streamFromElevenLabs(
   if (!apiKey) return null;
 
   const voiceId = voiceIdForLocale(locale);
-  // eleven_flash_v2_5 generates in ~75 ms — ideal for kitchen responsiveness.
-  const modelId = process.env.ELEVENLABS_FLASH_MODEL_ID?.trim() ?? 'eleven_flash_v2_5';
+  // Use the model configured in env, defaulting to the reliable multilingual model.
+  // Set ELEVENLABS_MODEL_ID=eleven_flash_v2_5 in Vercel once you confirm flash access.
+  const modelId = process.env.ELEVENLABS_MODEL_ID?.trim() ?? 'eleven_multilingual_v2';
 
   const resp = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?model_id=${modelId}`,
